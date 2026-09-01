@@ -100,6 +100,17 @@ accumulated velocity. Springs are fine (a damped spring has a closed form);
 arbitrary physics is not. An arrangement may cache per-`id` derived values, but
 must tolerate that cache being dropped at any time.
 
+That cache is not optional in practice. A stable per-item slot cannot be derived
+from a pure `arrange` call: any index into a sorted list shifts when an item
+arrives (newest-first) or expires (oldest-first), moving every neighbour.
+`slots.ts` holds the two allocators that need — monotonic for `tide`'s lanes,
+lowest-free for `erode`'s cells.
+
+An arrangement that holds position constant must also make sure position does
+not smuggle age in anyway: filling cells in raster order packs the top rows
+newest-last, which is a decay gradient nobody asked for. `erode` maps slots
+through a coprime stride so a partly-full wall scatters.
+
 ### The set
 
 Six, spanning the space. Each is roughly 40 lines, so the point is to have them
@@ -107,11 +118,11 @@ all and throw most away.
 
 | Name | Mechanic | What it tests |
 |---|---|---|
-| `grid` | Newest first in reading order, oldest falls off the end. No decay signal. | Control. Everything else has to beat this. |
-| `tide` | Enter at one edge, drift at constant velocity across the wall, exit the far edge. Position *is* age. Size constant throughout. | Whether one coherent slow motion field reads better than N independent fades. Periphery is good at coherent motion. |
+| `grid` ✅ | Newest first in reading order, oldest falls off the end. No decay signal. | Control. Everything else has to beat this. |
+| `tide` ✅ | Enter at one edge, drift at constant velocity across the wall, exit the far edge. Position *is* age. Size constant throughout. | Whether one coherent slow motion field reads better than N independent fades. Periphery is good at coherent motion. |
 | `recede` | Enter at the front plane, move back in Z, shrink and fade with distance. | The original concept. Now a candidate rather than an assumption. |
 | `settle` | Enter at the top, fall to a resting position, pack downward as items leave from the bottom. | Gravity as decay. The bottom row means "going soon" without saying so. |
-| `erode` | Position fixed for life. Decay is desaturation, then blur, then dissolve. Zero motion. | Whether motion is needed at all, or whether a still wall is calmer and just as legible. |
+| `erode` ✅ | Position fixed for life. Decay is desaturation, then blur, then dissolve. Zero motion. | Whether motion is needed at all, or whether a still wall is calmer and just as legible. |
 | `spiral` | Enter at the perimeter, spiral inward, vanish at the center. | Centripetal reading, and whether a convergence point is restful or maddening. |
 
 ### Entry behavior is a separate axis
@@ -154,12 +165,22 @@ agent writing to a new one would produce silently invisible images, which is the
 worst available failure for a system whose whole promise is "just write a file."
 
 ```sh
-slop() { d=~/slop/inbox/${1:-misc}; mkdir -p "$d"; cat > "$d/$(uuidgen).png"; }
-# some-generator | slop renders
+~/src/slopboard/bin/slop render.png       # zone defaults to the repo name
+some-generator | ~/src/slopboard/bin/slop --zone renders
+~/src/slopboard/bin/slop --print-zone     # the one implementation of the rule
 ```
 
-The `mkdir -p` is load-bearing: without it the redirect fails inside a pipeline
-and the generator's output vanishes with no image and no error anyone sees.
+Ask `slop` for the zone rather than deriving it. A caller that sanitizes the
+repo name slightly differently binds the repo to a second, adjacent zone, and
+the wall shows the split without ever reporting an error.
+
+**Binding a repo** is a skill (`skills/slopboard/`, symlinked into the harness
+skill directories). It writes a standing instruction into the repo's
+uncommitted `CLAUDE.local.md` telling future agents to send renders here and to
+stop opening them in Preview — which is the point, but note it deliberately
+overrides the global "always open the image" preference inside that repo, and
+nowhere else. `~/slop/bindings.json` records what is bound so unbind can reverse
+it exactly; it is a record, never the source of truth for agent behavior.
 
 ## Rescue, expiry, and the trash
 
@@ -248,8 +269,9 @@ the whole path an agent would — including the partial-write guard.
 2. ~~Sim mode.~~ **Done.**
 3. Point one agent at `~/slop/inbox/` and live with it for a day. This answers
    arrival rate, which decides whether 4 and 5 are worth building at all.
-4. The remaining five arrangements, `bloom`, cross-fade, hotkeys. r3f backend
-   when the first `needs3d` arrangement lands.
+4. The remaining arrangements (`recede`, `settle`, `spiral`), `bloom`,
+   cross-fade. r3f backend when the first `needs3d` arrangement lands.
+   `tide` and `erode` are in, and `[` / `]` cycles.
 5. Rescue, expiry, trash, undo.
 6. Zones.
 

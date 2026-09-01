@@ -1,0 +1,41 @@
+#!/bin/sh
+# Put an image on the slopboard wall.
+#
+#   slop FILE...              zone defaults to the repo directory name
+#   slop --zone Z FILE...
+#   some-generator | slop     reads stdin, writes a .png
+#   slop --print-zone         prints the zone this repo resolves to, and exits
+#
+# Writing the file is the whole protocol; there is nothing to start or connect to.
+set -eu
+
+zone=""
+[ -n "${SLOP_ZONE:-}" ] && zone="$SLOP_ZONE"
+if [ "${1:-}" = "--zone" ]; then zone="$2"; shift 2; fi
+if [ -z "$zone" ]; then
+  root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+  # printf, not a bare pipe: tr -c would turn basename's trailing newline into a
+  # separator character and silently bind the repo to a second, adjacent zone.
+  zone=$(printf '%s' "$(basename "$root")" | tr -c 'A-Za-z0-9._-' '-')
+fi
+
+if [ "${1:-}" = "--print-zone" ]; then echo "$zone"; exit 0; fi
+
+dir="${SLOP_ROOT:-$HOME/slop}/inbox/$zone"
+mkdir -p "$dir"
+
+if [ $# -eq 0 ]; then
+  dest="$dir/$(uuidgen).png"
+  cat > "$dest"
+  echo "$dest"
+  exit 0
+fi
+
+for f in "$@"; do
+  [ -f "$f" ] || { echo "slop: no such file: $f" >&2; exit 1; }
+  ext="${f##*.}"
+  case "$ext" in "$f") ext=png ;; esac
+  dest="$dir/$(uuidgen).$ext"
+  cp "$f" "$dest"
+  echo "$dest"
+done
