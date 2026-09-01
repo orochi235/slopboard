@@ -1,0 +1,33 @@
+{
+  "name": "slopboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n daemon,client -c cyan,magenta \"npm:dev:daemon\" \"npm:dev:client\"",
+    "dev:daemon": "tsx watch server/index.ts",
+    "dev:client": "vite",
+    "sim": "tsx server/sim.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "express": "^5.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sharp": "^0.34.2",
+    "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}

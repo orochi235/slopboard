@@ -1,0 +1,67 @@
+:root {
+  color-scheme: dark;
+  --ink: rgba(255, 255, 255, 0.55);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #0a0a0c;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.wall {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+/*
+ * Geometry arrives as custom properties written by the backend's rAF loop.
+ * Everything that is actually styling lives here; the inline surface is data.
+ */
+.slop-item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--w, 0);
+  height: var(--h, 0);
+  transform: translate3d(calc(var(--x, 0px) - 50%), calc(var(--y, 0px) - 50%), 0);
+  opacity: var(--o, 1);
+  z-index: var(--z, 0);
+  filter: blur(var(--blur, 0px)) saturate(var(--sat, 1));
+  will-change: transform, opacity;
+}
+
+.slop-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 2px;
+}
+
+.hud {
+  position: fixed;
+  left: 12px;
+  bottom: 10px;
+  z-index: 2000;
+  display: flex;
+  gap: 10px;
+  color: var(--ink);
+  opacity: 0.25;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+}
+
+.hud--flash {
+  opacity: 1;
+  transition: opacity 80ms ease;
+}
+
+.hud__offline {
+  color: #e0796b;
+}

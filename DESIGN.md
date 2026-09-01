@@ -201,6 +201,10 @@ overnight and reads as a crash. Handle it and rebuild.
 **Idle.** As described the wall renders at 60fps forever at a monitor nobody is
 watching. Drop to a low tick when nothing is animating and no pointer is present.
 
+**`res.sendFile` ignores dotfiles by default**, so serving the cache out of
+`~/slop/.cache` 404s every image with no hint as to why. Both file routes pass
+`{ dotfiles: 'allow' }`.
+
 **Serve images as URLs, never over the socket.** Push paths; let the client
 fetch. That gets HTTP caching and off-main-thread decode via `createImageBitmap`.
 Base64-over-WebSocket hitches every time a render lands.
@@ -226,12 +230,22 @@ Base64-over-WebSocket hitches every time a render lands.
 - **Default TTL.** Unknowable until the wall has been live for a day.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
 
+## Running it
+
+```
+npm install
+npm run dev                                   # daemon :8787 + client :5173
+npm run sim -- --rate=600 --count=40          # arrivals/hour; count 0 = forever
+SLOP_TTL=90 npm run dev                       # seconds; default 300
+```
+
+`sim` writes real files into `~/slop/inbox/<zone>/` in chunks, so it exercises
+the whole path an agent would — including the partial-write guard.
+
 ## Build order
 
-1. Daemon + snapshot-on-connect + `grid` arrangement over the DOM backend.
-   Proves ingest end to end.
-2. Sim mode. Cheap, and it unblocks arrangement work without waiting for real
-   traffic.
+1. ~~Daemon + snapshot-on-connect + `grid` arrangement over the DOM backend.~~ **Done.**
+2. ~~Sim mode.~~ **Done.**
 3. Point one agent at `~/slop/inbox/` and live with it for a day. This answers
    arrival rate, which decides whether 4 and 5 are worth building at all.
 4. The remaining five arrangements, `bloom`, cross-fade, hotkeys. r3f backend
