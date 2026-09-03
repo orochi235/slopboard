@@ -14,6 +14,15 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
 })
 
 describe('toStackItems', () => {
+  it("lets an item's own ttl override the wall default", () => {
+    const [fast, slow] = toStackItems(
+      [item({ id: 'fast', bornAt: 0, ttlMs: 1000 }), item({ id: 'slow', bornAt: 0 })],
+      { now: 500, ttlMs: 10_000 },
+    )
+    expect(fast!.age01).toBe(0.5)
+    expect(slow!.age01).toBe(0.05)
+  })
+
   it('derives age01 from the daemon clock, not the browser clock', () => {
     const [out] = toStackItems([item()], { now: 3000, ttlMs: 4000 })
     expect(out!.age01).toBe(0.5)

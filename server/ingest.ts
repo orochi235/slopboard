@@ -6,6 +6,7 @@ import { basename, dirname, join, extname } from 'node:path'
 import { config } from './config.ts'
 import * as store from './store.ts'
 import type { WallItem } from '@shared/protocol.ts'
+import { ttlFromName } from './ttlSuffix.ts'
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.tiff'])
 
@@ -34,8 +35,10 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     return null
   }
 
+  const ttlMs = ttlFromName(basename(sourcePath))
   const item: WallItem = {
     id,
+    ...(ttlMs === null ? {} : { ttlMs }),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,
     zone: basename(dirname(sourcePath)),
@@ -53,7 +56,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
  */
 async function adopt(sourcePath: string): Promise<WallItem | null> {
   const { mtimeMs } = await stat(sourcePath)
-  if (Date.now() - mtimeMs > config.ttlMs) {
+  if (Date.now() - mtimeMs > (ttlFromName(basename(sourcePath)) ?? config.ttlMs)) {
     await mkdir(config.trash, { recursive: true })
     await rename(sourcePath, join(config.trash, basename(sourcePath))).catch(() => {})
     return null

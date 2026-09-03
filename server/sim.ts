@@ -14,6 +14,9 @@ function arg(name: string, fallback: string) {
 const rate = Number(arg('rate', '60')) // arrivals per hour
 const total = Number(arg('count', '0')) // 0 = unbounded
 const zones = arg('zones', 'sim').split(',')
+// Synthetic cards say so in their names, so a long-lived wall is not buried
+// under them. Override with --ttl to test decay at the wall's real rate.
+const ttl = arg('ttl', '60')
 const ASPECTS = [1, 1, 16 / 9, 9 / 16, 4 / 3, 3 / 4, 21 / 9, 2 / 3]
 
 function card(n: number, hue: number, w: number, h: number) {
@@ -54,7 +57,7 @@ for (let n = 1; total === 0 || n <= total; n++) {
   const w = Math.round(700 * Math.max(1, aspect))
   const h = Math.round(700 * Math.max(1, 1 / aspect))
   const buf = await card(n, Math.floor(Math.random() * 360), w, h)
-  await slowWrite(join(dir, `${randomUUID()}.png`), buf)
+  await slowWrite(join(dir, `${randomUUID()}.ttl${ttl}.png`), buf)
 
   console.log(`[sim] ${total ? `${n}/${total}` : n} → ${zone} ${w}x${h}`)
   await sleep(gapMs)

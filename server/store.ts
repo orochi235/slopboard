@@ -36,9 +36,9 @@ async function expire(entry: Entry) {
 
 export function startSweeper() {
   setInterval(() => {
-    const cutoff = Date.now() - config.ttlMs
+    const now = Date.now()
     for (const entry of entries.values()) {
-      if (entry.item.bornAt < cutoff) void expire(entry)
+      if (entry.item.bornAt < now - (entry.item.ttlMs ?? config.ttlMs)) void expire(entry)
     }
   }, 1000)
 }

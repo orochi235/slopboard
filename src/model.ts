@@ -14,7 +14,7 @@ export function toStackItems(
   return items.map((i) => ({
     id: i.id,
     zone: i.zone,
-    age01: Math.max(0, Math.min(1, (clock.now - i.bornAt) / clock.ttlMs)),
+    age01: Math.max(0, Math.min(1, (clock.now - i.bornAt) / (i.ttlMs ?? clock.ttlMs))),
     aspect: i.h > 0 ? i.w / i.h : 1,
   }))
 }

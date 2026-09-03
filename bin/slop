@@ -3,6 +3,7 @@
 #
 #   slop FILE...              zone defaults to the repo directory name
 #   slop --zone Z FILE...
+#   slop --ttl 5m FILE...      how long it lives; bare number is seconds
 #   some-generator | slop     reads stdin, writes a .png
 #   slop --print-zone         prints the zone this repo resolves to, and exits
 #
@@ -10,8 +11,19 @@
 set -eu
 
 zone=""
+ttl=""
 [ -n "${SLOP_ZONE:-}" ] && zone="$SLOP_ZONE"
-if [ "${1:-}" = "--zone" ]; then zone="$2"; shift 2; fi
+while :; do
+  case "${1:-}" in
+    --zone) zone="$2"; shift 2 ;;
+    --ttl) ttl="$2"; shift 2 ;;
+    *) break ;;
+  esac
+done
+# A dot-segment before the extension, which is where the daemon looks.
+# Not `[ -n ... ] && ...`: that returns non-zero when unset, and set -e exits.
+suffix=""
+if [ -n "$ttl" ]; then suffix=".ttl$ttl"; fi
 if [ -z "$zone" ]; then
   root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
   # printf, not a bare pipe: tr -c would turn basename's trailing newline into a
@@ -25,7 +37,7 @@ dir="${SLOP_ROOT:-$HOME/slop}/inbox/$zone"
 mkdir -p "$dir"
 
 if [ $# -eq 0 ]; then
-  dest="$dir/$(uuidgen).png"
+  dest="$dir/$(uuidgen)$suffix.png"
   cat > "$dest"
   echo "$dest"
   exit 0
@@ -35,7 +47,7 @@ for f in "$@"; do
   [ -f "$f" ] || { echo "slop: no such file: $f" >&2; exit 1; }
   ext="${f##*.}"
   case "$ext" in "$f") ext=png ;; esac
-  dest="$dir/$(uuidgen).$ext"
+  dest="$dir/$(uuidgen)$suffix.$ext"
   cp "$f" "$dest"
   echo "$dest"
 done
