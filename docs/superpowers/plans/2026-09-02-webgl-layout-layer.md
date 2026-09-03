@@ -45,14 +45,13 @@ Operates in **`~/src/windease`**, not slopboard. Separate repo, separate commit.
 **Files:**
 - Modify: `~/src/windease/src/layout-types.ts:10`
 - Modify: every strategy emitting a `Rect`, and the existing tests asserting one
-- Modify: `~/src/windease/package.json` (version)
 - Test: `~/src/windease/src/layout/grid.z.test.ts` (create)
 
 **Interfaces:**
 - Consumes: nothing.
 - Produces: `Rect = { x: number; y: number; z: number; w: number; h: number }`. Every rect the library emits sets `z`; a 2D strategy sets `0`. No read site needs `?? 0`.
 
-`z` is required, so this task is a sweep, not a one-line addition: every strategy that builds a rect gains `z: 0`, and every existing test asserting a rect literal gains it too. That breadth is the cost of the guarantee — a read site never has to ask whether depth is present. It is a breaking change, which is why windease goes to **2.0.0** in this task rather than a follow-up.
+`z` is required, so this task is a sweep, not a one-line addition: every strategy that builds a rect gains `z: 0`, and every existing test asserting a rect literal gains it too. That breadth is the cost of the guarantee — a read site never has to ask whether depth is present. It is a breaking change; windease is consumed from a linked checkout here, so nothing pins a version against it.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -112,16 +111,12 @@ Run `npx tsc --noEmit` and fix every error by adding `z: 0` to the rect the comp
 
 Do not weaken an assertion to `toMatchObject` to avoid the edit. The point of required `z` is that the exact shape is knowable.
 
-- [ ] **Step 5: Bump the major**
-
-In `~/src/windease/package.json`, set `"version": "2.0.0"`. `file:../windease` carries no version range, so this changes nothing about how slopboard resolves it today — it records the break for whenever windease is published.
-
-- [ ] **Step 6: Run the full suite**
+- [ ] **Step 5: Run the full suite**
 
 Run: `cd ~/src/windease && npm test && npm run typecheck && npm run lint`
 Expected: all PASS.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 cd ~/src/windease
@@ -217,7 +212,7 @@ git commit -m "carry consumer-defined channels through LayoutResult"
 
 The test in this task is not ceremony. Resolving windease through `dist` instead of the alias is a **silent** failure — stale code, no error — and this test is what makes it loud, because `Rect.z` and `channels` exist only in `src` until windease is rebuilt.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/arrangements/windease.link.test.ts
@@ -260,12 +255,12 @@ describe('the windease link', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npm test`
 Expected: FAIL — no `test` script exists yet.
 
-- [ ] **Step 3: Add vitest and the dependency**
+- [x] **Step 3: Add vitest and the dependency**
 
 ```bash
 cd ~/src/slopboard
@@ -280,7 +275,7 @@ Then add the script to `package.json`, beside the existing `typecheck`:
     "test:watch": "vitest",
 ```
 
-- [ ] **Step 4: Add the alias in all three places**
+- [x] **Step 4: Add the alias in all three places**
 
 In `vite.config.ts`, extend the existing `resolve.alias` object:
 
@@ -329,12 +324,12 @@ and change `include` to:
   "include": ["src", "server", "shared", "vite.config.ts", "vitest.config.ts"]
 ```
 
-- [ ] **Step 5: Run tests and typecheck**
+- [x] **Step 5: Run tests and typecheck**
 
 Run: `cd ~/src/slopboard && npm test && npm run typecheck`
 Expected: both PASS. If `Rect.z` errors, Tasks 1–2 are not committed in windease or the alias is not being applied.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/src/slopboard

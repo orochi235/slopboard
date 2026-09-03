@@ -12,8 +12,12 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "types": ["node"],
-    "paths": { "@/*": ["./src/*"], "@shared/*": ["./shared/*"] },
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["./shared/*"],
+      "windease": ["../windease/src/index.ts"]
+    },
     "baseUrl": "."
   },
-  "include": ["src", "server", "shared", "vite.config.ts"]
+  "include": ["src", "server", "shared", "vite.config.ts", "vitest.config.ts"]
 }

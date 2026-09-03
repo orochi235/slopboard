@@ -10,6 +10,10 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
+      // Source, not dist: windease is co-designed with this repo, and its
+      // `main` points at dist, where an edit to its src is invisible until a
+      // rebuild — a stale answer with no error.
+      windease: fileURLToPath(new URL('../windease/src/index.ts', import.meta.url)),
     },
   },
   server: {
