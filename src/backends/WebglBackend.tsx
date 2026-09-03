@@ -19,7 +19,7 @@ import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { toStackItems } from '@/model.ts'
 import { Minimap, type MinimapCell } from '@/nav/Minimap.tsx'
 import { neighbourOf } from '@/nav/neighbour.ts'
-import { unionOf, zoneCellsOf } from '@/nav/zone-cells.ts'
+import { unionOf, withHeadroom, zoneCellsOf } from '@/nav/zone-cells.ts'
 import type { StackParams } from '@/params.ts'
 import { createTextureManager } from '@/textures/manager.ts'
 import { loadBitmap } from '@/textures/source.ts'
@@ -67,6 +67,7 @@ function Wall({
 }: WallProps) {
   const meshes = useRef(new Map<string, THREE.Mesh>())
   const { gl, camera } = useThree()
+  const cardEdges = params.overlay.cardEdges
 
   const textures = useMemo(
     () =>
@@ -103,6 +104,22 @@ function Wall({
   const geometry = useMemo(() => new THREE.PlaneGeometry(1, 1), [])
   useEffect(() => () => geometry.dispose(), [geometry])
 
+  // A unit square the card mesh's own scale stretches to the drawn image, so
+  // the outline needs none of the position corrections the card needed.
+  const edgeGeometry = useMemo(() => {
+    const half = 0.5
+    const g = new THREE.BufferGeometry()
+    g.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(
+        [-half, -half, 0, half, -half, 0, half, half, 0, -half, half, 0],
+        3,
+      ),
+    )
+    return g
+  }, [])
+  useEffect(() => () => edgeGeometry.dispose(), [edgeGeometry])
+
   const latest = useRef({ items, ttlMs, clockOffset })
   latest.current = { items, ttlMs, clockOffset }
 
@@ -127,7 +144,9 @@ function Wall({
     // The union of what is drawn, not the nominal container: a pile's deep
     // ranks step past its cell, so framing the container crops them.
     const wall = unionOf([...cells.current.values()]) ?? { x: 0, y: 0, z: 0, w: aspect, h: 1 }
-    const box = kind === 'wall' || !zone ? wall : (cells.current.get(zone) ?? wall)
+    const framed = kind === 'wall' || !zone ? wall : (cells.current.get(zone) ?? wall)
+    // A label hangs above its cell, so framing the cells alone crops it.
+    const box = withHeadroom(framed, params.overlay.labels ? params.overlay.labelSize * 1.6 : 0)
     const margin =
       kind === 'wall' ? params.camera.wallMargin : params.camera.stackMargin
     const target = framePose(box, {
@@ -347,9 +366,14 @@ function Wall({
           }}
         >
           <meshBasicMaterial toneMapped={false} />
+          {cardEdges && (
+            <lineLoop geometry={edgeGeometry} raycast={() => null}>
+              <lineBasicMaterial color="#22d3ee" toneMapped={false} />
+            </lineLoop>
+          )}
         </mesh>
       )),
-    [live, geometry, view.kind, dispatch],
+    [live, geometry, edgeGeometry, cardEdges, view.kind, dispatch],
   )
 
   return (

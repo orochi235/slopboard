@@ -50,3 +50,9 @@ export function unionOf(boxes: readonly Rect[]): Rect | null {
   }
   return { x: x0, y: y0, z: 0, w: x1 - x0, h: y1 - y0 }
 }
+
+/** A box grown upward, so something drawn above it — a zone's label — is inside
+ *  what the camera frames. windease's y grows downward, so "up" is less y. */
+export function withHeadroom(box: Rect, headroom: number): Rect {
+  return headroom === 0 ? box : { ...box, y: box.y - headroom, h: box.h + headroom }
+}

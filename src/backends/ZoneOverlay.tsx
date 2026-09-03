@@ -89,9 +89,10 @@ export function ZoneOverlay({ cells, zones, focus, overlay }: Props) {
       if (!box) continue
       const h = overlay.labelSize
       sprite.scale.set(h * aspect, h, 1)
-      // Inside the top-left corner rather than above it: the camera frames the
-      // union of the cells, so anything hung outside one is framed off-screen.
-      sprite.position.set(box.x + (h * aspect) / 2 + h * 0.2, -box.y - h * 0.7, 0)
+      // Above the cell's top-left, clear of the cards. The camera frames the
+      // union of the cells and a label hangs outside that, so it relies on
+      // camera.wallMargin / stackMargin for its headroom.
+      sprite.position.set(box.x + (h * aspect) / 2, -box.y + h * 0.75, 0)
     }
   })
 

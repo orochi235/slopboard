@@ -6,6 +6,7 @@ import { DomBackend } from '@/backends/DomBackend.tsx'
 import { WebglBackend } from '@/backends/WebglBackend.tsx'
 import { ParamsPanel } from '@/Params.tsx'
 import { defaultParams } from '@/params.ts'
+import { loadParams, saveParams } from '@/params.store.ts'
 import { useWall } from '@/useWall.ts'
 
 // Read once: one backend per window for its life, so a DOM wall and a 3D wall
@@ -17,7 +18,9 @@ export function App() {
   const { items, ttlMs, clockOffset, connected } = useWall()
   const [index, setIndex] = useState(0)
   const [flash, setFlash] = useState(false)
-  const [params, setParams] = useState(defaultParams)
+  // Lazy: reading storage on every render would be wasted, and the tuning
+  // pass is the whole reason the panel exists — losing it on reload defeats it.
+  const [params, setParams] = useState(() => loadParams(defaultParams))
   // createStack closes over its params, so a change rebuilds the arrangement
   // and resets its rank allocators — one frame of snapping, the same contract
   // every cache here already honours. Keyed on the layout half alone so that
@@ -26,6 +29,10 @@ export function App() {
   const layoutKey = JSON.stringify(layout)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- layoutKey is params, minus the display half
   const tuned = useMemo(() => createStack(params), [layoutKey])
+
+  useEffect(() => {
+    saveParams(params)
+  }, [params])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

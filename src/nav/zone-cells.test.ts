@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Rect } from 'windease'
-import { unionOf, zoneCellsOf } from '@/nav/zone-cells.ts'
+import { unionOf, zoneCellsOf, withHeadroom } from '@/nav/zone-cells.ts'
 
 const at = (x: number, y: number, side = 1): Rect => ({ x, y, z: 0, w: side, h: side })
 
@@ -53,5 +53,17 @@ describe('unionOf', () => {
 
   it('is null for nothing, so a caller falls back rather than framing a point', () => {
     expect(unionOf([])).toBeNull()
+  })
+})
+
+describe('withHeadroom', () => {
+  it('grows the box upward, because a label hangs above its cell', () => {
+    const out = withHeadroom({ x: 1, y: 2, z: 0, w: 4, h: 6 }, 0.5)
+    expect(out).toEqual({ x: 1, y: 1.5, z: 0, w: 4, h: 6.5 })
+  })
+
+  it('is the box itself when there is no headroom to add', () => {
+    const box = { x: 1, y: 2, z: 0, w: 4, h: 6 }
+    expect(withHeadroom(box, 0)).toEqual(box)
   })
 })

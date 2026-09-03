@@ -1,4 +1,5 @@
 import { controlsOf } from '@/params.controls.ts'
+import { groupControls } from '@/params.groups.ts'
 import { leafAt, setAt } from '@/params.paths.ts'
 import type { StackParams } from '@/params.ts'
 import './params.css'
@@ -18,14 +19,21 @@ export function ParamsPanel({
   return (
     <details className="params">
       <summary className="params__summary">params</summary>
-      <div className="params__grid">
-        {controlsOf(params).map((control) => {
+      {groupControls(controlsOf(params)).map((group) => (
+        <details className="params__group" key={group.name} open={group.name === 'wall'}>
+          <summary className="params__groupName">{group.name}</summary>
+          <div className="params__grid">
+            {group.controls.map((control) => {
           const value = leafAt(params, control.path) ?? 0
           const set = (next: number | string | boolean) =>
             onChange(setAt(params, control.path, next))
           return (
             <label key={control.path} className="params__row">
-              <span className="params__name">{control.path}</span>
+              <span className="params__name" title={control.path}>
+                {control.path.startsWith(`${group.name}.`)
+                  ? control.path.slice(group.name.length + 1)
+                  : control.path}
+              </span>
               {control.kind === 'slider' && (
                 <>
                   <input
@@ -78,9 +86,11 @@ export function ParamsPanel({
                 />
               )}
             </label>
-          )
-        })}
-      </div>
+              )
+            })}
+          </div>
+        </details>
+      ))}
     </details>
   )
 }

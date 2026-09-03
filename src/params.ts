@@ -51,6 +51,8 @@ export type StackParams = {
     labels: boolean
     /** World height of a label's text. */
     labelSize: number
+    /** Outline each card, so a slot's real extent is visible against its image. */
+    cardEdges: boolean
   }
   lod: LodTier[]
   /** Texture byte budget. A backstop, not the thing shaping the design. */
@@ -77,7 +79,7 @@ export const defaultParams: StackParams = {
     stackMargin: 1.12,
     moveMs: 520,
   },
-  overlay: { zones: false, labels: false, labelSize: 0.03 },
+  overlay: { zones: false, labels: false, labelSize: 0.03, cardEdges: false },
   lod: [
     { maxRank: 1, edge: 512 },
     { maxRank: 8, edge: 128 },

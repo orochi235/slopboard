@@ -66,3 +66,22 @@
   accent-color: #38bdf8;
   cursor: pointer;
 }
+
+/* One section per parameter group, so the panel is scannable rather than one
+   long column. Closed by default except the wall's own scalars. */
+.params__group {
+  border-top: 1px solid #2d3748;
+}
+
+.params__groupName {
+  cursor: pointer;
+  padding: 3px 0;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.9em;
+}
+
+.params__groupName:hover {
+  color: #e2e8f0;
+}
