@@ -18,7 +18,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    // Its own port, not vite's 5173: this machine runs several vite projects
+    // and whichever starts first takes 5173. strictPort then fails loudly
+    // instead of drifting to a port nobody thinks to open.
+    port: Number(process.env.SLOP_CLIENT_PORT ?? 5183),
+    strictPort: true,
     proxy: { '/img': proxy, '/orig': proxy, '/api': proxy, '/ws': proxy },
   },
 })

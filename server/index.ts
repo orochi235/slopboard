@@ -3,6 +3,7 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import { createServer } from 'node:http'
 import { mkdir } from 'node:fs/promises'
 import { config } from './config.ts'
+import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
 import type { ServerMessage } from '@shared/protocol.ts'
@@ -56,5 +57,28 @@ watchInbox((item) => {
   console.log(`[arrive] ${item.zone}/${item.id.slice(0, 8)} ${item.w}x${item.h}`)
   broadcast({ type: 'arrive', item })
 })
+
+let reportedListenError = false
+
+// ws re-emits the http server's error on itself, so a handler on only one of
+// them leaves the other copy unhandled — which throws.
+const onListenError = (err: NodeJS.ErrnoException) => {
+  if (err.code !== 'EADDRINUSE') throw err
+  if (reportedListenError) return
+  reportedListenError = true
+  void classifyPortHolder(config.port).then((holder) => {
+    if (holder === 'slopboard') {
+      console.log(`[slopboard] :${config.port} already serving, leaving it to run`)
+      process.exit(0)
+    }
+    console.error(
+      `[slopboard] port ${config.port} is held by something else. Set SLOP_PORT to use another.`,
+    )
+    process.exit(1)
+  })
+}
+
+http.on('error', onListenError)
+wss.on('error', onListenError)
 
 http.listen(config.port, () => console.log(`[slopboard] :${config.port}`))

@@ -9,5 +9,5 @@ export default defineConfig({
       windease: fileURLToPath(new URL('../windease/src/index.ts', import.meta.url)),
     },
   },
-  test: { include: ['src/**/*.test.ts'] },
+  test: { include: ['{src,server}/**/*.test.ts'] },
 })
