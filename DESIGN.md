@@ -36,10 +36,11 @@ therefore changes nothing about what is on the wall or how far along it is.
 **Client** (React, served in the browser)
 
 Two render backends (see Arrangements): a DOM/CSS backend, and an r3f backend
-for arrangements with real perspective. They no longer share one layout
-interface — 3D arrangements run only in the r3f backend, and the DOM backend is
-a legacy escape hatch that goes away if the 3D wall works. See
-`docs/superpowers/specs/2026-09-02-webgl-backend-design.md`.
+for arrangements that place in three dimensions — which is not the same as
+perspective, and by default is not perspective at all (see The stack's camera).
+They no longer share one layout interface — 3D arrangements run only in the r3f
+backend, and the DOM backend is a legacy escape hatch that goes away if the 3D
+wall works. See `docs/superpowers/specs/2026-09-02-webgl-backend-design.md`.
 
 Run it chromeless:
 
@@ -136,6 +137,43 @@ the rest are 2D.
 | `spiral` | Enter at the perimeter, spiral inward, vanish at the center. | Centripetal reading, and whether a convergence point is restful or maddening. |
 | `stack` | One diagonal pile per zone, tiled to a grid. Depth is rank: an arrival shoves the pile back. Only the top of each pile is legible. | Whether the wall is better as "which repos are producing" plus a zoom, rather than N readable images. |
 
+### The stack's camera
+
+`stack` is the only 3D arrangement, so the camera belongs to its design rather
+than to the renderer.
+
+**A pile is a volume, and nothing models it as one.** Its depth is
+`rank × step.z` — 0.035 world units a card, against cards 0.22 on a side and a
+wall 1.0 unit tall. A pile is deeper than a card is wide at 7 cards, deeper than
+the entire wall is tall at 29, and `rankCap` 200 allows seven walls. Every box
+computed about it is nonetheless flat: the zone cell, the framed union, the plan
+view rect. windease's `Rect` carries a z position and no z extent, so a layout
+can say where in depth something sits and never how deep it is. Head-on that
+costs nothing, because a footprint is all a head-on camera needs. It stops being
+free the moment the camera leaves head-on, which is what the orbit added —
+framing sees a pile's front face and not the length of it, so a turned wall
+reads loose.
+
+**Orthographic by default.** Perspective was the original assumption and it
+fails on geometry rather than on taste: deep ranks converge toward the screen
+axis, so the far corners of whatever box the camera frames are empty by
+construction, and the wall shows dead space at the top and right whatever the
+margins say. Under an orthographic projection the framed union is the drawn
+union. Perspective stays available as `camera.projection`, because the two
+answer *does a pile read as depth or as mush* differently and that question is
+still open.
+
+**Piles hang from a corner.** `origin` is where a pile meets its cell: the same
+relative point of the card meets that point of the cell, so 0,0 is corner to
+corner and 0.5,0.5 centres. Top-left by default, which is what lines up the top
+and left edge of every pile on the wall.
+
+**The camera orbits.** `camera.yawDeg`/`pitchDeg` place it around what it
+frames, and dragging the canvas turns the scene by writing those same two
+params, so the angle has one home rather than two. Framing itself is stated once
+as a half-height; perspective derives a distance from it, orthographic parks at
+`camera.standoff` and drives the frustum.
+
 ### Entry behavior is a separate axis
 
 Arrivals landing at full presence is the wall's loudest event, and arrivals are
@@ -152,6 +190,15 @@ against every arrangement.
 - `[` / `]` cycle arrangements; the name flashes briefly in a corner.
 - Changes cross-fade over ~1s.
 - `bloom` toggles independently.
+- **Every stack parameter is a live control** — sliders, selects and toggles in
+  a panel on the wall. Tuning by editing source and reloading does not converge,
+  which is the whole reason it exists. The answers get written back to
+  `src/params.ts` once they settle.
+- **A plan view** in the corner names each zone, lights the one with focus, and
+  zooms to a pile when clicked.
+- **`overlay.zones` / `overlay.labels`** draw zone extents and names into the
+  scene rather than over it, so they turn with the wall. Off by default: a
+  diagnostic first, and furniture only if they earn it.
 - **Sim mode** synthesizes fake arrivals at a dialable rate from a fixture
   directory. This is the important one: it lets a 200/hour wall be evaluated in
   three minutes instead of by waiting for one. It does not answer what the real
@@ -261,6 +308,14 @@ Base64-over-WebSocket hitches every time a render lands.
   decoration. At 200/hour the wall is a blur and nothing reads at any depth.
 - **Which arrangement, and with `bloom` or without.** The point of building six.
 - **Default TTL.** Unknowable until the wall has been live for a day.
+- **Does anything on the wall have thickness?** Every primitive is a flat plane
+  today — cards, zone outlines, labels — while a pile occupies a volume many
+  times the wall's own height. Two separable calls. Whether a *card* gets
+  thickness is ours alone: `SlopChannels` is slopboard's own vocabulary that
+  windease carries and never reads, so a depth channel costs nothing upstream.
+  Whether a *zone* gets a depth is a change to windease's `Rect`, and is the one
+  that would let the camera frame a pile instead of its front face. Neither is
+  needed while the wall is read head-on.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
 
 ## Running it

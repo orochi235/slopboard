@@ -1327,16 +1327,27 @@ Open `http://localhost:5173/?backend=webgl`.
 
 - [ ] **Step 2: Judge these, and write the answers into `params.ts`**
 
-Every one of these is a number in `defaultParams`, so a bad answer is a value
-change and not a code change:
+Every one is a control in the panel on the wall, so a bad answer is a drag and
+not a code change. Open `params` at the top right.
 
-- Does a pile read as depth, or as mush? (`step.z`, `rot.x`/`rot.y`)
-- Is the top card legible at wall distance? (`side`, `camera.fovDeg`)
+- Does a pile read as depth, or as mush? (`step.z`, `rot.x`/`rot.y`, and
+  `camera.projection` — the projection changes this question's answer, so judge
+  it under both)
+- Is the top card legible at wall distance? (`side`, `camera.wallMargin`;
+  `camera.fovDeg` only bites under perspective)
 - Does an arrival read as one shove, or as a jump cut? (`shoveMs`)
 - Does the pile look grown or machined? (`jitter`)
+- Do the piles want to hang from a corner or float in their cells? (`origin`)
+- Is there an angle the wall reads better from than head-on? Drag the canvas to
+  find it; it lands in `camera.yawDeg`/`pitchDeg`. Framing is computed head-on,
+  so expect it to go loose as you turn — that is the known limit in DESIGN.md
+  under The stack's camera, not a number to tune away.
 - Where does a tier stop being visually free? (`lod` thresholds)
 - Does a quiet zone's top card dying in place read as informative or broken?
   (`fade`)
+
+`overlay.zones` and `overlay.labels` draw each zone's extent and name into the
+scene, which is the fastest way to see whether a pile has outgrown its cell.
 
 - [ ] **Step 3: Record what the DOM wall could not tell you**
 

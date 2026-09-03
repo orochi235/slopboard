@@ -826,6 +826,10 @@ back to the pile. Escape again → back to the wall.
   (`camera.moveMs`)
 - Is a framed pile too tight or swimming in space? (`camera.stackMargin`)
 
+Two ways in arrived after this plan was written: the plan view in the top-left
+zooms to a pile when clicked, and dragging the canvas turns the scene. Walk the
+path through both.
+
 - [ ] **Step 4: Check the one thing tests cannot**
 
 Let a zoomed pile sit until its zone expires entirely. The camera should return
