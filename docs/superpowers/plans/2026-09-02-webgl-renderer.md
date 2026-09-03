@@ -1085,7 +1085,232 @@ git commit -m "draw the wall in WebGL behind a startup flag"
 
 ---
 
-### Task 9: Look at it
+### Task 9: Live parameter controls
+
+The spec is explicit: "Every constant is a live parameter... Tuning this by
+editing source and reloading does not converge." Task 10 is a tuning session, and
+without this it is a tuning session with a 2-second reload between every guess.
+
+A `<dat.gui>`-style panel is not worth a dependency. One `<details>` panel of
+number inputs over `StackParams` is, because the parameter surface is already
+one flat object by design.
+
+**Files:**
+- Create: `src/Params.tsx`
+- Create: `src/params.paths.ts`
+- Create: `src/params.paths.test.ts`
+- Create: `src/params.css`
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+// src/params.paths.test.ts
+import { describe, expect, it } from 'vitest'
+import { numberPathsOf, getAt, setAt } from '@/params.paths.ts'
+
+const sample = { a: 1, b: { c: 2, d: 'text' }, e: [3, 4], f: true }
+
+describe('numberPathsOf', () => {
+  it('finds every number, however deep', () => {
+    expect(numberPathsOf(sample)).toEqual(['a', 'b.c', 'e.0', 'e.1'])
+  })
+
+  it('skips strings and booleans, which no slider can edit', () => {
+    expect(numberPathsOf(sample)).not.toContain('b.d')
+    expect(numberPathsOf(sample)).not.toContain('f')
+  })
+})
+
+describe('getAt / setAt', () => {
+  it('reads a nested value', () => {
+    expect(getAt(sample, 'b.c')).toBe(2)
+    expect(getAt(sample, 'e.1')).toBe(4)
+  })
+
+  it('writes without mutating the original', () => {
+    const next = setAt(sample, 'b.c', 99)
+    expect(getAt(next, 'b.c')).toBe(99)
+    expect(sample.b.c).toBe(2)
+  })
+
+  it('keeps an array an array rather than turning it into an object', () => {
+    const next = setAt(sample, 'e.0', 9)
+    expect(Array.isArray((next as typeof sample).e)).toBe(true)
+    expect((next as typeof sample).e).toEqual([9, 4])
+  })
+})
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `cd ~/src/slopboard && npx vitest run src/params.paths.test.ts`
+Expected: FAIL — "Failed to resolve import @/params.paths.ts"
+
+- [ ] **Step 3: Write minimal implementation**
+
+```ts
+// src/params.paths.ts
+/** Every dotted path in `value` that addresses a number. Array indices are
+ *  path segments, so `lod.0.edge` is editable like anything else. */
+export function numberPathsOf(value: unknown, prefix = ''): string[] {
+  if (typeof value === 'number') return [prefix]
+  if (value === null || typeof value !== 'object') return []
+  return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) =>
+    numberPathsOf(v, prefix ? `${prefix}.${k}` : k),
+  )
+}
+
+export function getAt(root: unknown, path: string): number | undefined {
+  const out = path.split('.').reduce<unknown>((acc, key) => {
+    if (acc === null || typeof acc !== 'object') return undefined
+    return (acc as Record<string, unknown>)[key]
+  }, root)
+  return typeof out === 'number' ? out : undefined
+}
+
+/** Structural copy along the path only — the frame loop reads this object every
+ *  frame, so mutating in place would make a change invisible to React. */
+export function setAt<T>(root: T, path: string, value: number): T {
+  const [head, ...rest] = path.split('.')
+  if (head === undefined) return root
+  const src = root as unknown as Record<string, unknown>
+  const next: unknown = rest.length === 0 ? value : setAt(src[head], rest.join('.'), value)
+  if (Array.isArray(root)) {
+    const copy = [...(root as unknown[])]
+    copy[Number(head)] = next
+    return copy as unknown as T
+  }
+  return { ...src, [head]: next } as unknown as T
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `cd ~/src/slopboard && npx vitest run src/params.paths.test.ts`
+Expected: PASS, 5 tests
+
+- [ ] **Step 5: Write the panel**
+
+```tsx
+// src/Params.tsx
+import { numberPathsOf, getAt, setAt } from '@/params.paths.ts'
+import type { StackParams } from '@/params.ts'
+import './params.css'
+
+/** Every number in StackParams, editable live. Tuning by editing source and
+ *  reloading does not converge, which is the whole reason this exists. */
+export function ParamsPanel({
+  params,
+  onChange,
+}: {
+  params: StackParams
+  onChange: (next: StackParams) => void
+}) {
+  return (
+    <details className="params">
+      <summary className="params__summary">params</summary>
+      <div className="params__grid">
+        {numberPathsOf(params).map((path) => (
+          <label key={path} className="params__row">
+            <span className="params__name">{path}</span>
+            <input
+              className="params__input"
+              type="number"
+              step="any"
+              value={getAt(params, path) ?? 0}
+              onChange={(e) => {
+                const n = Number(e.target.value)
+                if (Number.isFinite(n)) onChange(setAt(params, path, n))
+              }}
+            />
+          </label>
+        ))}
+      </div>
+    </details>
+  )
+}
+```
+
+- [ ] **Step 6: Write the stylesheet**
+
+```css
+/* src/params.css */
+.params {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 50;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #e2e8f0;
+  font: 11px/1.3 ui-monospace, monospace;
+}
+
+.params__summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.params__grid {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.params__row {
+  display: grid;
+  grid-template-columns: 1fr 72px;
+  gap: 8px;
+  align-items: center;
+}
+
+.params__input {
+  width: 100%;
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  color: inherit;
+  font: inherit;
+  padding: 1px 3px;
+}
+```
+
+- [ ] **Step 7: Hold the params in App and thread them through**
+
+In `src/App.tsx`, hold them in state and pass them to the backend and the panel:
+
+```tsx
+  const [params, setParams] = useState(defaultParams)
+```
+
+Pass `params` to `<WebglBackend params={params} …/>`, render
+`{backend === 'webgl' && <ParamsPanel params={params} onChange={setParams} />}`,
+and in `WebglBackend` replace every `defaultParams` read with `props.params`.
+`createStack` takes its params at construction, so rebuild the arrangement when
+they change:
+
+```tsx
+  const arrangement3d = useMemo(() => createStack(params), [params])
+```
+
+- [ ] **Step 8: Typecheck and run the suite**
+
+Run: `cd ~/src/slopboard && npm run typecheck && npx vitest run`
+Expected: clean, all passing.
+
+- [ ] **Step 9: Commit**
+
+```bash
+cd ~/src/slopboard
+git add src/Params.tsx src/params.paths.ts src/params.paths.test.ts src/params.css src/App.tsx src/backends/WebglBackend.tsx
+git commit -m "edit every stack parameter live"
+```
+
+---
+
+### Task 10: Look at it
 
 The deliverable. Everything above is arithmetic; this is the question the
 project exists to answer, and it is the owner's to answer.
