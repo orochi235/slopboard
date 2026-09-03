@@ -638,7 +638,7 @@ git commit -m "collect every stack constant into one parameter object"
 
 `ids` arrives already ordered newest-first; the allocator does not sort. Rank is the index in that list, so it changes both when something arrives ahead of an item and when something expires ahead of it — the second case moves an item *forward*, which is the mid-pile expiry the spec calls out. Dropping the whole cache must snap everything to target rather than animate from a lie, so a first sighting sets `prevRank === rank`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/arrangements/slots.ranks.test.ts
@@ -693,12 +693,12 @@ describe('createRanks', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npm test -- src/arrangements/slots.ranks.test.ts`
 Expected: FAIL — `createRanks` is not exported from `slots.ts`.
 
-- [ ] **Step 3: Implement it**
+- [x] **Step 3: Implement it**
 
 Append to `src/arrangements/slots.ts`:
 
@@ -727,12 +727,12 @@ export function createRanks() {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd ~/src/slopboard && npm test -- src/arrangements/slots.ranks.test.ts && npm run typecheck`
 Expected: both PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard

@@ -38,3 +38,26 @@ export function createSequencer() {
 
 export const ramp = (v: number, a: number, b: number) =>
   Math.max(0, Math.min(1, (v - a) / (b - a)))
+
+export type RankEntry = { rank: number; prevRank: number; changedAt: number }
+
+/**
+ * Rank plus the moment it last changed, which is what lets a rank change
+ * animate from a pure function: depth interpolates prevRank → rank over a
+ * fixed duration measured from `changedAt`. A first sighting is already
+ * settled, so dropping the cache snaps to target rather than sliding in from
+ * a rank the item never held.
+ */
+export function createRanks() {
+  const held = new Map<string, RankEntry>()
+  return (ids: string[], now: number): Map<string, RankEntry> => {
+    const present = new Set(ids)
+    for (const id of [...held.keys()]) if (!present.has(id)) held.delete(id)
+    ids.forEach((id, rank) => {
+      const prev = held.get(id)
+      if (!prev) held.set(id, { rank, prevRank: rank, changedAt: now })
+      else if (prev.rank !== rank) held.set(id, { rank, prevRank: prev.rank, changedAt: now })
+    })
+    return held
+  }
+}
