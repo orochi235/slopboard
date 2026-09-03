@@ -14,8 +14,16 @@ describe('loadBitmap', () => {
       resizeWidth: 128,
       resizeHeight: 128,
       resizeQuality: 'medium',
+      imageOrientation: 'flipY',
     })
     expect(out).toBe(bitmap)
+  })
+
+  it('flips at decode, because three ignores Texture.flipY for an ImageBitmap', async () => {
+    const createImageBitmap = vi.fn().mockResolvedValue({ width: 32, height: 32 })
+    const fetch = vi.fn().mockResolvedValue({ ok: true, blob: async () => 'blob' })
+    await loadBitmap('/img/a', 32, { fetch, createImageBitmap } as never)
+    expect(createImageBitmap.mock.calls[0]![1]).toMatchObject({ imageOrientation: 'flipY' })
   })
 
   it('returns null on a failed response rather than throwing into the frame loop', async () => {

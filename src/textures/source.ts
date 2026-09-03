@@ -28,6 +28,10 @@ export async function loadBitmap(
       resizeWidth: edge,
       resizeHeight: edge,
       resizeQuality: 'medium',
+      // three ignores Texture.flipY for an ImageBitmap source, so the one flip
+      // between a top-left decode and WebGL's bottom-left texture origin has to
+      // happen here. Without it every card renders upside down.
+      imageOrientation: 'flipY',
     })
   } catch {
     return null
