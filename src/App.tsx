@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useWall } from '@/useWall.ts'
 import { arrangementsFor } from '@/arrangements/index.ts'
+import { backendFrom } from '@/backend-flag.ts'
 import { DomBackend } from '@/backends/DomBackend.tsx'
+import { WebglBackend } from '@/backends/WebglBackend.tsx'
+import { useWall } from '@/useWall.ts'
 
-const available = arrangementsFor(2)
+// Read once: one backend per window for its life, so a DOM wall and a 3D wall
+// can run on two monitors at the same time.
+const backend = backendFrom(location.search)
+const available = arrangementsFor(backend === 'webgl' ? 3 : 2)
 
 export function App() {
   const { items, ttlMs, clockOffset, connected } = useWall()
@@ -28,16 +33,25 @@ export function App() {
   }, [flash])
 
   const arrangement = available[index]
-  if (!arrangement || arrangement.dims !== 2) return null
+  if (!arrangement) return null
 
   return (
     <>
-      <DomBackend
-        items={items}
-        arrangement={arrangement}
-        ttlMs={ttlMs}
-        clockOffset={clockOffset}
-      />
+      {arrangement.dims === 3 ? (
+        <WebglBackend
+          items={items}
+          arrangement={arrangement}
+          ttlMs={ttlMs}
+          clockOffset={clockOffset}
+        />
+      ) : (
+        <DomBackend
+          items={items}
+          arrangement={arrangement}
+          ttlMs={ttlMs}
+          clockOffset={clockOffset}
+        />
+      )}
       <div className={`hud ${flash ? 'hud--flash' : ''}`}>
         <span className="hud__name">{arrangement.name}</span>
         <span className="hud__count">{items.length}</span>
