@@ -36,7 +36,7 @@ viewport aspect instead.
 - Create: `src/camera/frame.ts`
 - Create: `src/camera/frame.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/camera/frame.test.ts
@@ -86,12 +86,12 @@ describe('framePose', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/camera/frame.test.ts`
 Expected: FAIL — "Failed to resolve import @/camera/frame.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/camera/frame.ts
@@ -121,12 +121,12 @@ export function framePose(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/camera/frame.test.ts`
 Expected: PASS, 6 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -146,7 +146,7 @@ so a dropped frame costs nothing and a re-render mid-move does not restart it.
 - Create: `src/camera/move.ts`
 - Create: `src/camera/move.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/camera/move.test.ts
@@ -189,12 +189,12 @@ describe('poseAt', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/camera/move.test.ts`
 Expected: FAIL — "Failed to resolve import @/camera/move.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/camera/move.ts
@@ -218,12 +218,12 @@ export function poseAt(move: Move, now: number): Pose {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/camera/move.test.ts`
 Expected: PASS, 6 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -244,7 +244,7 @@ so a zone arriving and re-tiling the wall cannot desync the cursor.
 - Create: `src/nav/neighbour.ts`
 - Create: `src/nav/neighbour.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/nav/neighbour.test.ts
@@ -294,12 +294,12 @@ describe('neighbourOf', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/nav/neighbour.test.ts`
 Expected: FAIL — "Failed to resolve import @/nav/neighbour.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/nav/neighbour.ts
@@ -365,12 +365,12 @@ top-left, and `createZoneGrid` returns them in that space, so `'down'` is
 increasing y. The renderer flips y once when it converts a rect to a world
 position; navigation stays in rect space and never sees the flip.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/nav/neighbour.test.ts`
 Expected: PASS, 6 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -391,7 +391,7 @@ get wrong while wiring a keydown handler.
 - Create: `src/view-state.ts`
 - Create: `src/view-state.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/view-state.test.ts
@@ -457,12 +457,12 @@ describe('reduceView', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/view-state.test.ts`
 Expected: FAIL — "Failed to resolve import @/view-state.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/view-state.ts
@@ -497,12 +497,12 @@ export function reduceView(state: ViewState, action: ViewAction): ViewState {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/view-state.test.ts`
 Expected: PASS, 10 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -523,7 +523,7 @@ nothing, and it keeps right-click-save, copy, drag-to-Finder and true 1:1.
 - Create: `src/Lightbox.tsx`
 - Create: `src/lightbox.css`
 
-- [ ] **Step 1: Write the component**
+- [x] **Step 1: Write the component**
 
 ```tsx
 // src/Lightbox.tsx
@@ -560,7 +560,7 @@ export function Lightbox({ id, onClose }: { id: string; onClose: () => void }) {
 }
 ```
 
-- [ ] **Step 2: Write the stylesheet**
+- [x] **Step 2: Write the stylesheet**
 
 ```css
 /* src/lightbox.css */
@@ -593,12 +593,12 @@ export function Lightbox({ id, onClose }: { id: string; onClose: () => void }) {
 }
 ```
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 Run: `cd ~/src/slopboard && npm run typecheck`
 Expected: clean.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -617,7 +617,7 @@ tested by tasks 1–4.
 - Modify: `src/backends/WebglBackend.tsx`
 - Modify: `src/params.ts`
 
-- [ ] **Step 1: Add the two camera levels to the parameter surface**
+- [x] **Step 1: Add the two camera levels to the parameter surface**
 
 In `src/params.ts`, extend the `camera` field of `StackParams`:
 
@@ -638,7 +638,7 @@ and the matching default:
   camera: { fovDeg: 35, wallMargin: 1.08, stackMargin: 1.12, moveMs: 520 },
 ```
 
-- [ ] **Step 2: Track the pose in the frame loop**
+- [x] **Step 2: Track the pose in the frame loop**
 
 Inside `Wall` in `src/backends/WebglBackend.tsx`, add the view state, the cells
 the last layout produced, and a move that the frame loop reads:
@@ -681,7 +681,7 @@ pulling `camera` from the same `useThree()` call that already provides `gl`.
 The `-y` is the single flip between windease's downward-growing rect space and
 three's upward-growing world; nothing else in this file negates y.
 
-- [ ] **Step 3: Record the cells and keep the view honest about live zones**
+- [x] **Step 3: Record the cells and keep the view honest about live zones**
 
 Still inside `useFrame`, after the layout call:
 
@@ -733,7 +733,7 @@ zone drops the camera back:
     if (view.kind !== 'wall' && !live.includes(view.zone)) dispatch({ type: 'zones', live })
 ```
 
-- [ ] **Step 4: Pick a pile by raycast**
+- [x] **Step 4: Pick a pile by raycast**
 
 R3F puts a raycast behind `onClick` on any mesh, so picking needs no manual
 `Raycaster`: give each card mesh the zone it belongs to and zoom on click.
@@ -752,7 +752,7 @@ with `zoneById` a ref updated each frame from `model`. At wall level a click
 means "zoom to this pile"; once zoomed it means "open this card," which is the
 same primitive at two levels rather than two mechanisms.
 
-- [ ] **Step 5: Bind the keys**
+- [x] **Step 5: Bind the keys**
 
 In `Wall`, alongside the context-loss effect:
 
@@ -775,7 +775,7 @@ In `Wall`, alongside the context-loss effect:
 Arrows only act at stack level: at wall level everything is already in frame,
 and in the lightbox they belong to the image.
 
-- [ ] **Step 6: Mount the lightbox**
+- [x] **Step 6: Mount the lightbox**
 
 In `WebglBackend`, render the overlay beside the canvas rather than inside it —
 `<Canvas>` children are scene graph nodes, and a DOM element there will not
@@ -787,12 +787,12 @@ mount. Lift `view` and `dispatch` to `WebglBackend`, pass them into `Wall`, and:
       )}
 ```
 
-- [ ] **Step 7: Typecheck and run the suite**
+- [x] **Step 7: Typecheck and run the suite**
 
 Run: `cd ~/src/slopboard && npm run typecheck && npx vitest run`
 Expected: typecheck clean, every test passing.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd ~/src/slopboard

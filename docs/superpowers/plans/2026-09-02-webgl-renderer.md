@@ -42,7 +42,7 @@ toggle, so a DOM wall and a 3D wall can run on two monitors at once.
 - Create: `src/backend-flag.ts`
 - Create: `src/backend-flag.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/backend-flag.test.ts
@@ -67,12 +67,12 @@ describe('backendFrom', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/backend-flag.test.ts`
 Expected: FAIL — "Failed to resolve import @/backend-flag.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/backend-flag.ts
@@ -87,12 +87,12 @@ export function backendFrom(search: string): BackendName {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/backend-flag.test.ts`
 Expected: PASS, 3 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -113,7 +113,7 @@ arithmetic with a right answer.
 - Create: `src/model.ts`
 - Create: `src/model.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/model.test.ts
@@ -163,12 +163,12 @@ describe('toStackItems', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/model.test.ts`
 Expected: FAIL — "Failed to resolve import @/model.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/model.ts
@@ -194,12 +194,12 @@ export function toStackItems(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/model.test.ts`
 Expected: PASS, 5 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -224,7 +224,7 @@ function takes the previous edge so the ratchet is explicit rather than implied.
 - Create: `src/textures/ratchet.ts`
 - Create: `src/textures/ratchet.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/textures/ratchet.test.ts
@@ -252,12 +252,12 @@ describe('ratchet', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/textures/ratchet.test.ts`
 Expected: FAIL — "Failed to resolve import @/textures/ratchet.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/textures/ratchet.ts
@@ -276,12 +276,12 @@ export function ratchet(held: Edge | undefined, want: Edge): Edge {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/textures/ratchet.test.ts`
 Expected: PASS, 4 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -304,7 +304,7 @@ calls a `dispose` callback and never touches three itself.
 - Create: `src/textures/store.ts`
 - Create: `src/textures/store.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/textures/store.test.ts
@@ -371,12 +371,12 @@ describe('createTextureStore', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/textures/store.test.ts`
 Expected: FAIL — "Failed to resolve import @/textures/store.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/textures/store.ts
@@ -448,12 +448,12 @@ export function createTextureStore<T>(opts: {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/textures/store.test.ts`
 Expected: PASS, 5 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -474,7 +474,7 @@ past-the-fade tier comes from the same path at 1×1.
 - Create: `src/textures/source.ts`
 - Create: `src/textures/source.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/textures/source.test.ts
@@ -543,12 +543,12 @@ describe('averageColorOf', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/textures/source.test.ts`
 Expected: FAIL — "Failed to resolve import @/textures/source.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/textures/source.ts
@@ -603,12 +603,12 @@ export function averageColorOf(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/textures/source.test.ts`
 Expected: PASS, 5 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -629,7 +629,7 @@ keeps this testable.
 - Create: `src/textures/manager.ts`
 - Create: `src/textures/manager.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/textures/manager.test.ts
@@ -729,12 +729,12 @@ describe('createTextureManager', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/textures/manager.test.ts`
 Expected: FAIL — "Failed to resolve import @/textures/manager.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/textures/manager.ts
@@ -796,12 +796,12 @@ export function createTextureManager<T>(opts: {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/textures/manager.test.ts`
 Expected: PASS, 7 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -816,7 +816,7 @@ git commit -m "hold one texture per item at the edge its rank earned"
 **Files:**
 - Modify: `package.json`
 
-- [ ] **Step 1: Install**
+- [x] **Step 1: Install**
 
 Run:
 ```bash
@@ -825,19 +825,19 @@ npm i three@^0.169.0 @react-three/fiber@^9.0.0
 npm i -D @types/three@^0.169.0
 ```
 
-- [ ] **Step 2: Verify the versions resolve against React 19**
+- [x] **Step 2: Verify the versions resolve against React 19**
 
 Run: `cd ~/src/slopboard && npm ls @react-three/fiber react`
 Expected: `@react-three/fiber` present with no `UNMET PEER DEPENDENCY` line. R3F v9
 is the React 19 line; v8 pins React 18 and will print a peer warning here. If it
 does, stop and report rather than forcing it.
 
-- [ ] **Step 3: Confirm the existing suite still passes**
+- [x] **Step 3: Confirm the existing suite still passes**
 
 Run: `cd ~/src/slopboard && npm run typecheck && npx vitest run`
 Expected: typecheck clean, all existing tests pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -856,7 +856,7 @@ decision with a right answer is already in tasks 1–6.
 - Create: `src/backends/WebglBackend.tsx`
 - Modify: `src/App.tsx`
 
-- [ ] **Step 1: Write the backend**
+- [x] **Step 1: Write the backend**
 
 ```tsx
 // src/backends/WebglBackend.tsx
@@ -999,7 +999,7 @@ export function WebglBackend(props: Props) {
 }
 ```
 
-- [ ] **Step 2: Wire the flag into App**
+- [x] **Step 2: Wire the flag into App**
 
 Replace the body of `src/App.tsx` so it picks a backend once and only cycles
 arrangements of that backend's dimensionality:
@@ -1069,13 +1069,13 @@ export function App() {
 }
 ```
 
-- [ ] **Step 3: Typecheck and run the suite**
+- [x] **Step 3: Typecheck and run the suite**
 
 Run: `cd ~/src/slopboard && npm run typecheck && npx vitest run`
 Expected: typecheck clean, every existing test still passing. No test covers
 `WebglBackend` — that is Task 10.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd ~/src/slopboard
@@ -1101,7 +1101,7 @@ one flat object by design.
 - Create: `src/params.paths.test.ts`
 - Create: `src/params.css`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/params.paths.test.ts
@@ -1141,12 +1141,12 @@ describe('getAt / setAt', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npx vitest run src/params.paths.test.ts`
 Expected: FAIL — "Failed to resolve import @/params.paths.ts"
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/params.paths.ts
@@ -1184,12 +1184,12 @@ export function setAt<T>(root: T, path: string, value: number): T {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd ~/src/slopboard && npx vitest run src/params.paths.test.ts`
 Expected: PASS, 5 tests
 
-- [ ] **Step 5: Write the panel**
+- [x] **Step 5: Write the panel**
 
 ```tsx
 // src/Params.tsx
@@ -1231,7 +1231,7 @@ export function ParamsPanel({
 }
 ```
 
-- [ ] **Step 6: Write the stylesheet**
+- [x] **Step 6: Write the stylesheet**
 
 ```css
 /* src/params.css */
@@ -1277,7 +1277,7 @@ export function ParamsPanel({
 }
 ```
 
-- [ ] **Step 7: Hold the params in App and thread them through**
+- [x] **Step 7: Hold the params in App and thread them through**
 
 In `src/App.tsx`, hold them in state and pass them to the backend and the panel:
 
@@ -1295,12 +1295,12 @@ they change:
   const arrangement3d = useMemo(() => createStack(params), [params])
 ```
 
-- [ ] **Step 8: Typecheck and run the suite**
+- [x] **Step 8: Typecheck and run the suite**
 
 Run: `cd ~/src/slopboard && npm run typecheck && npx vitest run`
 Expected: clean, all passing.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd ~/src/slopboard
