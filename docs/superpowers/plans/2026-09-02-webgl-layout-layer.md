@@ -44,13 +44,15 @@ Operates in **`~/src/windease`**, not slopboard. Separate repo, separate commit.
 
 **Files:**
 - Modify: `~/src/windease/src/layout-types.ts:10`
+- Modify: every strategy emitting a `Rect`, and the existing tests asserting one
+- Modify: `~/src/windease/package.json` (version)
 - Test: `~/src/windease/src/layout/grid.z.test.ts` (create)
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: `Rect = { x: number; y: number; w: number; h: number; z?: number }`. Every downstream task treats a missing `z` as `0`.
+- Produces: `Rect = { x: number; y: number; z: number; w: number; h: number }`. Every rect the library emits sets `z`; a 2D strategy sets `0`. No read site needs `?? 0`.
 
-`z` is optional, so no existing strategy or test needs editing to compile. The spec's stronger form — every strategy emitting `z: 0` explicitly — is deliberately **not** in this task: its only benefit is V8 shape uniformity, it touches sites across five strategies, and `z ?? 0` at slopboard's one read boundary is behaviorally identical. Raise it as a follow-up if a profile ever asks.
+`z` is required, so this task is a sweep, not a one-line addition: every strategy that builds a rect gains `z: 0`, and every existing test asserting a rect literal gains it too. That breadth is the cost of the guarantee — a read site never has to ask whether depth is present. It is a breaking change, which is why windease goes to **2.0.0** in this task rather than a follow-up.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -61,15 +63,12 @@ import { gridStrategy } from './grid.js';
 import type { Rect } from '../layout-types.js';
 
 describe('Rect.z', () => {
-  it('is assignable and absent from 2D strategy output', () => {
-    const withZ: Rect = { x: 0, y: 0, w: 1, h: 1, z: -3 };
+  it('carries depth', () => {
+    const withZ: Rect = { x: 0, y: 0, z: -3, w: 1, h: 1 };
     expect(withZ.z).toBe(-3);
-
-    const flat: Rect = { x: 0, y: 0, w: 1, h: 1 };
-    expect(flat.z).toBeUndefined();
   });
 
-  it('leaves grid placements unchanged', () => {
+  it('is 0 on every 2D strategy placement, never absent', () => {
     const out = gridStrategy.layout({
       items: [{ id: 'a' }, { id: 'b' }],
       container: { w: 1, h: 1 },
@@ -77,7 +76,7 @@ describe('Rect.z', () => {
       options: { gap: 0, padding: 0 },
     });
     expect(out.placements.size).toBe(2);
-    for (const rect of out.placements.values()) expect(rect.z).toBeUndefined();
+    for (const rect of out.placements.values()) expect(rect.z).toBe(0);
   });
 });
 ```
@@ -99,25 +98,35 @@ with:
 
 ```ts
 /**
- * A positioned box. `z` is depth for hosts that have one; a 2D layout is at
- * depth 0, and an absent `z` means exactly that. It is geometry rather than a
- * channel because occlusion-aware drop targets will read it — a forward
- * commitment, not a current predicate.
+ * A positioned box. `z` is depth: a 2D layout sits at `0`, and every rect the
+ * library emits sets it, so a host never tests for absence. It is geometry
+ * rather than a channel because occlusion-aware drop targets will read it — a
+ * forward commitment, not a current predicate.
  */
-export type Rect = { x: number; y: number; w: number; h: number; z?: number };
+export type Rect = { x: number; y: number; z: number; w: number; h: number };
 ```
 
-- [ ] **Step 4: Run the test and the full suite**
+- [ ] **Step 4: Sweep the emitters and the assertions**
 
-Run: `cd ~/src/windease && npx vitest run src/layout/grid.z.test.ts && npm test && npm run typecheck && npm run lint`
-Expected: all PASS. If anything outside this file fails, `z?` has broken an inference somewhere — stop and report rather than patching call sites.
+Run `npx tsc --noEmit` and fix every error by adding `z: 0` to the rect the compiler names. Then run the suite: the remaining failures are `toEqual` assertions written before `z` existed, and each one gains `z: 0` in the expected literal. Both sets are mechanical, but the second is invisible to the compiler — a green `tsc` does not mean this step is done.
 
-- [ ] **Step 5: Commit**
+Do not weaken an assertion to `toMatchObject` to avoid the edit. The point of required `z` is that the exact shape is knowable.
+
+- [ ] **Step 5: Bump the major**
+
+In `~/src/windease/package.json`, set `"version": "2.0.0"`. `file:../windease` carries no version range, so this changes nothing about how slopboard resolves it today — it records the break for whenever windease is published.
+
+- [ ] **Step 6: Run the full suite**
+
+Run: `cd ~/src/windease && npm test && npm run typecheck && npm run lint`
+Expected: all PASS.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 cd ~/src/windease
-git add src/layout-types.ts src/layout/grid.z.test.ts
-git commit -m "add optional z to Rect"
+git add -A
+git commit -m "make z required on Rect"
 ```
 
 ---
@@ -146,7 +155,7 @@ import type { LayoutResult } from '../layout-types.js';
 describe('LayoutResult.channels', () => {
   it('carries arbitrary numeric keys the core never reads', () => {
     const result: LayoutResult = {
-      placements: new Map([['a', { x: 0, y: 0, w: 1, h: 1 }]]),
+      placements: new Map([['a', { x: 0, y: 0, z: 0, w: 1, h: 1 }]]),
       affordances: [],
       channels: new Map([['a', { opacity: 0.5, rotY: -0.3, lod: 2 }]]),
     };
@@ -927,8 +936,8 @@ describe('stack', () => {
     const out = run(stack, [item('new', 'z'), item('old', 'z')], 0)
     const near = out.placements.get('new')!
     const far = out.placements.get('old')!
-    expect(far.z!).toBeLessThan(near.z!)
-    expect(far.z! - near.z!).toBeCloseTo(defaultParams.step.z)
+    expect(far.z).toBeLessThan(near.z)
+    expect(far.z - near.z).toBeCloseTo(defaultParams.step.z)
   })
 
   it('puts each zone in its own cell', () => {
@@ -946,9 +955,9 @@ describe('stack', () => {
     // sampling in the same call always reads settle = 0 and proves nothing.
     run(stack, [item('new', 'z'), item('a', 'z')], 1000)
     const mid = run(stack, [item('new', 'z'), item('a', 'z')], 1000 + shove / 2)
-    const zMid = mid.placements.get('a')!.z!
+    const zMid = mid.placements.get('a')!.z
     const settled = run(stack, [item('new', 'z'), item('a', 'z')], 1000 + shove * 4)
-    const zEnd = settled.placements.get('a')!.z!
+    const zEnd = settled.placements.get('a')!.z
     expect(zEnd).toBeCloseTo(defaultParams.step.z)
     // Halfway through, 'a' is between rank 0 and rank 1.
     expect(zMid).toBeLessThan(0)
