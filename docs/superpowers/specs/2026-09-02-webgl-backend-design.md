@@ -71,18 +71,24 @@ placements: Map<id, Rect>          // { x, y, z, w, h }, world units
 channels:   Map<id, SlopChannels>  // { opacity, rotX, rotY, rotZ, saturation?, lod? }
 ```
 
-Three conversions, each done once per arrangement:
+Two conversions, each done once per arrangement, and one non-conversion:
 
 **Coordinates.** windease returns container units from the top-left; `Placement`
 is 0..1 of the viewport addressing the item's center. Fractional containers work
 — 10 zones at `{ w: 16/9, h: 1 }` with `gap`/`padding` of `0.02` tiles to a clean
 4×3 with no rounding anywhere.
 
-**Aspect — emit the square slot.** `Rect` forces w/h where `scale` was one
-number, but nothing forces it to be the *image's* w/h. Set `w = h = side` and let
+**State.** `createSequencer` and `createSlots` become the strategy's `state`
+plus `reduce` — the same allocators under windease's names, keeping the
+drop-tolerance rule they already carry.
+
+**Aspect is not a conversion — emit the square slot.** `Rect` forces w/h where
+`scale` was one number, but nothing forces it to be the *image's* w/h. Set `w = h = side` and let
 the renderer fit the image inside, as `DomBackend.write()` already does. The Rect
 is the box the item is fit inside — which is what `scale` has always meant — so
 aspect never crosses into the strategy and `LayoutItem.natural` stays unset.
+`aspect` appears nowhere in `src/arrangements/` today except as a field on `Item`
+and a comment about it, so this costs nothing to preserve.
 
 Do not instead pass aspect in and have arrangements emit true image w/h. It buys
 `overflow`, which is meaningless here (`tide`'s `OVERSHOOT` puts items off-wall
@@ -94,6 +100,22 @@ today. A square slot is also the more forgiving hit-target if drops ever land.
 its LOD tier are not geometry. They ride a new
 `LayoutResult.channels?: Map<id, Record<string, number>>` that windease carries
 and never reads.
+
+### `z` on `Rect`
+
+`z?: number`, and every windease strategy emits `z: 0` explicitly — so every Rect
+the library produces carries it and read sites need no `?? 0`, while hand-built
+literals in tests and consumer code keep compiling. Making it required is the
+same design with a major version attached; that is the only reason not to.
+
+`0`, never `null`: a 2D layout genuinely *is* at depth zero, so `null` would
+encode absence for a value that exists, and it coerces to `0` in arithmetic
+silently.
+
+Depth as geometry rather than a channel is a **forward commitment**. By the test
+in the next section it would be a channel today — the predicate that makes it
+geometry, occlusion-aware drop targets reading depth, does not exist yet. The
+library's owner has decided it will.
 
 ### What belongs in `channels`, and why it is untyped
 
