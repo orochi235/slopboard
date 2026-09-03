@@ -17,7 +17,14 @@ export type StackParams = {
   /** age01 window over which an item fades out. */
   fade: { from: number; to: number }
   zoneGrid: { gap: number; padding: number; orientation: 'wide' | 'tall'; cols?: number; rows?: number }
-  camera: { fovDeg: number }
+  camera: {
+    fovDeg: number
+    /** Slack around the framed box at each level. 1 is exactly framed. */
+    wallMargin: number
+    stackMargin: number
+    /** How long a level change takes. */
+    moveMs: number
+  }
   lod: LodTier[]
   /** Texture byte budget. A backstop, not the thing shaping the design. */
   textureBudgetBytes: number
@@ -32,7 +39,7 @@ export const defaultParams: StackParams = {
   rankCap: 200,
   fade: { from: 0.88, to: 1 },
   zoneGrid: { gap: 0.02, padding: 0.02, orientation: 'wide' },
-  camera: { fovDeg: 35 },
+  camera: { fovDeg: 35, wallMargin: 1.08, stackMargin: 1.12, moveMs: 520 },
   lod: [
     { maxRank: 1, edge: 512 },
     { maxRank: 8, edge: 128 },
