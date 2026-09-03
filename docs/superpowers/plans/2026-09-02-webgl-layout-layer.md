@@ -527,7 +527,7 @@ git commit -m "tag arrangements with dims and filter the registry per backend"
 
 Every number in the spec lives here and nowhere else. Tuning by editing source does not converge, so the renderer will bind these to controls in plan 2 — which only works if no constant escapes into a strategy body.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/params.test.ts
@@ -551,12 +551,12 @@ describe('defaultParams', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npm test -- src/params.test.ts`
 Expected: FAIL — cannot resolve `@/params.ts`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 ```ts
 // src/params.ts
@@ -606,12 +606,12 @@ export const defaultParams: StackParams = {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd ~/src/slopboard && npm test -- src/params.test.ts && npm run typecheck`
 Expected: both PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
