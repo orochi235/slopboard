@@ -51,9 +51,15 @@ Operates in **`~/src/windease`**, not slopboard. Separate repo, separate commit.
 - Consumes: nothing.
 - Produces: `Rect = { x: number; y: number; z: number; w: number; h: number }`. Every rect the library emits sets `z`; a 2D strategy sets `0`. No read site needs `?? 0`.
 
+**As implemented** (windease `main`, `9b45301`): the test landed as
+`src/layout-types.rect-z.test.ts` rather than `grid.z.test.ts`, covering grid,
+strip and stack plus affordance rects rather than grid alone. The sweep also
+reached two emitters no grep had found, `react/focus/useFlowGeometry.ts` and
+`usePublishGeometry.ts` — required `z` is what surfaced them.
+
 `z` is required, so this task is a sweep, not a one-line addition: every strategy that builds a rect gains `z: 0`, and every existing test asserting a rect literal gains it too. That breadth is the cost of the guarantee — a read site never has to ask whether depth is present. It is a breaking change; windease is consumed from a linked checkout here, so nothing pins a version against it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // ~/src/windease/src/layout/grid.z.test.ts
@@ -80,12 +86,12 @@ describe('Rect.z', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/windease && npx vitest run src/layout/grid.z.test.ts`
 Expected: FAIL — `Object literal may only specify known properties, and 'z' does not exist in type 'Rect'`.
 
-- [ ] **Step 3: Add the field**
+- [x] **Step 3: Add the field**
 
 In `~/src/windease/src/layout-types.ts`, replace line 10:
 
@@ -105,18 +111,18 @@ with:
 export type Rect = { x: number; y: number; z: number; w: number; h: number };
 ```
 
-- [ ] **Step 4: Sweep the emitters and the assertions**
+- [x] **Step 4: Sweep the emitters and the assertions**
 
 Run `npx tsc --noEmit` and fix every error by adding `z: 0` to the rect the compiler names. Then run the suite: the remaining failures are `toEqual` assertions written before `z` existed, and each one gains `z: 0` in the expected literal. Both sets are mechanical, but the second is invisible to the compiler — a green `tsc` does not mean this step is done.
 
 Do not weaken an assertion to `toMatchObject` to avoid the edit. The point of required `z` is that the exact shape is knowable.
 
-- [ ] **Step 5: Run the full suite**
+- [x] **Step 5: Run the full suite**
 
 Run: `cd ~/src/windease && npm test && npm run typecheck && npm run lint`
 Expected: all PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/src/windease
@@ -138,9 +144,19 @@ Operates in **`~/src/windease`**.
 - Consumes: nothing.
 - Produces: `LayoutResult.channels?: Map<TId, Record<string, number>>`. Task 8 populates it; the renderer in plan 2 reads it.
 
+**As implemented** (windease `main`, `9b45301` and `fdf3fd5`): the field alone
+is inert. `ContainerHost` builds its own result object and dropped it, and the
+presets published no channels to chrome at all, so three things this task does
+not list were needed to make it reachable — the host wiring, `LayoutInfo.channels`
+published by `<Zone>`/`<Panel>`, and `useChannelsForSelf(id)`. Removing
+`windease/react`'s shadowing four-field `Rect` came with it. Tests are
+`src/container-host.channels.test.ts`, a `Channels` Ladle story and
+`e2e/channels.spec.ts`; windease requires a story and a CHANGELOG entry per
+feature and this task mentions neither.
+
 `Record<string, number>` and not a named type: the vocabulary belongs to the consumer, and every key name would otherwise be permanent under semver. `number` rather than `unknown` is the one assumption — cross-fade lerps every channel blindly by key.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // ~/src/windease/src/layout/channels.test.ts
@@ -164,12 +180,12 @@ describe('LayoutResult.channels', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/windease && npx vitest run src/layout/channels.test.ts`
 Expected: FAIL — `'channels' does not exist in type 'LayoutResult'`.
 
-- [ ] **Step 3: Add the field**
+- [x] **Step 3: Add the field**
 
 In `~/src/windease/src/layout-types.ts`, inside `export interface LayoutResult<...>`, after the `unplaced?: TId[]` member:
 
@@ -185,12 +201,12 @@ In `~/src/windease/src/layout-types.ts`, inside `export interface LayoutResult<.
   channels?: Map<TId, Record<string, number>>;
 ```
 
-- [ ] **Step 4: Run the test and the full suite**
+- [x] **Step 4: Run the test and the full suite**
 
 Run: `cd ~/src/windease && npx vitest run src/layout/channels.test.ts && npm test && npm run typecheck && npm run lint`
 Expected: all PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/windease
