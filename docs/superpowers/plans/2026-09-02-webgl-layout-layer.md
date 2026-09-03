@@ -758,7 +758,7 @@ git commit -m "track rank transitions so the shove animates from a pure function
 
 Cell assignment goes through the existing `createSlots()` lowest-free allocator keyed by zone name, so a zone keeps its cell for as long as it exists. Sorting alphabetically would reshuffle every pile on the wall the first time an agent writes to a new repo.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/arrangements/zones.test.ts
@@ -812,12 +812,12 @@ describe('createZoneGrid', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npm test -- src/arrangements/zones.test.ts`
 Expected: FAIL — cannot resolve `@/arrangements/zones.ts`.
 
-- [ ] **Step 3: Implement it**
+- [x] **Step 3: Implement it**
 
 ```ts
 // src/arrangements/zones.ts
@@ -862,12 +862,12 @@ export function createZoneGrid() {
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd ~/src/slopboard && npm test -- src/arrangements/zones.test.ts && npm run typecheck`
 Expected: both PASS. If the stability test fails, `createSlots` is being handed zones in a varying order — it allocates in the order given, so the sort before it is load-bearing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/src/slopboard
