@@ -9,7 +9,7 @@ import { Lightbox } from '@/Lightbox.tsx'
 import { toStackItems } from '@/model.ts'
 import { neighbourOf } from '@/nav/neighbour.ts'
 import { unionOf, zoneCellsOf } from '@/nav/zone-cells.ts'
-import { defaultParams } from '@/params.ts'
+import type { StackParams } from '@/params.ts'
 import { createTextureManager } from '@/textures/manager.ts'
 import { loadBitmap } from '@/textures/source.ts'
 import { reduceView, type ViewAction, type ViewState, WALL } from '@/view-state.ts'
@@ -20,19 +20,20 @@ type Props = {
   arrangement: Arrangement3D
   ttlMs: number
   clockOffset: number
+  params: StackParams
 }
 
 type WallProps = Props & { view: ViewState; dispatch: Dispatch<ViewAction> }
 
 /** One quad per item. Ranks past the fade get no texture and draw flat. */
-function Wall({ items, arrangement, ttlMs, clockOffset, view, dispatch }: WallProps) {
+function Wall({ items, arrangement, ttlMs, clockOffset, params, view, dispatch }: WallProps) {
   const meshes = useRef(new Map<string, THREE.Mesh>())
   const { gl, camera } = useThree()
 
   const textures = useMemo(
     () =>
       createTextureManager<THREE.Texture>({
-        budgetBytes: defaultParams.textureBudgetBytes,
+        budgetBytes: params.textureBudgetBytes,
         urlFor: (id) => `/img/${id}`,
         load: async (url, edge) => {
           const bitmap = await loadBitmap(url, edge)
@@ -44,7 +45,7 @@ function Wall({ items, arrangement, ttlMs, clockOffset, view, dispatch }: WallPr
         },
         dispose: (tex) => tex.dispose(),
       }),
-    [],
+    [params.textureBudgetBytes],
   )
 
   // A lost context invalidates every GPU handle; rebuilding from an empty store
@@ -87,8 +88,8 @@ function Wall({ items, arrangement, ttlMs, clockOffset, view, dispatch }: WallPr
     const wall = unionOf([...cells.current.values()]) ?? { x: 0, y: 0, z: 0, w: aspect, h: 1 }
     const box = kind === 'wall' || !zone ? wall : (cells.current.get(zone) ?? wall)
     const margin =
-      kind === 'wall' ? defaultParams.camera.wallMargin : defaultParams.camera.stackMargin
-    const target = framePose(box, { fovDeg: defaultParams.camera.fovDeg, aspect, margin })
+      kind === 'wall' ? params.camera.wallMargin : params.camera.stackMargin
+    const target = framePose(box, { fovDeg: params.camera.fovDeg, aspect, margin })
 
     const held = move.current?.to
     const moved =
@@ -102,7 +103,7 @@ function Wall({ items, arrangement, ttlMs, clockOffset, view, dispatch }: WallPr
       from: { ...pose.current },
       to: target,
       startedAt: performance.now(),
-      durationMs: defaultParams.camera.moveMs,
+      durationMs: params.camera.moveMs,
     }
   }
 
@@ -220,7 +221,7 @@ function Wall({ items, arrangement, ttlMs, clockOffset, view, dispatch }: WallPr
 
 export function WebglBackend(props: Props) {
   const [view, dispatch] = useReducer(reduceView, WALL)
-  const fov = props.arrangement.camera?.fovDeg ?? defaultParams.camera.fovDeg
+  const fov = props.arrangement.camera?.fovDeg ?? props.params.camera.fovDeg
 
   return (
     <>
