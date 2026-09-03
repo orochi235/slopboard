@@ -60,9 +60,26 @@ registry metadata windease has no field for — `dims`, `camera` — wrapping on
 
 The shapes already agree. windease's `layout({ items, container, state, options })`
 is what `arrange` is in practice: none of `grid`, `tide` or `erode` reads the `t`
-it is handed, because time reaches them through `Item.age01`. `createSlots` /
-`createSequencer` are windease's `state` + `reduce` under other names, with the
-same drop-tolerance rule.
+it is handed, because time reaches them through `Item.age01`.
+
+`state` and `reduce` are not part of that agreement, tempting as the shape match
+is — `createSlots` and `createSequencer` do look like them. Both are
+`ContainerHost` machinery —
+`strategy.reduce` has exactly one driver in the library, and every `initialState`
+call site sits beside it — so excluding the host already excluded them. `reduce`
+is driven by `LayoutEvent`s keyed to an affordance besides, and nothing means "a
+frame happened." The allocators stay closures inside the strategy factory, as
+`createTide()` already builds them, and every call passes `state: undefined`.
+Moving them inside windease's state machinery needs a tick event windease does
+not have; that is a windease design question, not a porting step.
+
+Two consequences. An arrangement is an *instance*, not the module singleton
+windease ships (`export const gridStrategy`) — the registry is a plain `Map` so it
+takes one, and the library's constraint (no DOM, no measuring, no mutating its
+inputs) does not forbid a private closure, which is not an input. Permitted but
+undocumented, and slopboard is the first to lean on it. And `now` rides in
+`options`, which is safe only while the host is excluded: `ContainerHost` dedupes
+config by identity, so a per-frame `options` would fight its change detection.
 
 What a 3D arrangement returns:
 
@@ -71,20 +88,17 @@ placements: Map<id, Rect>          // { x, y, z, w, h }, world units
 channels:   Map<id, SlopChannels>  // { opacity, rotX, rotY, rotZ, saturation?, lod? }
 ```
 
-Two conversions, each done once per arrangement, and one non-conversion:
+One conversion, done once per arrangement, and one non-conversion:
 
 **Coordinates.** windease returns container units from the top-left; `Placement`
 is 0..1 of the viewport addressing the item's center. Fractional containers work
 — 10 zones at `{ w: 16/9, h: 1 }` with `gap`/`padding` of `0.02` tiles to a clean
 4×3 with no rounding anywhere.
 
-**State.** `createSequencer` and `createSlots` become the strategy's `state`
-plus `reduce` — the same allocators under windease's names, keeping the
-drop-tolerance rule they already carry.
-
 **Aspect is not a conversion — emit the square slot.** `Rect` forces w/h where
-`scale` was one number, but nothing forces it to be the *image's* w/h. Set `w = h = side` and let
-the renderer fit the image inside, as `DomBackend.write()` already does. The Rect
+`scale` was one number, but nothing forces it to be the *image's* w/h. Set
+`w = h = side` and let the renderer fit the image inside, as
+`DomBackend.write()` already does. The Rect
 is the box the item is fit inside — which is what `scale` has always meant — so
 aspect never crosses into the strategy and `LayoutItem.natural` stays unset.
 `aspect` appears nowhere in `src/arrangements/` today except as a field on `Item`
