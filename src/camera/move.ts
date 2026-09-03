@@ -10,9 +10,11 @@ export function poseAt(move: Move, now: number): Pose {
   if (move.durationMs <= 0) return move.to
   const t = Math.max(0, Math.min(1, (now - move.startedAt) / move.durationMs))
   const k = easeOut(t)
+  const at = (a: number, b: number) => a + (b - a) * k
   return {
-    x: move.from.x + (move.to.x - move.from.x) * k,
-    y: move.from.y + (move.to.y - move.from.y) * k,
-    z: move.from.z + (move.to.z - move.from.z) * k,
+    x: at(move.from.x, move.to.x),
+    y: at(move.from.y, move.to.y),
+    distance: at(move.from.distance, move.to.distance),
+    halfHeight: at(move.from.halfHeight, move.to.halfHeight),
   }
 }

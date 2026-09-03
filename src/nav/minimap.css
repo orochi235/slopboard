@@ -1,0 +1,47 @@
+.minimap {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 50;
+  display: grid;
+  gap: 4px;
+  width: 168px;
+  padding: 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #e2e8f0;
+  font: 11px/1.3 ui-monospace, monospace;
+}
+
+.minimap__svg {
+  width: 100%;
+  height: 84px;
+  overflow: visible;
+}
+
+.minimap__cell {
+  fill: rgba(148, 163, 184, 0.16);
+  stroke: rgba(148, 163, 184, 0.5);
+  cursor: pointer;
+}
+
+.minimap__cell:hover {
+  fill: rgba(148, 163, 184, 0.3);
+}
+
+.minimap__cell:focus-visible {
+  outline: none;
+  stroke: #e2e8f0;
+}
+
+.minimap__cell--focus {
+  fill: rgba(56, 189, 248, 0.32);
+  stroke: #38bdf8;
+}
+
+.minimap__label {
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -5,10 +5,10 @@ import { unionOf, zoneCellsOf } from '@/nav/zone-cells.ts'
 const at = (x: number, y: number, side = 1): Rect => ({ x, y, z: 0, w: side, h: side })
 
 describe('zoneCellsOf', () => {
-  it('treats a placement as centred, because that is how the mesh is anchored', () => {
+  it('treats a placement as top-left anchored, because that is how the mesh is hung', () => {
     const cells = zoneCellsOf(new Map([['a', at(0, 0, 2)]]), new Map([['a', 'z']]))
-    // A 2-wide card centred on the origin spans -1..1, so the box starts at -1.
-    expect(cells.get('z')).toEqual({ x: -1, y: -1, z: 0, w: 2, h: 2 })
+    // A 2-wide card hung at the origin spans 0..2, so the box starts there.
+    expect(cells.get('z')).toEqual({ x: 0, y: 0, z: 0, w: 2, h: 2 })
   })
 
   it('grows to cover every item in the zone', () => {
@@ -22,7 +22,7 @@ describe('zoneCellsOf', () => {
         ['b', 'z'],
       ]),
     )
-    expect(cells.get('z')).toEqual({ x: -0.5, y: -0.5, z: 0, w: 5, h: 3 })
+    expect(cells.get('z')).toEqual({ x: 0, y: 0, z: 0, w: 5, h: 3 })
   })
 
   it('keeps zones apart', () => {
@@ -37,8 +37,8 @@ describe('zoneCellsOf', () => {
       ]),
     )
     expect(cells.size).toBe(2)
-    expect(cells.get('one')!.x).toBe(-0.5)
-    expect(cells.get('two')!.x).toBe(8.5)
+    expect(cells.get('one')!.x).toBe(0)
+    expect(cells.get('two')!.x).toBe(9)
   })
 
   it('skips a placement whose zone it does not know', () => {

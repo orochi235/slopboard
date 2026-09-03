@@ -18,7 +18,7 @@ export function getAt(root: unknown, path: string): number | undefined {
 
 /** Structural copy along the path only. The frame loop reads this object every
  *  frame, so mutating in place would make a change invisible to React. */
-export function setAt<T>(root: T, path: string, value: number): T {
+export function setAt<T>(root: T, path: string, value: number | string | boolean): T {
   const [head, ...rest] = path.split('.')
   if (head === undefined) return root
   const src = root as unknown as Record<string, unknown>
@@ -29,4 +29,27 @@ export function setAt<T>(root: T, path: string, value: number): T {
     return copy as unknown as T
   }
   return { ...src, [head]: next } as unknown as T
+}
+
+/** Every dotted path in `value` that addresses a number, string or boolean. The
+ *  panel needs all three: an enum or a toggle is a leaf a control can drive. */
+export function leafPathsOf(value: unknown, prefix = ''): string[] {
+  const t = typeof value
+  if (t === 'number' || t === 'string' || t === 'boolean') return [prefix]
+  if (value === null || typeof value !== 'object') return []
+  return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) =>
+    leafPathsOf(v, prefix ? `${prefix}.${k}` : k),
+  )
+}
+
+/** Like `getAt`, but returns a string or boolean leaf too. */
+export function leafAt(root: unknown, path: string): number | string | boolean | undefined {
+  const out = path.split('.').reduce<unknown>((acc, key) => {
+    if (acc === null || typeof acc !== 'object') return undefined
+    return (acc as Record<string, unknown>)[key]
+  }, root)
+  const t = typeof out
+  return t === 'number' || t === 'string' || t === 'boolean'
+    ? (out as number | string | boolean)
+    : undefined
 }

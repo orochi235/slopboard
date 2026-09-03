@@ -1,4 +1,5 @@
 import type { LayoutResult, LayoutItem, Size as WeSize } from 'windease'
+import type { Projection } from '@/params.ts'
 
 export type Size = { w: number; h: number }
 
@@ -30,8 +31,8 @@ export type Placement = {
   saturation?: number
 }
 
-/** Where the 3D scene's camera sits. Fixed today; a value so it need not be. */
-export type Camera = { fovDeg: number; z: number }
+/** Where the 3D scene's camera starts, and under which projection. */
+export type Camera = { projection: Projection; fovDeg: number; z: number }
 
 /** slopboard's own channel vocabulary. windease carries these and never reads them. */
 export type SlopChannels = {

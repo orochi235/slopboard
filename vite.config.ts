@@ -2,7 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath } from 'node:url'
 
-const proxy = { target: 'http://localhost:8787', ws: true, changeOrigin: false }
+const daemon = `http://localhost:${process.env.SLOP_PORT ?? 8787}`
+const proxy = { target: daemon, ws: true, changeOrigin: false }
 
 export default defineConfig({
   plugins: [react()],

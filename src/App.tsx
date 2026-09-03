@@ -18,10 +18,14 @@ export function App() {
   const [index, setIndex] = useState(0)
   const [flash, setFlash] = useState(false)
   const [params, setParams] = useState(defaultParams)
-  // createStack closes over its params, so a change rebuilds the arrangement.
-  // Its rank allocators reset with it, which costs one frame of snapping —
-  // the same contract every cache here already honours.
-  const tuned = useMemo(() => createStack(params), [params])
+  // createStack closes over its params, so a change rebuilds the arrangement
+  // and resets its rank allocators — one frame of snapping, the same contract
+  // every cache here already honours. Keyed on the layout half alone so that
+  // turning the camera, which no strategy reads, does not reshuffle the piles.
+  const { camera: _camera, overlay: _overlay, ...layout } = params
+  const layoutKey = JSON.stringify(layout)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- layoutKey is params, minus the display half
+  const tuned = useMemo(() => createStack(params), [layoutKey])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -52,6 +56,7 @@ export function App() {
           ttlMs={ttlMs}
           clockOffset={clockOffset}
           params={params}
+          onParams={setParams}
         />
       ) : (
         <DomBackend

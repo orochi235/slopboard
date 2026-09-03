@@ -1,13 +1,13 @@
 import type { Rect } from 'windease'
 
 /**
- * One bounding box per zone. A placement's x/y is the item's **centre** —
- * that is how the mesh is anchored — so the box expands by half an extent in
- * each direction rather than treating the position as a corner.
+ * One bounding box per zone. A placement's x/y is its **top-left**, the
+ * convention windease's own strategies place on, so a box is the union of
+ * `x..x+w` rather than a half-extent either side of a centre.
  *
  * The strategy does not publish its cells and re-deriving them here is cheaper
  * than widening its return type. It also covers what is actually drawn, which
- * the nominal grid cell does not: a pile's cards overhang their cell.
+ * the nominal grid cell does not: a pile's deep cards step past their cell.
  */
 export function zoneCellsOf(
   placements: ReadonlyMap<string, Rect>,
@@ -17,17 +17,13 @@ export function zoneCellsOf(
   for (const [id, r] of placements) {
     const zone = zoneOf.get(id)
     if (zone === undefined) continue
-    const x0 = r.x - r.w / 2
-    const y0 = r.y - r.h / 2
-    const x1 = r.x + r.w / 2
-    const y1 = r.y + r.h / 2
     const seen = bounds.get(zone)
-    if (!seen) bounds.set(zone, { x0, y0, x1, y1 })
+    if (!seen) bounds.set(zone, { x0: r.x, y0: r.y, x1: r.x + r.w, y1: r.y + r.h })
     else {
-      seen.x0 = Math.min(seen.x0, x0)
-      seen.y0 = Math.min(seen.y0, y0)
-      seen.x1 = Math.max(seen.x1, x1)
-      seen.y1 = Math.max(seen.y1, y1)
+      seen.x0 = Math.min(seen.x0, r.x)
+      seen.y0 = Math.min(seen.y0, r.y)
+      seen.x1 = Math.max(seen.x1, r.x + r.w)
+      seen.y1 = Math.max(seen.y1, r.y + r.h)
     }
   }
 

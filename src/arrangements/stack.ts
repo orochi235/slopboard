@@ -44,8 +44,12 @@ export function createStack(params: StackParams = defaultParams): Arrangement3D 
     name: 'stack',
     dims: 3,
     camera: {
+      projection: params.camera.projection,
       fovDeg: params.camera.fovDeg,
-      z: 0.5 / Math.tan((params.camera.fovDeg * Math.PI) / 360),
+      z:
+        params.camera.projection === 'orthographic'
+          ? params.camera.standoff
+          : 0.5 / Math.tan((params.camera.fovDeg * Math.PI) / 360),
     },
     strategy: {
       name: 'slop-stack',
@@ -70,6 +74,10 @@ export function createStack(params: StackParams = defaultParams): Arrangement3D 
         for (const [zone, bucket] of byZone) {
           const cell = cells.get(zone)
           if (!cell) continue
+          // The same relative point of the card meets that point of the cell,
+          // so origin 0,0 hangs the pile corner-to-corner and 0.5,0.5 centres it.
+          const originX = params.origin.x * (cell.w - params.side)
+          const originY = params.origin.y * (cell.h - params.side)
           const held = ranksFor(zone)(
             bucket.map((i) => i.id),
             now,
@@ -88,8 +96,8 @@ export function createStack(params: StackParams = defaultParams): Arrangement3D 
             const noise = hashUnit(it.id)
 
             placements.set(it.id, {
-              x: cell.x + depth * params.step.x + noise * params.jitter.pos,
-              y: cell.y + depth * params.step.y + noise * params.jitter.pos,
+              x: cell.x + originX + depth * params.step.x + noise * params.jitter.pos,
+              y: cell.y + originY + depth * params.step.y + noise * params.jitter.pos,
               z: depth * params.step.z,
               w: params.side,
               h: params.side,
