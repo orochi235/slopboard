@@ -117,10 +117,16 @@ and never reads.
 
 ### `z` on `Rect`
 
-`z?: number`, and every windease strategy emits `z: 0` explicitly — so every Rect
-the library produces carries it and read sites need no `?? 0`, while hand-built
-literals in tests and consumer code keep compiling. Making it required is the
-same design with a major version attached; that is the only reason not to.
+`z: number`, required, and every windease strategy emits `0`. Optional was the
+earlier call for exactly one reason — required is a windease major — and windease
+is going to 2.0, which spends that cost deliberately.
+
+Required is what makes "every rect carries depth" something the compiler checks
+instead of a convention. Implementing it surfaced two emission sites in
+windease's React focus layer that a grep-guided sweep had missed; optional `z`
+can never tell you that a new rect-producing site forgot depth, which for a
+library adding a third axis is the property worth paying for. It also deletes the
+`?? 0` at a consumer's read boundary rather than leaving it as dead code.
 
 `0`, never `null`: a 2D layout genuinely *is* at depth zero, so `null` would
 encode absence for a value that exists, and it coerces to `0` in arithmetic
