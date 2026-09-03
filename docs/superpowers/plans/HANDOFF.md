@@ -33,7 +33,7 @@ extent. That is why framing goes loose once you turn the camera off head-on.
 
 ## Asked for and not built
 
-Three requests arrived while the last commit was in flight. None is started.
+Four requests arrived while the last commit was in flight. None is started.
 
 - **Wheel-zoom the hierarchy.** Scrolling out from a focused pile should return
   to the wall, with a threshold so a stray trackpad nudge does not fire it. The
@@ -50,6 +50,21 @@ Three requests arrived while the last commit was in flight. None is started.
   budget and needs no asset, which suits a wall that already accounts every
   byte it uploads. Its knobs belong in `params.overlay`'s neighbourhood so the
   panel can tune it, and it should be switchable off.
+- **Wear weasel's themes, as far as they reach.** `@weasel-js/theme` is
+  published (1.3.0), so this is an ordinary npm dependency, not a linked
+  checkout like windease. It is DTCG tokens with a mode layer (`weaselTheme`
+  defaults to dark) applied as CSS custom properties.
+
+  The qualifier is the work. Two halves reach differently: the DOM chrome —
+  params panel, HUD, lightbox, minimap — takes `tokens.css` and `applyTheme`
+  directly, and slopboard's hand-picked hex values in `params.css` become token
+  references. The scene does not: three wants a `THREE.Color`, not a CSS
+  variable, so the card outline, the zone outline's idle and focus colors, the
+  label fill and the flat-quad tier need a token→Color bridge read once at
+  startup and on a mode change, not per frame. Decide whether the scene follows
+  the theme at all before building that bridge — a wall of images may want a
+  neutral surround more than a branded one.
+
 - **Make the page a lab.** The params panel, the minimap and the HUD are
   developer chrome that a real wall display should not carry. The ask is to
   name that: this page is the lab, and a non-lab wall comes later. No decision
