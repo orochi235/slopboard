@@ -13,11 +13,13 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@react-three/fiber": "^9.7.0",
     "chokidar": "^4.0.3",
     "express": "^5.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sharp": "^0.34.2",
+    "three": "^0.169.0",
     "windease": "file:../windease",
     "ws": "^8.18.2"
   },
@@ -26,6 +28,7 @@
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/three": "^0.169.0",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.1.2",
