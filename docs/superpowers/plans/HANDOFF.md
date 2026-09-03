@@ -16,13 +16,38 @@ still unticked, because their deliverable is a judgment.
   byte budget, camera zoom, arrow navigation, the lightbox, and — since the
   plans were written — an orthographic default, corner-anchored piles, an
   orbiting camera you drag, a slider panel over every parameter, a clickable
-  plan view, and in-scene zone outlines and labels. 109 tests.
+  plan view, and in-scene zone outlines and labels. 145 tests.
+
+Since then, on `main`: a per-item TTL written into the filename
+(`name.ttl5m.ext`, bare number is seconds, wall default now 24h and `sim` tags
+its own cards `ttl60`); a port guard on both halves (a taken 8787 attaches to a
+live daemon or names `SLOP_PORT` and exits 1, instead of an unhandled error
+event; the client has its own port 5183 with `strictPort`); card outlines,
+panel grouping, and params persisted to localStorage.
 
 Read `DESIGN.md` under **The stack's camera** before touching the camera or the
 arrangement. It carries the one thing that is not visible in the code: a pile
 is a volume — deeper than the whole wall is tall at 29 cards — and every box
 computed about it is flat, because windease's `Rect` has a z position and no z
 extent. That is why framing goes loose once you turn the camera off head-on.
+
+## Asked for and not built
+
+Two requests arrived while the last commit was in flight. Neither is started.
+
+- **Wheel-zoom the hierarchy.** Scrolling out from a focused pile should return
+  to the wall, with a threshold so a stray trackpad nudge does not fire it. The
+  ask is explicitly general: wall → zone → card is the hierarchy that exists
+  today, and the navigation should hold for however many levels it grows.
+  `src/view-state.ts` already models the levels as a reducer, so the work is a
+  wheel gesture dispatching into it plus a camera level per rung — not a new
+  model. Worth reading that reducer before designing, and worth asking whether
+  zoom-in should select a pile under the cursor or the focused one.
+- **Make the page a lab.** The params panel, the minimap and the HUD are
+  developer chrome that a real wall display should not carry. The ask is to
+  name that: this page is the lab, and a non-lab wall comes later. No decision
+  yet on the mechanism — a `?lab` flag beside `?backend`, a separate route, or
+  a build-time split — and that decision is the first thing to settle.
 
 ## Do this first
 
@@ -33,7 +58,7 @@ Run the wall and answer the questions in
 ```bash
 cd ~/src/slopboard && npm run dev
 npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
-open 'http://localhost:5173/?backend=webgl'
+open 'http://localhost:5183/?backend=webgl'
 ```
 
 Every question there is a control in the `params` panel, so a bad answer is a
@@ -68,8 +93,13 @@ and its cards show up on the real wall for a TTL.
   over its params and resets its rank allocators, so keying the memo on the
   whole object reshuffles every pile on every frame of a camera drag. It is
   keyed on the layout half alone.
-- **`npm run dev` will not start the daemon if one is already on 8787**, and
-  `pkill -f 'tsx watch server'` kills the real wall's daemon, not just yours.
+- **`pkill -f 'tsx watch server'` kills the real wall's daemon, not just yours** —
+  and killing the daemon child takes `concurrently` and vite down with it. A
+  taken 8787 is now handled: the daemon attaches to a live one and exits 0, so
+  a second `npm run dev` gives you a client against the running daemon.
+- **The client is on 5183, not vite's 5173.** Other projects on this machine
+  take 5173 first, and `strictPort` makes that a loud failure rather than a
+  silent drift to a port nobody opens.
 
 ## Not done
 
