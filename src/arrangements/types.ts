@@ -1,3 +1,5 @@
+import type { LayoutResult, LayoutItem, Size as WeSize } from 'windease'
+
 export type Size = { w: number; h: number }
 
 export type Item = {
@@ -28,8 +30,42 @@ export type Placement = {
   saturation?: number
 }
 
-export type Arrangement = {
+/** Where the 3D scene's camera sits. Fixed today; a value so it need not be. */
+export type Camera = { fovDeg: number; z: number }
+
+/** slopboard's own channel vocabulary. windease carries these and never reads them. */
+export type SlopChannels = {
+  z: number
+  opacity: number
+  rotX: number
+  rotY: number
+  rotZ: number
+  saturation?: number
+  blur?: number
+  lod?: number
+}
+
+export type SlopStrategy = {
   name: string
-  needs3d: boolean
+  layout(input: {
+    items: LayoutItem[]
+    container: WeSize
+    state: undefined
+    options: Record<string, unknown>
+  }): LayoutResult
+}
+
+export type Arrangement2D = {
+  name: string
+  dims: 2
   arrange(items: Item[], viewport: Size, t: number): Placement[]
 }
+
+export type Arrangement3D = {
+  name: string
+  dims: 3
+  camera?: Camera
+  strategy: SlopStrategy
+}
+
+export type Arrangement = Arrangement2D | Arrangement3D

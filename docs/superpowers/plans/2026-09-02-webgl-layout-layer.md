@@ -356,7 +356,7 @@ git commit -m "link windease from source and add vitest"
 
 `needs3d: boolean` cannot discriminate two different shapes, which is the whole reason for the change. `App.tsx` currently indexes `arrangements` directly; it must go through `arrangementsFor(2)` so the DOM backend never lands on a 3D arrangement.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/arrangements/registry.test.ts
@@ -384,12 +384,12 @@ describe('the arrangement registry', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npm test -- src/arrangements/registry.test.ts`
 Expected: FAIL — `arrangementsFor` is not exported.
 
-- [ ] **Step 3: Rewrite the type module**
+- [x] **Step 3: Rewrite the type module**
 
 In `src/arrangements/types.ts`, replace the `Arrangement` type with:
 
@@ -437,7 +437,7 @@ export type Arrangement3D = {
 export type Arrangement = Arrangement2D | Arrangement3D
 ```
 
-- [ ] **Step 4: Migrate the three existing arrangements**
+- [x] **Step 4: Migrate the three existing arrangements**
 
 In each of `grid.ts`, `tide.ts`, `erode.ts`, change the one field:
 
@@ -453,7 +453,7 @@ to:
 
 and change each file's `Arrangement` type import to `Arrangement2D`, adjusting the annotation (`export const grid: Arrangement2D`, `): Arrangement2D {`).
 
-- [ ] **Step 5: Add the filter to the registry**
+- [x] **Step 5: Add the filter to the registry**
 
 In `src/arrangements/index.ts`:
 
@@ -483,7 +483,7 @@ export type {
 } from './types.ts'
 ```
 
-- [ ] **Step 6: Point App.tsx at the filtered list**
+- [x] **Step 6: Point App.tsx at the filtered list**
 
 In `src/App.tsx`, replace the two `arrangements` references. Add near the top of the component:
 
@@ -500,12 +500,12 @@ then use `available.length` in the key handler and `available[index]` for the ar
 
 Change the import to `import { arrangementsFor } from '@/arrangements/index.ts'`.
 
-- [ ] **Step 7: Run tests and typecheck**
+- [x] **Step 7: Run tests and typecheck**
 
 Run: `cd ~/src/slopboard && npm test && npm run typecheck`
 Expected: both PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd ~/src/slopboard

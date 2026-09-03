@@ -1,4 +1,4 @@
-import type { Arrangement, Item, Placement, Size } from './types.ts'
+import type { Arrangement2D, Item, Placement, Size } from './types.ts'
 
 const GUTTER = 0.94
 
@@ -6,9 +6,9 @@ const GUTTER = 0.94
  * The control. Newest first in reading order, no decay signal at all — every
  * other arrangement has to justify itself against this.
  */
-export const grid: Arrangement = {
+export const grid: Arrangement2D = {
   name: 'grid',
-  needs3d: false,
+  dims: 2,
   arrange(items: Item[], viewport: Size): Placement[] {
     const n = items.length
     if (n === 0) return []

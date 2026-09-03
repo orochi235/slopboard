@@ -1,4 +1,4 @@
-import type { Arrangement, Item, Placement, Size } from './types.ts'
+import type { Arrangement2D, Item, Placement, Size } from './types.ts'
 import { createSlots, ramp } from './slots.ts'
 
 const CELLS = 48
@@ -24,12 +24,12 @@ function scatter(slot: number, total: number) {
  * everything and cost the arrangement its entire premise — so a quiet wall
  * is a sparse one. Tests whether motion is needed at all.
  */
-export function createErode(): Arrangement {
+export function createErode(): Arrangement2D {
   const slots = createSlots()
 
   return {
     name: 'erode',
-    needs3d: false,
+    dims: 2,
     arrange(items: Item[], viewport: Size): Placement[] {
       const oldestFirst = [...items].sort((a, b) => b.age01 - a.age01)
       const held = slots(oldestFirst.map((i) => i.id))

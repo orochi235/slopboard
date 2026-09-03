@@ -1,4 +1,4 @@
-import type { Arrangement, Item, Placement, Size } from './types.ts'
+import type { Arrangement2D, Item, Placement, Size } from './types.ts'
 import { createSequencer, ramp } from './slots.ts'
 
 const LANES = 6
@@ -11,12 +11,12 @@ const FADE = 0.06
  * vision than N independent fades — periphery detects coherent motion well and
  * sub-threshold luminance change barely at all.
  */
-export function createTide(): Arrangement {
+export function createTide(): Arrangement2D {
   const sequence = createSequencer()
 
   return {
     name: 'tide',
-    needs3d: false,
+    dims: 2,
     arrange(items: Item[], viewport: Size): Placement[] {
       const oldestFirst = [...items].sort((a, b) => b.age01 - a.age01)
       const lanes = sequence(oldestFirst.map((i) => i.id))

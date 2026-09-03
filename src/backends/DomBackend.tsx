@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import type { WallItem } from '@shared/protocol.ts'
-import type { Arrangement, Item, Placement } from '@/arrangements/index.ts'
+import type { Arrangement2D, Item, Placement } from '@/arrangements/index.ts'
 
 type Props = {
   items: WallItem[]
-  arrangement: Arrangement
+  arrangement: Arrangement2D
   ttlMs: number
   clockOffset: number
 }
