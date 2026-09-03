@@ -1,0 +1,113 @@
+import type { LayoutItem, LayoutResult, Rect } from 'windease'
+import { createRanks, ramp } from './slots.ts'
+import { createZoneGrid } from './zones.ts'
+import { defaultParams, type StackParams } from '@/params.ts'
+import type { Arrangement3D, SlopChannels } from './types.ts'
+
+type StackItem = LayoutItem & { zone: string; age01: number }
+
+/** Stable per-id noise in [-1, 1]. Cheap, and identical across cache drops. */
+function hashUnit(id: string): number {
+  let h = 2166136261
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return ((h >>> 0) / 0xffffffff) * 2 - 1
+}
+
+const easeOut = (t: number) => 1 - (1 - t) ** 3
+
+const lodFor = (rank: number, tiers: StackParams['lod']) =>
+  tiers.find((tier) => rank <= tier.maxRank)?.edge ?? 0
+
+/**
+ * One diagonal pile per zone, tiled to a grid. Depth is rank, so an arrival
+ * shoves its pile back one step and spacing stays even at any arrival rate;
+ * age drives opacity alone, which is why a quiet wall shows its top card dying
+ * in place rather than at the far end.
+ */
+export function createStack(params: StackParams = defaultParams): Arrangement3D {
+  const ranksByZone = new Map<string, ReturnType<typeof createRanks>>()
+  const zoneGrid = createZoneGrid()
+
+  const ranksFor = (zone: string) => {
+    let ranks = ranksByZone.get(zone)
+    if (!ranks) {
+      ranks = createRanks()
+      ranksByZone.set(zone, ranks)
+    }
+    return ranks
+  }
+
+  return {
+    name: 'stack',
+    dims: 3,
+    camera: {
+      fovDeg: params.camera.fovDeg,
+      z: 0.5 / Math.tan((params.camera.fovDeg * Math.PI) / 360),
+    },
+    strategy: {
+      name: 'slop-stack',
+      layout({ items, container, options }): LayoutResult {
+        const now = typeof options.now === 'number' ? options.now : Date.now()
+        const all = items as StackItem[]
+
+        const byZone = new Map<string, StackItem[]>()
+        for (const it of all) {
+          const bucket = byZone.get(it.zone)
+          if (bucket) bucket.push(it)
+          else byZone.set(it.zone, [it])
+        }
+        for (const bucket of byZone.values()) bucket.sort((a, b) => a.age01 - b.age01)
+
+        const cells = zoneGrid([...byZone.keys()], container, params.zoneGrid)
+
+        const placements = new Map<string, Rect>()
+        const channels = new Map<string, Record<string, number>>()
+        const unplaced: string[] = []
+
+        for (const [zone, bucket] of byZone) {
+          const cell = cells.get(zone)
+          if (!cell) continue
+          const held = ranksFor(zone)(
+            bucket.map((i) => i.id),
+            now,
+          )
+
+          for (const it of bucket) {
+            const entry = held.get(it.id)
+            if (!entry) continue
+            if (entry.rank >= params.rankCap) {
+              unplaced.push(it.id)
+              continue
+            }
+
+            const settle = easeOut(Math.min(1, (now - entry.changedAt) / params.shoveMs))
+            const depth = entry.prevRank + (entry.rank - entry.prevRank) * settle
+            const noise = hashUnit(it.id)
+
+            placements.set(it.id, {
+              x: cell.x + depth * params.step.x + noise * params.jitter.pos,
+              y: cell.y + depth * params.step.y + noise * params.jitter.pos,
+              z: depth * params.step.z,
+              w: params.side,
+              h: params.side,
+            })
+
+            channels.set(it.id, {
+              z: depth * params.step.z,
+              opacity: 1 - ramp(it.age01, params.fade.from, params.fade.to),
+              rotX: params.rot.x,
+              rotY: params.rot.y,
+              rotZ: noise * params.jitter.rot,
+              lod: lodFor(entry.rank, params.lod),
+            } satisfies SlopChannels)
+          }
+        }
+
+        return { placements, affordances: [], channels, ...(unplaced.length ? { unplaced } : {}) }
+      },
+    },
+  }
+}

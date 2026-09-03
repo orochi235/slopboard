@@ -896,7 +896,7 @@ type StackItem = LayoutItem & { zone: string; age01: number }
 
 Geometry is the square slot (`w = h = params.side`), never the image's aspect — the renderer fits the image inside, as `DomBackend.write()` already does.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/arrangements/stack.test.ts
@@ -989,12 +989,12 @@ describe('stack', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd ~/src/slopboard && npm test -- src/arrangements/stack.test.ts`
 Expected: FAIL — cannot resolve `@/arrangements/stack.ts`.
 
-- [ ] **Step 3: Implement it**
+- [x] **Step 3: Implement it**
 
 ```ts
 // src/arrangements/stack.ts
@@ -1108,7 +1108,7 @@ export function createStack(params: StackParams = defaultParams): Arrangement3D 
 }
 ```
 
-- [ ] **Step 4: Register it**
+- [x] **Step 4: Register it**
 
 In `src/arrangements/index.ts`, import and append it:
 
@@ -1120,12 +1120,12 @@ import { createStack } from './stack.ts'
 export const arrangements: Arrangement[] = [grid, createTide(), createErode(), createStack()]
 ```
 
-- [ ] **Step 5: Run the whole suite**
+- [x] **Step 5: Run the whole suite**
 
 Run: `cd ~/src/slopboard && npm test && npm run typecheck`
 Expected: all PASS, including Task 4's registry test now seeing a `dims: 3` entry.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/src/slopboard
