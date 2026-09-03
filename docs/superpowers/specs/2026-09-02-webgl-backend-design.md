@@ -42,43 +42,96 @@ deep) and come apart at a quiet one, where the top card visibly dies in place.
 That is informative rather than a bug: nothing new has arrived and the newest
 thing is expiring.
 
-**Zone tiling comes from windease.** Its layout core is substrate-neutral by
-contract ("implementations must not read or write the DOM, measure anything, or
-mutate their inputs"), and its README already documents a single-WebGL-context
-host.
+**All layout comes from windease — its strategy layer, not its host.** That core
+is substrate-neutral by contract ("implementations must not read or write the
+DOM, measure anything, or mutate their inputs"), so `layout()` is a pure function
+callable from a rAF loop with no store and no DOM. Arrangements become
+`LayoutStrategy` implementations that live here. What windease must *not* supply
+is `ContainerHost`: it recomputes on store mutation, so driving it per frame
+means ~60 store writes/sec through throttle, history and reconcile.
 
 **Every constant is a live parameter.** Tuning this by editing source and
 reloading does not converge. Every number in this document is a starting value.
 
-## Interfaces
+## Layout contract
 
-`Placement` and the 2D path are untouched.
+An arrangement is a windease `LayoutStrategy`. `Arrangement` shrinks to the
+registry metadata windease has no field for — `dims`, `camera` — wrapping one.
+
+The shapes already agree. windease's `layout({ items, container, state, options })`
+is what `arrange` is in practice: none of `grid`, `tide` or `erode` reads the `t`
+it is handed, because time reaches them through `Item.age01`. `createSlots` /
+`createSequencer` are windease's `state` + `reduce` under other names, with the
+same drop-tolerance rule.
+
+What a 3D arrangement returns:
 
 ```ts
-type Placement3D = {
-  id: string
-  pos: [number, number, number]   // world units
-  rot: [number, number, number]   // euler XYZ, radians
-  scale: number                   // world side of the box the image fits inside
-  opacity: number
-  saturation?: number
-}
-
-type Arrangement3D = {
-  name: string
-  dims: 3
-  camera?: Camera                 // unset today; the scene falls back to the default
-  arrange(items: Item[], viewport: Size, t: number): Placement3D[]
-}
+placements: Map<id, Rect>          // { x, y, z, w, h }, world units
+channels:   Map<id, SlopChannels>  // { opacity, rotX, rotY, rotZ, saturation?, lod? }
 ```
 
-`scale` keeps its 2D meaning — the side of the square the image fits inside,
-with the mesh applying aspect — so the two placement types stay readable
-against each other.
+Three conversions, each done once per arrangement:
 
-The purity constraint from `DESIGN.md` carries over unchanged: `arrange` is
-recomputed each frame, motion must be closed-form in `t`, and any per-`id`
-cache must tolerate being dropped.
+**Coordinates.** windease returns container units from the top-left; `Placement`
+is 0..1 of the viewport addressing the item's center. Fractional containers work
+— 10 zones at `{ w: 16/9, h: 1 }` with `gap`/`padding` of `0.02` tiles to a clean
+4×3 with no rounding anywhere.
+
+**Aspect — emit the square slot.** `Rect` forces w/h where `scale` was one
+number, but nothing forces it to be the *image's* w/h. Set `w = h = side` and let
+the renderer fit the image inside, as `DomBackend.write()` already does. The Rect
+is the box the item is fit inside — which is what `scale` has always meant — so
+aspect never crosses into the strategy and `LayoutItem.natural` stays unset.
+
+Do not instead pass aspect in and have arrangements emit true image w/h. It buys
+`overflow`, which is meaningless here (`tide`'s `OVERSHOOT` puts items off-wall
+on purpose), and `unplaced`, which has one use at most (the rank cap). The price
+is aspect math in every arrangement and aspect fixtures in tests that need none
+today. A square slot is also the more forgiving hit-target if drops ever land.
+
+**Channels.** `opacity`, `blur`, `saturation`, the pile's per-`id` rotation and
+its LOD tier are not geometry. They ride a new
+`LayoutResult.channels?: Map<id, Record<string, number>>` that windease carries
+and never reads.
+
+### What belongs in `channels`, and why it is untyped
+
+Not "the optional fields" — `Rect.z` is optional and is not a channel. Not "what
+we hide from windease" — nothing is being withheld. **Channels is output windease
+has no predicate over.** Every question its core asks is a predicate over
+geometry: does this fit (`overflow`), did it get placed (`unplaced`), what is
+under the cursor (`contains`), which seam is this (`bounds`), what is to the left
+(`navigate`). A number that could appear in one of those is geometry. A number no
+such question exists for is a channel. Opacity is the clear case. Rotation is the
+boundary one — a tight OBB hit-test would read it — so it stays a channel until
+something needs that test, not forever by decree.
+
+**The abuse to avoid:** channels is not where things windease does not support
+yet get smuggled. If the core should reason about a number and cannot, extend the
+core. Channels is for numbers where extending it would be *wrong*.
+
+This closes an asymmetry rather than inventing a bag. windease already carries
+consumer-defined data it never interprets — `membership.placement`'s free-form
+keys on the input side, and `Affordance<TMeta>.meta` on the output side, where
+`LayoutResult<TId, TMeta>` already threads the generic. Affordances get it;
+placements get nothing. Channels reuses the parameter that is already there.
+
+Typing it would hand windease a vocabulary it has no business owning. Its other
+consumer manages panes, where `saturation` means nothing — as it means nothing on
+a plotter or in a terminal. Every name is permanent under semver. Worst, a typed
+`opacity` invites "shouldn't a fully transparent item count as `unplaced`?", and
+layout semantics start depending on a rendering property. An opaque bag makes
+that question unaskable. `number` rather than `unknown` is the one assumption
+worth making: cross-fade is a blind lerp of every channel by `id`, which works
+only if they are all numbers.
+
+The cost is real. No key-name safety, and `opacty` fails silently at the
+renderer. slopboard declares its own `SlopChannels` and casts once at the
+boundary, so the safety sits with whoever owns the vocabulary.
+
+The purity constraint from `DESIGN.md` survives as windease's own: `layout` is
+recomputed each frame, motion closed-form, any per-`id` cache droppable.
 
 ## World units
 
@@ -87,7 +140,7 @@ visible height 1.0, `scale` meaning what it means today. A perspective camera at
 FOV 35° sits on +Z at `0.5 / tan(fov/2)`.
 
 This convention is the whole reason porting the 2D arrangements later is
-mechanical: `pos = [x, y, 0]` with the same `scale` renders identically.
+mechanical: `{ x, y, z: 0, w, h }` renders identically.
 
 ## Zone tiling
 
@@ -103,12 +156,13 @@ keyed by zone name, so **a zone never moves once placed.** Alphabetical would
 reshuffle the entire wall the first time an agent writes to a new repo, and
 muscle memory is worth more than tidiness.
 
-Take `gridStrategy` and `observePixelRatio` (backing-store resize on a DPR
-change, which moving a window between displays needs). Do **not** take `Store`
-or the focus stack: `navigableLeaves(store, geometry)` wants windease to be the
-zone model, its nodes carry their own lifecycle FSM, and the daemon already owns
-item lifetime — two owners of "when does this exist" will disagree. Arrow keys
-across a known grid is ~20 lines. Widening later is additive.
+Take the strategies, plus `observePixelRatio` (backing-store resize on a DPR
+change, which moving a window between displays needs). Do **not** take `Store` or
+the focus stack — the per-frame objection above, and a second one that outlives
+it: `navigableLeaves(store, geometry)` wants windease to be the zone model, its
+nodes carry their own lifecycle FSM, and the daemon already owns item lifetime.
+Two owners of "when does this exist" will disagree. Arrow keys across a known
+grid is ~20 lines. Widening later is additive.
 
 ## The stack arrangement
 
@@ -225,9 +279,13 @@ at 32, about 3.3 MB; ten zones is ~33 MB, against ~280 MB if every item were
 kept at 512. The numbers to verify are where each tier stops being visually
 free — that is a looking-at-it question, not a measuring one.
 
-**slopboard becomes windease's second consumer** after brainhouse, which is the
-best available test of that API and also a new way for the wall to break.
-windease's README carries unreleased breaking changes right now.
+**windease becomes co-designed with slopboard.** Taking all of layout, not just
+the zone grid, means `channels` and `Rect.z` exist in a window-management library
+because an ambient wall wanted them — a permanent commitment to a consumer whose
+other user manages panes. Keeping `channels` opaque is the whole mitigation: it
+adds a pipe rather than a schema. The wall also inherits a new way to break, and
+windease's README carries unreleased breaking changes right now (none touching
+`gridStrategy`'s signature or its unit-container behavior).
 
 ## Decided against
 
