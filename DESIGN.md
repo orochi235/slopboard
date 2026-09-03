@@ -88,15 +88,21 @@ type Arrangement = {
 }
 ```
 
+3D arrangements are a different contract — a windease `LayoutStrategy` returning
+rects and channels, described in the WebGL spec, not here.
+
+```ts
+```
+
 `arrange` is pure and recomputed each frame. Three things follow, and they're
 the reason for the shape:
 
 - Swapping arrangements live is free.
 - Cross-fading two arrangements is lerping two `Placement` lists by `id`, so
   comparison is a smooth A/B rather than a jump cut.
-- `depth` is a z-index in the DOM backend and a Z position in the r3f one, so
-  the same arrangement runs in both and the render-layer choice stops being a
-  fork in the road.
+- `depth` is a z-index in the DOM backend. It was meant to be a Z position in
+  the r3f one so that a single arrangement ran in both; that did not survive
+  contact with real perspective, and 3D arrangements are now r3f-only.
 
 The constraint this imposes: motion must be a closed-form function of age, not
 accumulated velocity. Springs are fine (a damped spring has a closed form);
@@ -138,8 +144,8 @@ valuable moment. `bloom` is a modifier, composable with any arrangement: new
 items enter dim and small and ramp to full presence over the first ~10% of their
 life. The wall stops flinching every time a render drops.
 
-Keep it a flag, not a seventh arrangement. Both settings of it need testing
-against all six.
+Keep it a flag, not an arrangement of its own. Both settings of it need testing
+against every arrangement.
 
 ### Evaluating them
 
@@ -155,8 +161,9 @@ against all six.
 ### Pinned items
 
 Pinned items freeze their `age01` and move to a reserved band; the flowing set
-arranges in the space that's left. One rule that works for all six arrangements,
-rather than six independent "reflow around a hole" packing problems.
+arranges in the space that's left. One rule that works for every arrangement,
+rather than an independent "reflow around a hole" packing problem per
+arrangement.
 
 ## Ingest contract
 
