@@ -20,7 +20,7 @@
 
 The spec's deliverable for this stage is "verified by looking at it," and that is honest: whether a pile of 200 reads as depth in peripheral vision is the question the whole project exists to answer. No test here asserts that.
 
-So every task below either has a unit test or is explicitly marked **eyes only**. Task 9 is the handoff: it produces a running wall and a screenshot, and the judgment is the owner's.
+So every task below either has a unit test or is explicitly marked **eyes only**. Task 10 is the handoff: it produces a running wall and a screenshot, and the judgment is the owner's.
 
 ## Global Constraints
 
@@ -1073,7 +1073,7 @@ export function App() {
 
 Run: `cd ~/src/slopboard && npm run typecheck && npx vitest run`
 Expected: typecheck clean, every existing test still passing. No test covers
-`WebglBackend` — that is Task 9.
+`WebglBackend` — that is Task 10.
 
 - [ ] **Step 4: Commit**
 
