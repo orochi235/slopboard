@@ -1,0 +1,27 @@
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.86);
+  cursor: zoom-out;
+}
+
+.lightbox__img {
+  max-width: 94vw;
+  max-height: 94vh;
+  cursor: default;
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+}
+
+.lightbox__img--in {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox__img {
+    transition: none;
+  }
+}
