@@ -11,12 +11,15 @@ Plans 1, 2 and 3 are implemented and on `main` in both repos, except the two
 still unticked, because their deliverable is a judgment.
 
 - windease `main`: `Rect.z` (required), `LayoutResult.channels`, both wired
-  through `ContainerHost` and the presets. 1472 tests.
+  through `ContainerHost` and the presets.
 - slopboard `main`: the WebGL wall behind `?backend=webgl`, texture LOD with a
   byte budget, camera zoom, arrow navigation, the lightbox, and — since the
   plans were written — an orthographic default, corner-anchored piles, an
   orbiting camera you drag, a slider panel over every parameter, a clickable
-  plan view, and in-scene zone outlines and labels. 145 tests.
+  plan view, and in-scene zone outlines and labels.
+
+Both repos are green; `npm test` in each is the count, and it is current in a
+way a number written here stops being the moment anyone commits.
 
 Since then, on `main`: a per-item TTL written into the filename
 (`name.ttl5m.ext`, bare number is seconds, wall default now 24h and `sim` tags
