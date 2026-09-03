@@ -35,8 +35,11 @@ therefore changes nothing about what is on the wall or how far along it is.
 
 **Client** (React, served in the browser)
 
-Two render backends over one layout interface (see Arrangements): a DOM/CSS
-backend, and an r3f backend for arrangements that need real perspective.
+Two render backends (see Arrangements): a DOM/CSS backend, and an r3f backend
+for arrangements with real perspective. They no longer share one layout
+interface — 3D arrangements run only in the r3f backend, and the DOM backend is
+a legacy escape hatch that goes away if the 3D wall works. See
+`docs/superpowers/specs/2026-09-02-webgl-backend-design.md`.
 
 Run it chromeless:
 
@@ -80,7 +83,7 @@ type Placement = {
 
 type Arrangement = {
   name: string
-  needs3d: boolean
+  dims: 2
   arrange(items: Item[], viewport: Size, t: number): Placement[]
 }
 ```
@@ -113,8 +116,9 @@ through a coprime stride so a partly-full wall scatters.
 
 ### The set
 
-Six, spanning the space. Each is roughly 40 lines, so the point is to have them
-all and throw most away.
+Seven, spanning the space. Each is roughly 40 lines, so the point is to have
+them all and throw most away. `stack` is 3D and runs only in the r3f backend;
+the rest are 2D.
 
 | Name | Mechanic | What it tests |
 |---|---|---|
@@ -124,6 +128,7 @@ all and throw most away.
 | `settle` | Enter at the top, fall to a resting position, pack downward as items leave from the bottom. | Gravity as decay. The bottom row means "going soon" without saying so. |
 | `erode` ✅ | Position fixed for life. Decay is desaturation, then blur, then dissolve. Zero motion. | Whether motion is needed at all, or whether a still wall is calmer and just as legible. |
 | `spiral` | Enter at the perimeter, spiral inward, vanish at the center. | Centripetal reading, and whether a convergence point is restful or maddening. |
+| `stack` | One diagonal pile per zone, tiled to a grid. Depth is rank: an arrival shoves the pile back. Only the top of each pile is legible. | Whether the wall is better as "which repos are producing" plus a zoom, rather than N readable images. |
 
 ### Entry behavior is a separate axis
 
@@ -269,10 +274,12 @@ the whole path an agent would — including the partial-write guard.
 2. ~~Sim mode.~~ **Done.**
 3. Point one agent at `~/slop/inbox/` and live with it for a day. This answers
    arrival rate, which decides whether 4 and 5 are worth building at all.
-4. The remaining arrangements (`recede`, `settle`, `spiral`), `bloom`,
-   cross-fade. r3f backend when the first `needs3d` arrangement lands.
-   `tide` and `erode` are in, and `[` / `]` cycles.
-5. Rescue, expiry, trash, undo.
-6. Zones.
+4. r3f backend, `stack`, and zones — designed in
+   `docs/superpowers/specs/2026-09-02-webgl-backend-design.md`. Zones arrive
+   here rather than last, because one pile per zone is what `stack` is.
+5. The remaining 2D arrangements (`recede`, `settle`, `spiral`), `bloom`,
+   cross-fade. Only if the DOM backend survives step 4 — otherwise they are
+   ported to 3D or dropped. `tide` and `erode` are in, and `[` / `]` cycles.
+6. Rescue, expiry, trash, undo.
 
-Steps 1–3 are cheap and answer most of the open questions. Resist starting at 4.
+Steps 1–3 are cheap and answer most of the open questions.
