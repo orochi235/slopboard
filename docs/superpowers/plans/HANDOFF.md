@@ -33,7 +33,7 @@ extent. That is why framing goes loose once you turn the camera off head-on.
 
 ## Asked for and not built
 
-Two requests arrived while the last commit was in flight. Neither is started.
+Three requests arrived while the last commit was in flight. None is started.
 
 - **Wheel-zoom the hierarchy.** Scrolling out from a focused pile should return
   to the wall, with a threshold so a stray trackpad nudge does not fire it. The
@@ -43,6 +43,13 @@ Two requests arrived while the last commit was in flight. Neither is started.
   wheel gesture dispatching into it plus a camera level per rung — not a new
   model. Worth reading that reducer before designing, and worth asking whether
   zoom-in should select a pile under the cursor or the focused one.
+- **A cosmetic background layer.** A skybox behind the wall, nebula-ish. Purely
+  decorative, so the constraint is that it must not compete with the cards:
+  they are the content and most of them are dark. A procedural shader on a
+  large inverted sphere or a full-screen quad behind the scene costs no texture
+  budget and needs no asset, which suits a wall that already accounts every
+  byte it uploads. Its knobs belong in `params.overlay`'s neighbourhood so the
+  panel can tune it, and it should be switchable off.
 - **Make the page a lab.** The params panel, the minimap and the HUD are
   developer chrome that a real wall display should not carry. The ask is to
   name that: this page is the lab, and a non-lab wall comes later. No decision
