@@ -809,7 +809,7 @@ git commit -m "zoom to a pile, walk between piles, and open one card"
 ```bash
 cd ~/src/slopboard
 npm run dev &
-npm run sim -- --rate 3 --zones 6
+npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
 ```
 
 Open `http://localhost:5173/?backend=webgl`.

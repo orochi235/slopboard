@@ -1320,7 +1320,7 @@ project exists to answer, and it is the owner's to answer.
 ```bash
 cd ~/src/slopboard
 npm run dev &
-npm run sim -- --rate 3 --zones 6
+npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
 ```
 
 Open `http://localhost:5173/?backend=webgl`.
