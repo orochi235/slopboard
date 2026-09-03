@@ -35,14 +35,31 @@ extent. That is why framing goes loose once you turn the camera off head-on.
 
 Four requests arrived while the last commit was in flight. None is started.
 
-- **Wheel-zoom the hierarchy.** Scrolling out from a focused pile should return
-  to the wall, with a threshold so a stray trackpad nudge does not fire it. The
-  ask is explicitly general: wall → zone → card is the hierarchy that exists
-  today, and the navigation should hold for however many levels it grows.
-  `src/view-state.ts` already models the levels as a reducer, so the work is a
-  wheel gesture dispatching into it plus a camera level per rung — not a new
-  model. Worth reading that reducer before designing, and worth asking whether
-  zoom-in should select a pile under the cursor or the focused one.
+- **Navigate the hierarchy by wheel, click and pinch.** Scrolling out from a
+  focused pile returns to the wall; scrolling in focuses the group **under the
+  cursor**, not the focused one. A threshold keeps a stray trackpad nudge from
+  firing it. Clicking a group focuses it too, and so does a pinch. The ask is
+  explicitly general: wall → zone → card is only today's hierarchy, and the
+  navigation should hold for however many levels it grows.
+
+  `src/view-state.ts` already models the levels as a reducer, so this is a
+  gesture layer dispatching into it plus a camera level per rung — not a new
+  model.
+
+  Two things in the way, both load-bearing:
+
+  A group has **no click target**. The card mesh's `onClick` is the only one in
+  the scene (`WebglBackend.tsx:356`), and `ZoneOverlay` raycasts nothing, so
+  clicking a cell's empty space does nothing and hovering a group cannot be
+  detected at all. Both the click and the hover-then-wheel need an invisible
+  plane per zone cell, behind the cards, which is also what would let a pile be
+  focused before it has any cards in it.
+
+  **Pinch arrives as a wheel event with `ctrlKey` set** — that is how macOS
+  delivers trackpad pinch to a page, and browsers report it nowhere else. So
+  pinch and wheel are one handler with two scale factors, not two gestures.
+  Guard `preventDefault` or the page zooms instead of the wall.
+
 - **A cosmetic background layer.** A skybox behind the wall, nebula-ish. Purely
   decorative, so the constraint is that it must not compete with the cards:
   they are the content and most of them are dark. A procedural shader on a
