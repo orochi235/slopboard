@@ -186,6 +186,25 @@ nodes carry their own lifecycle FSM, and the daemon already owns item lifetime.
 Two owners of "when does this exist" will disagree. Arrow keys across a known
 grid is ~20 lines. Widening later is additive.
 
+## Consuming windease
+
+A linked local checkout, not npm. Forced, really: this needs `channels` and
+`Rect.z`, and 1.3.0 has neither — npm would mean publishing before the design is
+proven.
+
+`"windease": "file:../windease"` declares the coupling in `package.json` and
+gives node and `tsc` a resolution path. Add a **dev-only Vite alias to
+`~/src/windease/src/index.ts`** so a windease edit hot-reloads here instead of
+waiting on `npm run build` in the other repo. slopboard is an app, so aliasing
+into a sibling's source is the right call; windease's own shipped source stays
+relative.
+
+**The trap:** `windease`'s `main` is `./dist/index.js`. Resolve through that and
+an edit to its `src/` changes nothing here until a rebuild — the failure is a
+silent stale answer, not an error. The alias exists to make that unreachable in
+dev; anything that bypasses it (a node script, a vitest run without the alias)
+is reading `dist` and needs the build.
+
 ## The stack arrangement
 
 Per zone, rank items newest-first. `pos = origin + rank * step`, where `step`
