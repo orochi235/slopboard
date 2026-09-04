@@ -174,6 +174,38 @@ params, so the angle has one home rather than two. Framing itself is stated once
 as a half-height; perspective derives a distance from it, orthographic parks at
 `camera.standoff` and drives the frustum.
 
+### Walking the hierarchy
+
+The view is a **path**, not a level: `[]` is the wall, `['weasel']` a pile with
+focus, `['weasel', 'img-1']` a card. `reduceView` only climbs and lands, so a
+rung added later costs it nothing. What a rung *means* — which box the camera
+frames, whether it draws in the scene or raises an overlay — stays with the
+renderer, which has to be taught a new rung's geometry regardless.
+
+**One rung per gesture, and either across or down, never both.** Wheel, pinch
+and click all spend themselves through `stepToward`, and inward targets whatever
+is under the cursor rather than whatever has focus. A cursor over a different
+pile spends the step moving there; only the next one descends, so the camera
+never arrives somewhere the eye did not watch it travel. Reachable mostly at the
+wall: once a pile has focus the framing leaves little of its neighbours on
+screen, which is what the arrows and the plan view are for.
+
+**A pinch is a wheel event with `ctrlKey` set.** macOS reports a trackpad pinch
+nowhere else, so the two are one handler at two scales — pinch deltas run an
+order of magnitude smaller, which is why `nav` carries a threshold for each.
+Without `preventDefault` the page zooms instead of the wall, and without the
+cooldown one flick of momentum walks the whole hierarchy.
+
+**A pile is picked by hit-testing its cell, not by a plane in the scene.** An
+invisible plane per cell has to sit behind the deepest card `rankCap` allows or
+it steals the card picks, which puts it several world units back and
+parallax-shifted the moment the camera turns. Hit-testing the cells answers for
+a pile with no cards in it too.
+
+**`camera.margins` holds one entry per rung**, the last serving every rung past
+it. Arrows are read by rung the same way: across the zone grid at a pile, and
+front to back through the pile itself inside a card, clamping at both ends.
+
 ### Entry behavior is a separate axis
 
 Arrivals landing at full presence is the wall's loudest event, and arrivals are
@@ -196,9 +228,28 @@ against every arrangement.
   `src/params.ts` once they settle.
 - **A plan view** in the corner names each zone, lights the one with focus, and
   zooms to a pile when clicked.
-- **`overlay.zones` / `overlay.labels`** draw zone extents and names into the
-  scene rather than over it, so they turn with the wall. Off by default: a
-  diagnostic first, and furniture only if they earn it.
+- **The `zones` group** owns how a zone presents itself: outline, label, and a
+  backdrop filling its cell — a ruled hatch by default, drawn by a shader in
+  world space so it holds one density across the wall and costs the texture
+  budget nothing. The backdrop sits behind the deepest card its pile has
+  reached, which is only known per frame, or the pile's deep ranks disappear
+  into it.
+- **Zone chrome is drawn on the pile's base card, not on what it has drawn.**
+  Outline, backdrop, label and the plan view all use `baseCellsOf`, so a tall
+  pile does not claim more of the wall than its neighbour. The camera is the
+  exception and still frames the union, because that is what is on screen.
+- **Preferences have two surfaces** — the corner panel and a modal on `,` —
+  rendering one `ParamsBody` so they cannot drift while prefs is still a copy
+  of params.
+- **`colors` is the wall's whole palette**, ten entries driving both halves: the
+  scene reads them as `THREE.Color`, and `applyColors` writes them to the root as
+  custom properties for the DOM chrome. Alpha variants are `color-mix` in the
+  stylesheets, so one entry covers every use of a colour rather than one entry
+  per declaration. This is the surface a theme would drive.
+- **A tuned set moves by clipboard or by file.** The clipboard is the fast path,
+  since what it holds pastes into `src/params.ts`; the file is for keeping named
+  sets. Import goes through `mergeStored`, so a stale or hand-edited blob loses
+  its unknown keys and its mistyped values rather than corrupting the panel.
 - **Sim mode** synthesizes fake arrivals at a dialable rate from a fixture
   directory. This is the important one: it lets a 200/hour wall be evaluated in
   three minutes instead of by waiting for one. It does not answer what the real
@@ -285,6 +336,11 @@ watching. Drop to a low tick when nothing is animating and no pointer is present
 `~/slop/.cache` 404s every image with no hint as to why. Both file routes pass
 `{ dotfiles: 'allow' }`.
 
+**An empty model unwinds the view to the wall.** The focused zone is pruned
+when it stops appearing in what the daemon sends, and a websocket reconnect
+sends nothing for a frame — so a dropped connection reads as the wall spontaneously
+zooming out. Harmless and self-correcting, and indistinguishable from a bug.
+
 **Serve images as URLs, never over the socket.** Push paths; let the client
 fetch. That gets HTTP caching and off-main-thread decode via `createImageBitmap`.
 Base64-over-WebSocket hitches every time a render lands.
@@ -322,7 +378,7 @@ Base64-over-WebSocket hitches every time a render lands.
 
 ```
 npm install
-npm run dev                                   # daemon :8787 + client :5173
+npm run dev                                   # daemon :8787 + client :5183
 npm run sim -- --rate=600 --count=40          # arrivals/hour; count 0 = forever
 SLOP_TTL=90 npm run dev                       # seconds; default 300
 ```

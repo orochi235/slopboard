@@ -17,13 +17,25 @@ import { orbitOffset } from '@/camera/orbit.ts'
 import { Lightbox } from '@/Lightbox.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { toStackItems } from '@/model.ts'
-import { Minimap, type MinimapCell } from '@/nav/Minimap.tsx'
+import { Minimap, type Plan } from '@/nav/Minimap.tsx'
+import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
+import { createGestureRail } from '@/nav/gesture.ts'
 import { neighbourOf } from '@/nav/neighbour.ts'
-import { unionOf, withHeadroom, zoneCellsOf } from '@/nav/zone-cells.ts'
+import { zoneAt } from '@/nav/pick.ts'
+import { stepToward } from '@/nav/step.ts'
+import { baseCellsOf, unionOf, withHeadroom, zoneCellsOf } from '@/nav/zone-cells.ts'
 import type { StackParams } from '@/params.ts'
 import { createTextureManager } from '@/textures/manager.ts'
 import { loadBitmap } from '@/textures/source.ts'
-import { reduceView, type ViewAction, type ViewState, WALL } from '@/view-state.ts'
+import {
+  cardOf,
+  depthOf,
+  reduceView,
+  type ViewAction,
+  type ViewState,
+  WALL,
+  zoneOf,
+} from '@/view-state.ts'
 import type { WallItem } from '@shared/protocol.ts'
 
 type Props = {
@@ -33,12 +45,14 @@ type Props = {
   clockOffset: number
   params: StackParams
   onParams: Dispatch<SetStateAction<StackParams>>
+  /** Published by the daemon: a zone's project colour, where it has a `.hued`. */
+  zoneColors: Record<string, string>
 }
 
 type WallProps = Props & {
   view: ViewState
   dispatch: Dispatch<ViewAction>
-  onPlan: (cells: MinimapCell[]) => void
+  onPlan: (plan: Plan) => void
 }
 
 /** The plan view is a diagram, not an animation: republishing it a few times a
@@ -53,6 +67,10 @@ const DRAG_SLOP_PX = 4
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
+/** The framing slack for a rung, the last entry serving every rung past it. */
+const marginFor = (margins: readonly number[], depth: number) =>
+  margins[Math.min(depth, margins.length - 1)] ?? 1
+
 /** One quad per item. Ranks past the fade get no texture and draw flat. */
 function Wall({
   items,
@@ -61,6 +79,7 @@ function Wall({
   clockOffset,
   params,
   onParams,
+  zoneColors,
   view,
   dispatch,
   onPlan,
@@ -68,6 +87,21 @@ function Wall({
   const meshes = useRef(new Map<string, THREE.Mesh>())
   const { gl, camera } = useThree()
   const cardEdges = params.overlay.cardEdges
+  const cardEdgeColor = params.colors.cardEdge
+  const huedCardEdge = params.zones.huedCardEdge
+  // Parsed once per colour rather than per card per frame.
+  const huedColors = useMemo(() => {
+    const out = new Map<string, THREE.Color>()
+    for (const [zone, css] of Object.entries(zoneColors)) {
+      try {
+        out.set(zone, new THREE.Color(css))
+      } catch {
+        // hued allows any CSS colour name; anything three cannot read is
+        // simply a zone that keeps the palette.
+      }
+    }
+    return out
+  }, [zoneColors])
 
   const textures = useMemo(
     () =>
@@ -106,24 +140,43 @@ function Wall({
 
   // A unit square the card mesh's own scale stretches to the drawn image, so
   // the outline needs none of the position corrections the card needed.
-  const edgeGeometry = useMemo(() => {
-    const half = 0.5
-    const g = new THREE.BufferGeometry()
-    g.setAttribute(
-      'position',
-      new THREE.Float32BufferAttribute(
-        [-half, -half, 0, half, -half, 0, half, half, 0, -half, half, 0],
-        3,
-      ),
-    )
-    return g
+  // One loop per card. The unit square is stretched by the card's own scale,
+  // and the width stays in screen pixels regardless — which is the point of a
+  // width slider.
+  const edges = useMemo(() => {
+    const byId = new Map<string, ReturnType<typeof createLoop>>()
+    return {
+      byId,
+      for(id: string) {
+        let line = byId.get(id)
+        if (!line) {
+          line = createLoop()
+          line.geometry.setPositions(loopPositions(-0.5, -0.5, 0.5, 0.5))
+          byId.set(id, line)
+        }
+        return line
+      },
+    }
   }, [])
-  useEffect(() => () => edgeGeometry.dispose(), [edgeGeometry])
+  useEffect(
+    () => () => {
+      for (const line of edges.byId.values()) {
+        line.geometry.dispose()
+        line.material.dispose()
+      }
+      edges.byId.clear()
+    },
+    [edges],
+  )
 
   const latest = useRef({ items, ttlMs, clockOffset })
   latest.current = { items, ttlMs, clockOffset }
 
   const cells = useRef<Map<string, Rect>>(new Map())
+  /** Each pile's front card. The zone chrome is drawn on this rather than on
+   *  the drawn union, so a tall pile does not outline more of the wall than its
+   *  neighbour; the camera still frames the union, which is what is drawn. */
+  const bases = useRef<Map<string, Rect>>(new Map())
   const zoneById = useRef<Map<string, string>>(new Map())
   const move = useRef<Move | null>(null)
   const pose = useRef<Pose>({ x: 0, y: 0, distance: 2, halfHeight: 0.5 })
@@ -134,21 +187,26 @@ function Wall({
   const dragged = useRef(false)
   const [zoneNames, setZoneNames] = useState<string[]>([])
   const zoneNamesRef = useRef<string[]>([])
+  /** Each pile front to back, so the arrows can page it from the lightbox. */
+  const cardsByZone = useRef<Map<string, string[]>>(new Map())
+  /** The deepest z each pile reaches, so its backdrop can sit behind it. */
+  const zoneDepth = useRef<Map<string, number>>(new Map())
+  const viewRef = useRef(view)
+  viewRef.current = view
 
   // Retargeted every frame rather than only on a level change: the cells are
   // not known until the first layout runs, and zones arrive and leave under a
   // camera that is already parked. A new move only starts when the target has
   // actually moved, so a steady wall is not re-eased every frame.
-  const retarget = (kind: ViewState['kind'], zone: string | null) => {
+  const retarget = (depth: number, zone: string | null) => {
     const aspect = window.innerWidth / window.innerHeight
     // The union of what is drawn, not the nominal container: a pile's deep
     // ranks step past its cell, so framing the container crops them.
     const wall = unionOf([...cells.current.values()]) ?? { x: 0, y: 0, z: 0, w: aspect, h: 1 }
-    const framed = kind === 'wall' || !zone ? wall : (cells.current.get(zone) ?? wall)
+    const framed = !zone ? wall : (cells.current.get(zone) ?? wall)
     // A label hangs above its cell, so framing the cells alone crops it.
-    const box = withHeadroom(framed, params.overlay.labels ? params.overlay.labelSize * 1.6 : 0)
-    const margin =
-      kind === 'wall' ? params.camera.wallMargin : params.camera.stackMargin
+    const box = withHeadroom(framed, params.zones.labels ? params.zones.labelSize * 1.6 : 0)
+    const margin = marginFor(params.camera.margins, depth)
     const target = framePose(box, {
       projection: params.camera.projection,
       fovDeg: params.camera.fovDeg,
@@ -174,8 +232,51 @@ function Wall({
     }
   }
 
+  const raycaster = useMemo(() => new THREE.Raycaster(), [])
+  const zeroPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), [])
+
+  /**
+   * The full path under the pointer — the pile, plus the card if one is hit.
+   * A card is a mesh and a pile is not: its footprint is hit-tested against the
+   * cells behind, which answers for a pile with no cards in it and needs no
+   * invisible plane fighting the pile's own depth for the pick.
+   */
+  const chainAt = (clientX: number, clientY: number): string[] => {
+    const rect = gl.domElement.getBoundingClientRect()
+    raycaster.setFromCamera(
+      new THREE.Vector2(
+        ((clientX - rect.left) / rect.width) * 2 - 1,
+        -((clientY - rect.top) / rect.height) * 2 + 1,
+      ),
+      camera,
+    )
+
+    const hit = raycaster.intersectObjects([...meshes.current.values()], false)[0]
+    const id = hit?.object.userData.slopId as string | undefined
+    const hitZone = id ? zoneById.current.get(id) : undefined
+    if (id && hitZone) return [hitZone, id]
+
+    const point = new THREE.Vector3()
+    if (!raycaster.ray.intersectPlane(zeroPlane, point)) return []
+    // The renderer is the only place that undoes windease's downward y.
+    const zone = zoneAt({ x: point.x, y: -point.y }, cells.current)
+    return zone ? [zone] : []
+  }
+
+  /** One rung per gesture: across if the cursor is over another branch, down
+   *  otherwise. Both the click and the wheel spend themselves through here. */
+  const navigate = (chain: readonly string[]) => {
+    const next = stepToward(viewRef.current.path, chain)
+    if (next) dispatch({ type: 'to', path: next })
+  }
+
+  // Held by ref so the listeners below bind once and still see this render's
+  // view: rebinding a wheel listener would drop the gesture rail's charge.
+  const act = useRef({ chainAt, navigate })
+  act.current = { chainAt, navigate }
+
   // Bound to the canvas, not to a mesh, so the empty space between piles turns
-  // the scene. A press that never travels stays the click the meshes handle.
+  // the scene. A press that never travels is a click, and picks a rung.
   useEffect(() => {
     const el = gl.domElement
     let active = false
@@ -207,9 +308,12 @@ function Wall({
       }))
     }
     const onUp = (e: PointerEvent) => {
+      const turned = dragged.current
       active = false
       el.classList.remove('scene--turning')
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
+      if (turned || e.button !== 0) return
+      act.current.navigate(act.current.chainAt(e.clientX, e.clientY))
     }
 
     el.addEventListener('pointerdown', onDown)
@@ -224,32 +328,70 @@ function Wall({
     }
   }, [gl, onParams])
 
+  // On the window rather than the canvas, so the gesture keeps working under
+  // the lightbox, which covers it.
+  useEffect(() => {
+    const rail = createGestureRail(params.nav)
+    const onWheel = (e: WheelEvent) => {
+      if ((e.target as Element | null)?.closest?.('.params, .minimap, .prefs')) return
+      // A trackpad pinch is a wheel event with ctrlKey set; left alone it zooms
+      // the page instead of the wall.
+      e.preventDefault()
+      const step = rail.feed({ deltaY: e.deltaY, ctrlKey: e.ctrlKey }, e.timeStamp)
+      if (!step) return
+      if (step === 'out') dispatch({ type: 'out' })
+      else act.current.navigate(act.current.chainAt(e.clientX, e.clientY))
+    }
+    window.addEventListener('wheel', onWheel, { passive: false })
+    return () => window.removeEventListener('wheel', onWheel)
+  }, [params.nav, dispatch])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') return dispatch({ type: 'escape' })
-      if (view.kind !== 'stack') return
+      if (e.key === 'Escape') return dispatch({ type: 'out' })
+      // PageUp/PageDown page a pile wherever the arrows do, so cycling through
+      // a stack does not depend on which hand is on which key.
       const map = {
         ArrowLeft: 'left',
         ArrowRight: 'right',
         ArrowUp: 'up',
         ArrowDown: 'down',
+        PageUp: 'left',
+        PageDown: 'right',
       } as const
       const direction = map[e.key as keyof typeof map]
       if (!direction) return
-      const next = neighbourOf(cells.current, view.zone, direction)
-      if (next) dispatch({ type: 'zoom', zone: next })
+      const zone = zoneOf(viewRef.current)
+      if (!zone) return
+
+      const card = cardOf(viewRef.current)
+      if (card) {
+        // Inside a card the arrows page the pile it came from. Up and down have
+        // no second axis here, so they stay the zone grid's.
+        if (direction !== 'left' && direction !== 'right') return
+        const pile = cardsByZone.current.get(zone) ?? []
+        const from = pile.indexOf(card)
+        // Left is toward the front of the pile, which is its newest card. The
+        // ends clamp: a pile is a stack, not a carousel.
+        const next = pile[direction === 'left' ? from - 1 : from + 1]
+        if (from !== -1 && next) dispatch({ type: 'to', path: [zone, next] })
+        return
+      }
+
+      const next = neighbourOf(cells.current, zone, direction)
+      if (next) dispatch({ type: 'to', path: [next] })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [view, dispatch])
+  }, [dispatch])
 
   useFrame(() => {
     const current = latest.current
     const now = Date.now() + current.clockOffset
     const model = toStackItems(current.items, { now, ttlMs: current.ttlMs })
     const aspects = new Map(model.map((m) => [m.id, m.aspect]))
-    const zoneOf = new Map(model.map((m) => [m.id, m.zone]))
-    zoneById.current = zoneOf
+    const zoneFor = new Map(model.map((m) => [m.id, m.zone]))
+    zoneById.current = zoneFor
 
     const result = arrangement.strategy.layout({
       items: model,
@@ -263,12 +405,17 @@ function Wall({
     for (const [id, ch] of channels) wantLod.set(id, ch.lod ?? 0)
     textures.sync(wantLod)
 
-    cells.current = zoneCellsOf(result.placements as Map<string, Rect>, zoneOf)
+    cells.current = zoneCellsOf(result.placements as Map<string, Rect>, zoneFor)
+
+    bases.current = baseCellsOf(result.placements as Map<string, Rect>, zoneFor)
 
     const tick = performance.now()
     if (tick - planAt.current > PLAN_MS) {
       planAt.current = tick
-      onPlan([...cells.current].map(([zone, box]) => ({ zone, box })))
+      onPlan({
+        cells: [...bases.current].map(([zone, box]) => ({ zone, box })),
+        extent: unionOf([...cells.current.values()]),
+      })
     }
 
     const names = [...cells.current.keys()]
@@ -280,9 +427,27 @@ function Wall({
       setZoneNames(names)
     }
 
+    // Ordered by depth rather than by arrival: an arrangement that puts every
+    // card at z 0 keeps insertion order, and the stack's ranks sort themselves.
+    const ranked = new Map<string, { id: string; z: number }[]>()
+    for (const [id, rect] of result.placements as Map<string, Rect>) {
+      const zone = zoneFor.get(id)
+      if (zone === undefined) continue
+      const list = ranked.get(zone)
+      if (list) list.push({ id, z: rect.z })
+      else ranked.set(zone, [{ id, z: rect.z }])
+    }
+    cardsByZone.current = new Map(
+      [...ranked].map(([zone, list]) => [zone, list.sort((a, b) => b.z - a.z).map((e) => e.id)]),
+    )
+    zoneDepth.current = new Map(
+      [...ranked].map(([zone, list]) => [zone, Math.min(...list.map((e) => e.z))]),
+    )
+
     const liveZones = [...new Set(model.map((m) => m.zone))]
-    if (view.kind !== 'wall' && !liveZones.includes(view.zone)) {
-      dispatch({ type: 'zones', live: liveZones })
+    const focused = zoneOf(view)
+    if (focused && !liveZones.includes(focused)) {
+      dispatch({ type: 'prune', live: liveZones })
     }
 
     const placed = [...result.placements.keys()]
@@ -318,9 +483,22 @@ function Wall({
       }
       mat.opacity = ch.opacity ?? 1
       mat.transparent = true
+
+      // Set here rather than in the memo, which cannot see a zone that arrived
+      // since, and which does not know how far the card has faded.
+      const edge = edges.byId.get(id)
+      if (edge) {
+        const zone = zoneFor.get(id)
+        const own = huedCardEdge && zone ? huedColors.get(zone) : undefined
+        if (own) edge.material.color.copy(own)
+        else edge.material.color.set(cardEdgeColor)
+        edge.material.linewidth = params.overlay.cardEdgeWidth
+        edge.material.opacity = mat.opacity
+        setResolution(edge.material, gl)
+      }
     }
 
-    retarget(view.kind, view.kind === 'wall' ? null : view.zone)
+    retarget(depthOf(view), zoneOf(view))
     if (move.current) pose.current = poseAt(move.current, performance.now())
 
     const { x, y, distance, halfHeight } = pose.current
@@ -350,40 +528,32 @@ function Wall({
           key={id}
           geometry={geometry}
           ref={(m) => {
-            if (m) meshes.current.set(id, m)
-            else meshes.current.delete(id)
-          }}
-          onClick={(e) => {
-            e.stopPropagation()
-            if (dragged.current) return
-            // Same primitive at two levels: zoom to the pile, then open a card.
-            if (view.kind === 'wall') {
-              const zone = zoneById.current.get(id)
-              if (zone) dispatch({ type: 'zoom', zone })
-            } else if (view.kind === 'stack') {
-              dispatch({ type: 'open', id })
-            }
+            if (m) {
+              // What the raycast reads back: the pick has to name a card, and
+              // the alternative is a reverse scan of every mesh on the wall.
+              m.userData.slopId = id
+              meshes.current.set(id, m)
+            } else meshes.current.delete(id)
           }}
         >
           <meshBasicMaterial toneMapped={false} />
-          {cardEdges && (
-            <lineLoop geometry={edgeGeometry} raycast={() => null}>
-              <lineBasicMaterial color="#22d3ee" toneMapped={false} />
-            </lineLoop>
-          )}
+          {cardEdges && <primitive object={edges.for(id)} />}
         </mesh>
       )),
-    [live, geometry, edgeGeometry, cardEdges, view.kind, dispatch],
+    [live, geometry, edges, cardEdges],
   )
 
   return (
     <group>
       {quads}
       <ZoneOverlay
-        cells={cells}
+        cells={bases}
         zones={zoneNames}
-        focus={view.kind === 'wall' ? null : view.zone}
-        overlay={params.overlay}
+        focus={zoneOf(view)}
+        settings={params.zones}
+        colors={params.colors}
+        depths={zoneDepth}
+        hued={huedColors}
       />
     </group>
   )
@@ -391,10 +561,11 @@ function Wall({
 
 export function WebglBackend(props: Props) {
   const [view, dispatch] = useReducer(reduceView, WALL)
-  const [plan, setPlan] = useState<MinimapCell[]>([])
+  const [plan, setPlan] = useState<Plan>({ cells: [], extent: null })
   // Read live rather than from the arrangement's descriptor: the panel is the
   // camera's tuning surface, and the arrangement is rebuilt only for layout.
   const { fovDeg: fov, projection } = props.params.camera
+  const card = cardOf(view)
   // An orthographic camera sees a slab, not a cone, so `far` has to clear the
   // standoff plus everything the rank cap can put behind the wall.
   const far = props.params.camera.standoff * 2 + 100
@@ -412,12 +583,17 @@ export function WebglBackend(props: Props) {
         <Wall {...props} view={view} dispatch={dispatch} onPlan={setPlan} />
       </Canvas>
       <Minimap
-        cells={plan}
-        focus={view.kind === 'wall' ? null : view.zone}
-        onFocus={(zone) => dispatch({ type: 'zoom', zone })}
+        cells={plan.cells}
+        extent={plan.extent}
+        focus={zoneOf(view)}
+        onFocus={(zone) => dispatch({ type: 'to', path: [zone] })}
       />
-      {view.kind === 'lightbox' && (
-        <Lightbox id={view.id} onClose={() => dispatch({ type: 'escape' })} />
+      {card !== null && (
+        <Lightbox
+          id={card}
+          caption={props.items.find((i) => i.id === card)?.name}
+          onClose={() => dispatch({ type: 'out' })}
+        />
       )}
     </>
   )

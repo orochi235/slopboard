@@ -35,8 +35,28 @@ describe('controlFor', () => {
     expect(controlFor('lod.0.maxRank', 1).kind).toBe('slider')
   })
 
+  it('gives a hex colour a picker, chosen by the value rather than by a list', () => {
+    expect(controlFor('colors.accent', '#38bdf8')).toEqual({ kind: 'color', path: 'colors.accent' })
+  })
+
+  it('leaves a string that is not a colour alone', () => {
+    expect(controlFor('colors.accent', '#38bd').kind).toBe('number')
+    expect(controlFor('camera.projection', 'orthographic').kind).toBe('choice')
+  })
+
   it('falls back to a typed number for a path with no range', () => {
     expect(controlFor('something.new', 3).kind).toBe('number')
+  })
+
+  it('ranges every element of a list from one entry, so a rung added later needs none', () => {
+    expect(controlFor('camera.margins.0', 1.08)).toEqual({
+      kind: 'slider',
+      path: 'camera.margins.0',
+      min: 1,
+      max: 2,
+      step: 0.01,
+    })
+    expect(controlFor('camera.margins.7', 1.2)).toMatchObject({ kind: 'slider' })
   })
 })
 

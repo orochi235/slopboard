@@ -6,6 +6,7 @@ import { config } from './config.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
+import { watchZoneColors } from './zoneColors.ts'
 import type { ServerMessage } from '@shared/protocol.ts'
 
 await mkdir(config.inbox, { recursive: true })
@@ -15,6 +16,7 @@ const app = express()
 const http = createServer(app)
 const wss = new WebSocketServer({ server: http, path: '/ws' })
 const clients = new Set<WebSocket>()
+let zoneColors: Record<string, string> = {}
 
 function broadcast(msg: ServerMessage) {
   const payload = JSON.stringify(msg)
@@ -29,6 +31,7 @@ wss.on('connection', (ws) => {
     now: Date.now(),
     ttlMs: config.ttlMs,
     items: store.snapshot(),
+    zoneColors,
   }
   ws.send(JSON.stringify(hello))
 })
@@ -49,6 +52,11 @@ app.get('/orig/:id', (req, res) => {
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, items: store.snapshot().length, ttlMs: config.ttlMs })
+})
+
+watchZoneColors((colors) => {
+  zoneColors = colors
+  broadcast({ type: 'zoneColors', zoneColors: colors })
 })
 
 store.onExpire((id) => broadcast({ type: 'expire', id }))

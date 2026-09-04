@@ -7,6 +7,7 @@ import { config } from './config.ts'
 import * as store from './store.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import { ttlFromName } from './ttlSuffix.ts'
+import { captionFromName } from './captionName.ts'
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.tiff'])
 
@@ -42,6 +43,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,
     zone: basename(dirname(sourcePath)),
+    name: captionFromName(basename(sourcePath)),
     bornAt,
     w: info.width,
     h: info.height,

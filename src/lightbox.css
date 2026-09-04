@@ -4,7 +4,7 @@
   z-index: 100;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.86);
+  background: color-mix(in srgb, var(--scrim) 86%, transparent);
   cursor: zoom-out;
 }
 
@@ -24,4 +24,23 @@
   .lightbox__img {
     transition: none;
   }
+}
+
+/* Under the image rather than over it: a caption that covers the thing it
+   names is worse than none. */
+.lightbox__caption {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 80vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--scrim) 70%, transparent);
+  color: var(--ink);
+  font: 12px/1.4 ui-monospace, monospace;
+  cursor: default;
 }

@@ -4,6 +4,7 @@ import type { StackParams } from '@/params.ts'
 export type Control =
   | { kind: 'slider'; path: string; min: number; max: number; step: number }
   | { kind: 'choice'; path: string; options: readonly (number | string)[] }
+  | { kind: 'color'; path: string }
   | { kind: 'number'; path: string }
   | { kind: 'toggle'; path: string }
 
@@ -32,14 +33,23 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'camera.standoff': [1, 60, 0.5],
   'camera.yawDeg': [-90, 90, 1],
   'camera.pitchDeg': [-90, 90, 1],
-  'camera.wallMargin': [1, 2, 0.01],
-  'camera.stackMargin': [1, 2, 0.01],
+  'camera.margins': [1, 2, 0.01],
   'camera.moveMs': [0, 3000, 10],
-  'overlay.labelSize': [0.01, 0.4, 0.005],
+  'nav.wheelThreshold': [5, 300, 5],
+  'nav.pinchThreshold': [1, 60, 1],
+  'nav.cooldownMs': [0, 1200, 10],
+  'overlay.cardEdgeWidth': [0.5, 12, 0.5],
+  'zones.outlineWidth': [0.5, 12, 0.5],
+  'zones.labelSize': [0.01, 0.4, 0.005],
+  'zones.backdropOpacity': [0, 1, 0.01],
+  'zones.hatchSpacing': [0.002, 0.1, 0.001],
+  'zones.hatchWidth': [0.0002, 0.02, 0.0002],
+  'zones.hatchAngleDeg': [0, 180, 1],
   textureBudgetBytes: [16 * 1024 * 1024, 1024 * 1024 * 1024, 16 * 1024 * 1024],
 }
 
 const CHOICES: Record<string, readonly (number | string)[]> = {
+  'zones.backdrop': ['none', 'hatch', 'solid'],
   'camera.projection': ['orthographic', 'perspective'],
   'zoneGrid.orientation': ['wide', 'tall'],
 }
@@ -51,15 +61,29 @@ const BY_SUFFIX: Record<string, readonly [number, number, number]> = {
 }
 const EDGES = [0, 32, 128, 512] as const
 
+/** What `<input type="color">` can round-trip: six digits, no alpha. */
+const HEX = /^#[0-9a-f]{6}$/i
+
+/** A path with its array indices dropped, so one entry ranges every element of
+ *  a list whose length is the point — `camera.margins.0` asks for
+ *  `camera.margins`, and a rung added later needs no second entry. */
+const familyOf = (path: string) =>
+  path
+    .split('.')
+    .filter((seg) => !/^\d+$/.test(seg))
+    .join('.')
+
 export function controlFor(path: string, value: number | string | boolean): Control {
   if (typeof value === 'boolean') return { kind: 'toggle', path }
   const choices = CHOICES[path]
   if (choices) return { kind: 'choice', path, options: choices }
-  if (typeof value === 'string') return { kind: 'number', path }
+  // By the value's shape rather than a list of paths, so a colour added later
+  // gets a picker without being registered anywhere.
+  if (typeof value === 'string') return HEX.test(value) ? { kind: 'color', path } : { kind: 'number', path }
   if (path.endsWith('.edge')) return { kind: 'choice', path, options: EDGES }
 
   const leaf = path.split('.').at(-1) ?? path
-  const range = SLIDERS[path] ?? BY_SUFFIX[leaf]
+  const range = SLIDERS[path] ?? SLIDERS[familyOf(path)] ?? BY_SUFFIX[leaf]
   if (!range) return { kind: 'number', path }
   const [min, max, step] = range
   // A value the range cannot express would be silently clamped by the input,

@@ -37,22 +37,76 @@ export type StackParams = {
      *  straight down -Z; yaw swings right, pitch rises. */
     yawDeg: number
     pitchDeg: number
-    /** Slack around the framed box at each level. 1 is exactly framed. */
-    wallMargin: number
-    stackMargin: number
+    /** Slack around the framed box, one entry per rung from the wall down; the
+     *  last entry serves every rung past it, so a deeper hierarchy costs no new
+     *  parameter. 1 is exactly framed. */
+    margins: number[]
     /** How long a level change takes. */
     moveMs: number
   }
+  /** Walking the hierarchy by wheel and pinch. */
+  nav: {
+    /** Charge a scroll must accumulate to move a rung. */
+    wheelThreshold: number
+    /** The same for a pinch, whose deltas run an order of magnitude smaller. */
+    pinchThreshold: number
+    /** Dead time after a step. Momentum scrolling keeps delivering for most of
+     *  a second, and without this one flick walks the whole hierarchy. */
+    cooldownMs: number
+  }
   /** Diagnostics drawn into the scene. Debug today, likely furniture later. */
   overlay: {
+    /** Outline each card, so a slot's real extent is visible against its image. */
+    cardEdges: boolean
+    /** Screen pixels. Real widths need fat lines; WebGL ignores linewidth. */
+    cardEdgeWidth: number
+  }
+  /** How a zone presents itself, beyond the cards standing in it. */
+  zones: {
     /** Outline each zone's drawn extent. */
-    zones: boolean
+    outline: boolean
+    /** Screen pixels, like the card outline's. */
+    outlineWidth: number
     /** Name each zone in the scene. */
     labels: boolean
     /** World height of a label's text. */
     labelSize: number
-    /** Outline each card, so a slot's real extent is visible against its image. */
-    cardEdges: boolean
+    /** What fills a zone's cell behind its pile. */
+    backdrop: 'none' | 'hatch' | 'solid'
+    /** Borrow the colour of the project bound to a zone, where it has a
+     *  `.hued`. Falls back to the palette for every zone that has none. */
+    huedOutline: boolean
+    huedLabel: boolean
+    huedBackdrop: boolean
+    huedCardEdge: boolean
+    /** 0 is invisible, 1 is flat. */
+    backdropOpacity: number
+    /** World distance between hatch lines, and how wide a line is. Both are
+     *  world units rather than cell fractions, so the hatch reads at one
+     *  density across the wall however the cells are sized. */
+    hatchSpacing: number
+    hatchWidth: number
+    hatchAngleDeg: number
+  }
+  /**
+   * Every colour the wall picks, in one place so a theme has one surface to
+   * drive. Alpha variants are derived in CSS with `color-mix`, so one entry
+   * here covers all of its uses rather than one entry per declaration.
+   */
+  colors: {
+    /** Drawn into the scene, and turning with it. */
+    cardEdge: string
+    zoneIdle: string
+    zoneFocus: string
+    zoneBackdrop: string
+    label: string
+    /** The DOM chrome: panel, HUD, plan view, lightbox. */
+    bg: string
+    scrim: string
+    ink: string
+    muted: string
+    accent: string
+    danger: string
   }
   lod: LodTier[]
   /** Texture byte budget. A backstop, not the thing shaping the design. */
@@ -75,11 +129,39 @@ export const defaultParams: StackParams = {
     standoff: 12,
     yawDeg: 0,
     pitchDeg: 0,
-    wallMargin: 1.08,
-    stackMargin: 1.12,
+    margins: [1.08, 1.12],
     moveMs: 520,
   },
-  overlay: { zones: false, labels: false, labelSize: 0.03, cardEdges: false },
+  nav: { wheelThreshold: 60, pinchThreshold: 8, cooldownMs: 320 },
+  overlay: { cardEdges: false, cardEdgeWidth: 1 },
+  zones: {
+    outline: false,
+    outlineWidth: 1.5,
+    labels: false,
+    labelSize: 0.03,
+    backdrop: 'hatch',
+    huedOutline: false,
+    huedLabel: false,
+    huedBackdrop: false,
+    huedCardEdge: false,
+    backdropOpacity: 0.14,
+    hatchSpacing: 0.014,
+    hatchWidth: 0.001,
+    hatchAngleDeg: 45,
+  },
+  colors: {
+    cardEdge: '#22d3ee',
+    zoneIdle: '#64748b',
+    zoneFocus: '#38bdf8',
+    zoneBackdrop: '#64748b',
+    label: '#e2e8f0',
+    bg: '#0a0a0c',
+    scrim: '#000000',
+    ink: '#e2e8f0',
+    muted: '#94a3b8',
+    accent: '#38bdf8',
+    danger: '#e0796b',
+  },
   lod: [
     { maxRank: 1, edge: 512 },
     { maxRank: 8, edge: 128 },

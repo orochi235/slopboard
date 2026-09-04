@@ -1,11 +1,96 @@
+import { useRef, useState } from 'react'
 import { controlsOf } from '@/params.controls.ts'
 import { groupControls } from '@/params.groups.ts'
 import { leafAt, setAt } from '@/params.paths.ts'
-import type { StackParams } from '@/params.ts'
+import { defaultParams, type StackParams } from '@/params.ts'
+import { fromText, toText } from '@/params.transfer.ts'
 import './params.css'
 
 /** Enough digits to read a small step without turning every row into noise. */
 const show = (n: number) => (Math.abs(n) >= 1000 ? n.toExponential(2) : String(Number(n.toFixed(4))))
+
+/**
+ * Moving a tuned set in and out. The clipboard is the fast path — what is
+ * copied pastes straight into `src/params.ts` — and the file is for keeping a
+ * few named sets around, which the clipboard cannot.
+ */
+function Transfer({
+  params,
+  onChange,
+}: {
+  params: StackParams
+  onChange: (next: StackParams) => void
+}) {
+  const [note, setNote] = useState('')
+  const picker = useRef<HTMLInputElement>(null)
+  const flash = (text: string) => {
+    setNote(text)
+    setTimeout(() => setNote(''), 1400)
+  }
+
+  const apply = (text: string) => {
+    const next = fromText(defaultParams, text)
+    if (!next) return flash('not params')
+    onChange(next)
+    flash('loaded')
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(toText(params))
+      flash('copied')
+    } catch {
+      flash('clipboard refused')
+    }
+  }
+
+  const paste = async () => {
+    try {
+      apply(await navigator.clipboard.readText())
+    } catch {
+      flash('clipboard refused')
+    }
+  }
+
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([toText(params)], { type: 'application/json' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'slopboard-params.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <div className="params__transfer">
+      <button type="button" className="params__button" onClick={copy}>
+        copy
+      </button>
+      <button type="button" className="params__button" onClick={paste}>
+        paste
+      </button>
+      <button type="button" className="params__button" onClick={download}>
+        save
+      </button>
+      <button type="button" className="params__button" onClick={() => picker.current?.click()}>
+        load
+      </button>
+      <span className="params__note">{note}</span>
+      <input
+        ref={picker}
+        className="params__file"
+        type="file"
+        accept="application/json,.json"
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          // Cleared so picking the same file twice in a row still fires.
+          e.target.value = ''
+          if (file) apply(await file.text())
+        }}
+      />
+    </div>
+  )
+}
 
 /** Every parameter, editable live. Tuning by editing source and reloading does
  *  not converge, which is the whole reason this exists. */
@@ -19,8 +104,32 @@ export function ParamsPanel({
   return (
     <details className="params">
       <summary className="params__summary">params</summary>
+      <ParamsBody params={params} onChange={onChange} />
+    </details>
+  )
+}
+
+/**
+ * The controls themselves. Rendered by the corner panel and by the prefs modal
+ * both, so the two surfaces cannot drift apart while prefs is still just a copy
+ * of params.
+ */
+export function ParamsBody({
+  params,
+  onChange,
+  expanded = false,
+}: {
+  params: StackParams
+  onChange: (next: StackParams) => void
+  /** Every group open. The corner panel is a column beside the wall and stays
+   *  folded; the modal has the room, and folded groups waste it. */
+  expanded?: boolean
+}) {
+  return (
+    <>
+      <Transfer params={params} onChange={onChange} />
       {groupControls(controlsOf(params)).map((group) => (
-        <details className="params__group" key={group.name} open={group.name === 'wall'}>
+        <details className="params__group" key={group.name} open={expanded || group.name === 'wall'}>
           <summary className="params__groupName">{group.name}</summary>
           <div className="params__grid">
             {group.controls.map((control) => {
@@ -65,6 +174,14 @@ export function ParamsPanel({
                   ))}
                 </select>
               )}
+              {control.kind === 'color' && (
+                <input
+                  className="params__color"
+                  type="color"
+                  value={String(value)}
+                  onChange={(e) => set(e.target.value)}
+                />
+              )}
               {control.kind === 'toggle' && (
                 <input
                   className="params__toggle"
@@ -91,6 +208,6 @@ export function ParamsPanel({
           </div>
         </details>
       ))}
-    </details>
+    </>
   )
 }

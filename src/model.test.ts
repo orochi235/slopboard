@@ -7,6 +7,7 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
   url: '/img/a',
   origUrl: '/orig/a',
   zone: 'windease',
+  name: 'a',
   bornAt: 1000,
   w: 200,
   h: 100,

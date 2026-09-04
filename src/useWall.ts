@@ -3,6 +3,8 @@ import type { ServerMessage, WallItem } from '@shared/protocol.ts'
 
 export type Wall = {
   items: WallItem[]
+  /** Zone to the colour of the project bound to it, where it has a `.hued`. */
+  zoneColors: Record<string, string>
   ttlMs: number
   /** Add to Date.now() to get the daemon's clock. Keeps decay server-anchored. */
   clockOffset: number
@@ -11,6 +13,7 @@ export type Wall = {
 
 export function useWall(): Wall {
   const [items, setItems] = useState<WallItem[]>([])
+  const [zoneColors, setZoneColors] = useState<Record<string, string>>({})
   const [ttlMs, setTtlMs] = useState(300_000)
   const [connected, setConnected] = useState(false)
   const clockOffset = useRef(0)
@@ -35,6 +38,9 @@ export function useWall(): Wall {
           clockOffset.current = msg.now - Date.now()
           setTtlMs(msg.ttlMs)
           setItems(msg.items)
+          setZoneColors(msg.zoneColors ?? {})
+        } else if (msg.type === 'zoneColors') {
+          setZoneColors(msg.zoneColors)
         } else if (msg.type === 'arrive') {
           setItems((prev) => [...prev, msg.item])
         } else if (msg.type === 'expire') {
@@ -51,5 +57,5 @@ export function useWall(): Wall {
     }
   }, [])
 
-  return { items, ttlMs, clockOffset: clockOffset.current, connected }
+  return { items, zoneColors, ttlMs, clockOffset: clockOffset.current, connected }
 }

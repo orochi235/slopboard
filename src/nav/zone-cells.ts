@@ -56,3 +56,26 @@ export function unionOf(boxes: readonly Rect[]): Rect | null {
 export function withHeadroom(box: Rect, headroom: number): Rect {
   return headroom === 0 ? box : { ...box, y: box.y - headroom, h: box.h + headroom }
 }
+
+/**
+ * The front card of each pile — the base the stack rises from, before its deep
+ * ranks step past it. The plan view draws these rather than the drawn union, so
+ * a pile that has grown reads as an icon in its place rather than as a zone
+ * that has swallowed more of the wall than its neighbour.
+ *
+ * Rank 0 sits at z 0 and deeper ranks step away, so the front card is the
+ * greatest z.
+ */
+export function baseCellsOf(
+  placements: ReadonlyMap<string, Rect>,
+  zoneOf: ReadonlyMap<string, string>,
+): Map<string, Rect> {
+  const out = new Map<string, Rect>()
+  for (const [id, r] of placements) {
+    const zone = zoneOf.get(id)
+    if (zone === undefined) continue
+    const held = out.get(zone)
+    if (!held || r.z > held.z) out.set(zone, r)
+  }
+  return out
+}

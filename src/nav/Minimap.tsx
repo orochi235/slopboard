@@ -4,22 +4,31 @@ import './minimap.css'
 
 export type MinimapCell = { zone: string; box: Rect }
 
+/** What the plan draws, and the wall extent it draws them inside. The two are
+ *  separate because an icon is a pile's base and the wall is the whole sprawl. */
+export type Plan = { cells: MinimapCell[]; extent: Rect | null }
+
 /**
- * The wall's plan view: one box per zone in its place on the wall, with the
- * focused one lit and every one a way to get there. Cells come from what is
- * drawn rather than the nominal grid, so a pile that has grown past its cell
- * reads as the wider box it is.
+ * The wall's plan view: one icon per zone in its place on the wall, with the
+ * focused one lit and every one a way to get there. An icon is the pile's base
+ * card, not the union of what it has drawn — a pile's deep ranks step past its
+ * own cell, and sizing icons by that makes a tall pile read as a zone that has
+ * taken more of the wall than its neighbour.
  */
 export function Minimap({
   cells,
+  extent,
   focus,
   onFocus,
 }: {
   cells: MinimapCell[]
+  extent: Rect | null
   focus: string | null
   onFocus: (zone: string) => void
 }) {
-  const bounds = unionOf(cells.map((c) => c.box))
+  // The wall's extent, not the icons', so the plan keeps the wall's proportions
+  // and an icon sits where its pile does.
+  const bounds = extent ?? unionOf(cells.map((c) => c.box))
   if (!bounds || bounds.w <= 0 || bounds.h <= 0) return null
 
   return (

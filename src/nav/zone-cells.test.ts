@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Rect } from 'windease'
-import { unionOf, zoneCellsOf, withHeadroom } from '@/nav/zone-cells.ts'
+import { baseCellsOf, unionOf, zoneCellsOf, withHeadroom } from '@/nav/zone-cells.ts'
 
 const at = (x: number, y: number, side = 1): Rect => ({ x, y, z: 0, w: side, h: side })
 
@@ -65,5 +65,48 @@ describe('withHeadroom', () => {
   it('is the box itself when there is no headroom to add', () => {
     const box = { x: 1, y: 2, z: 0, w: 4, h: 6 }
     expect(withHeadroom(box, 0)).toEqual(box)
+  })
+})
+
+describe('baseCellsOf', () => {
+  const zoneOf = new Map([
+    ['a0', 'alpha'],
+    ['a1', 'alpha'],
+    ['a2', 'alpha'],
+    ['b0', 'beta'],
+  ])
+
+  it('takes the front card of each pile, not the sprawl behind it', () => {
+    const placements = new Map([
+      ['a1', { x: 0.1, y: 0.1, z: -0.035, w: 0.22, h: 0.22 }],
+      ['a0', { x: 0, y: 0, z: 0, w: 0.22, h: 0.22 }],
+      ['a2', { x: 0.2, y: 0.2, z: -0.07, w: 0.22, h: 0.22 }],
+      ['b0', { x: 1, y: 0, z: 0, w: 0.22, h: 0.22 }],
+    ])
+    const base = baseCellsOf(placements, zoneOf)
+    expect(base.get('alpha')).toEqual({ x: 0, y: 0, z: 0, w: 0.22, h: 0.22 })
+    expect(base.get('beta')).toEqual({ x: 1, y: 0, z: 0, w: 0.22, h: 0.22 })
+  })
+
+  it('gives every pile the same size, however deep it has grown', () => {
+    const placements = new Map([
+      ['a0', { x: 0, y: 0, z: 0, w: 0.22, h: 0.22 }],
+      ['a1', { x: 0.1, y: 0.1, z: -0.035, w: 0.22, h: 0.22 }],
+      ['b0', { x: 1, y: 0, z: 0, w: 0.22, h: 0.22 }],
+    ])
+    const base = baseCellsOf(placements, zoneOf)
+    expect(base.get('alpha')!.w).toBe(base.get('beta')!.w)
+    // The union would not have: alpha's second rank steps past its own card.
+    const drawn = zoneCellsOf(placements, zoneOf)
+    expect(drawn.get('alpha')!.w).toBeGreaterThan(drawn.get('beta')!.w)
+  })
+
+  it('ignores a placement whose zone it does not know', () => {
+    const placements = new Map([['orphan', { x: 0, y: 0, z: 0, w: 1, h: 1 }]])
+    expect(baseCellsOf(placements, zoneOf).size).toBe(0)
+  })
+
+  it('is empty for an empty wall', () => {
+    expect(baseCellsOf(new Map(), zoneOf).size).toBe(0)
   })
 })

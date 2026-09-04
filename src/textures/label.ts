@@ -9,7 +9,10 @@ const PAD = 16
  * A transparent canvas holding one line of text, plus the aspect the caller
  * needs to size a sprite without measuring the text again.
  */
-export function labelTexture(text: string): { texture: THREE.CanvasTexture; aspect: number } {
+export function labelTexture(
+  text: string,
+  color: string,
+): { texture: THREE.CanvasTexture; aspect: number } {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
   const font = `600 ${PX}px ui-monospace, SFMono-Regular, Menlo, monospace`
@@ -22,7 +25,9 @@ export function labelTexture(text: string): { texture: THREE.CanvasTexture; aspe
   // Sizing the canvas resets the context, so everything is set again here.
   ctx.font = font
   ctx.textBaseline = 'middle'
-  ctx.fillStyle = 'rgba(226, 232, 240, 0.92)'
+  // The alpha stays here rather than in the colour: a picker cannot express it.
+  ctx.globalAlpha = 0.92
+  ctx.fillStyle = color
   ctx.fillText(text, PAD, canvas.height / 2)
 
   const texture = new THREE.CanvasTexture(canvas)

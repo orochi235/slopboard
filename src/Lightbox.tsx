@@ -5,7 +5,15 @@ import './lightbox.css'
  * A DOM overlay, not a GL quad: full resolution costs the texture budget
  * nothing here, and right-click-save, copy and drag-to-Finder keep working.
  */
-export function Lightbox({ id, onClose }: { id: string; onClose: () => void }) {
+export function Lightbox({
+  id,
+  caption,
+  onClose,
+}: {
+  id: string
+  caption?: string
+  onClose: () => void
+}) {
   const [loaded, setLoaded] = useState(false)
 
   // The id changes when the viewer moves between images without closing.
@@ -26,6 +34,11 @@ export function Lightbox({ id, onClose }: { id: string; onClose: () => void }) {
         onLoad={() => setLoaded(true)}
         onClick={(e) => e.stopPropagation()}
       />
+      {caption && (
+        <figcaption className="lightbox__caption" onClick={(e) => e.stopPropagation()}>
+          {caption}
+        </figcaption>
+      )}
     </div>
   )
 }

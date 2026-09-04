@@ -36,8 +36,20 @@ export function createSequencer() {
   }
 }
 
-export const ramp = (v: number, a: number, b: number) =>
-  Math.max(0, Math.min(1, (v - a) / (b - a)))
+/**
+ * `v`'s position across the window `a..b`, clamped to 0..1.
+ *
+ * The bounds are read as a window rather than as a direction, because they come
+ * from two independent sliders: dragging `fade.to` under `fade.from` otherwise
+ * inverts the ramp and renders every fresh card at opacity 0. A window with no
+ * width is a step at its edge, which is also what keeps `a === b` off 0/0.
+ */
+export const ramp = (v: number, a: number, b: number) => {
+  const lo = Math.min(a, b)
+  const hi = Math.max(a, b)
+  if (hi <= lo) return v < lo ? 0 : 1
+  return Math.max(0, Math.min(1, (v - lo) / (hi - lo)))
+}
 
 export type RankEntry = { rank: number; prevRank: number; changedAt: number }
 

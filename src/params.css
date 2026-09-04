@@ -7,8 +7,8 @@
   overflow: auto;
   padding: 6px 8px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.72);
-  color: #e2e8f0;
+  background: color-mix(in srgb, var(--scrim) 72%, transparent);
+  color: var(--ink);
   font: 11px/1.3 ui-monospace, monospace;
 }
 
@@ -34,13 +34,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #94a3b8;
+  color: var(--muted);
 }
 
 .params__slider {
   width: 100%;
   height: 12px;
-  accent-color: #38bdf8;
+  accent-color: var(--accent);
   cursor: ew-resize;
 }
 
@@ -54,8 +54,8 @@
 .params__wide {
   grid-column: 2 / span 2;
   width: 100%;
-  background: #1a202c;
-  border: 1px solid #2d3748;
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
   color: inherit;
   font: inherit;
   padding: 1px 3px;
@@ -63,25 +63,64 @@
 
 .params__toggle {
   justify-self: start;
-  accent-color: #38bdf8;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
 /* One section per parameter group, so the panel is scannable rather than one
    long column. Closed by default except the wall's own scalars. */
 .params__group {
-  border-top: 1px solid #2d3748;
+  border-top: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
 }
 
 .params__groupName {
   cursor: pointer;
   padding: 3px 0;
-  color: #94a3b8;
+  color: var(--muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-size: 0.9em;
 }
 
 .params__groupName:hover {
-  color: #e2e8f0;
+  color: var(--ink);
+}
+
+.params__transfer {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.params__button {
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+  border-radius: 3px;
+  color: inherit;
+  font: inherit;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+
+.params__button:hover {
+  border-color: var(--accent);
+}
+
+.params__note {
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.params__file {
+  display: none;
+}
+
+.params__color {
+  width: 100%;
+  height: 14px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+  background: none;
+  cursor: pointer;
 }

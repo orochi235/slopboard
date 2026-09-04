@@ -1,6 +1,5 @@
 :root {
   color-scheme: dark;
-  --ink: rgba(255, 255, 255, 0.55);
 }
 
 html,
@@ -9,7 +8,7 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: #0a0a0c;
+  background: var(--bg);
   font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -51,7 +50,7 @@ body,
   z-index: 2000;
   display: flex;
   gap: 10px;
-  color: var(--ink);
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
   opacity: 0.25;
   transition: opacity 400ms ease;
   pointer-events: none;
@@ -63,7 +62,7 @@ body,
 }
 
 .hud__offline {
-  color: #e0796b;
+  color: var(--danger);
 }
 
 .scene {
