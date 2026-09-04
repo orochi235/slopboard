@@ -26,7 +26,6 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'fade.from': [0, 1, 0.01],
   'fade.to': [0, 1, 0.01],
   'zoneGrid.gap': [0, 1, 0.005],
-  'zoneGrid.padding': [0, 1, 0.005],
   'zoneGrid.cols': [1, 12, 1],
   'zoneGrid.rows': [1, 12, 1],
   'camera.fovDeg': [5, 120, 1],

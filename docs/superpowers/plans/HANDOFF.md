@@ -116,10 +116,9 @@ and its cards show up on the real wall for a TTL.
   was that nothing expired for a whole night.
 - **slopboard builds `windease` from source, so which branch that checkout is
   on is part of every result here.** The vite and vitest aliases both point at
-  `~/src/windease/src`. As of this writing that checkout sits on
-  `fix/nested-preset-placement`, clean but not `main` — so a green suite and a
-  render are statements about that branch. Check it before trusting either
-  against windease `main`.
+  `~/src/windease/src`. Check which branch that checkout is on before trusting
+  a green suite or a render as a statement about windease `main` — it has been
+  on a feature branch during this work at least once.
 
 - **A `Rect`'s x/y is its top-left, everywhere windease emits one.** The card
   mesh read it as a centre, which hung every pile half a card up and left of its

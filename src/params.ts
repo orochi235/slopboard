@@ -24,7 +24,7 @@ export type StackParams = {
   rankCap: number
   /** age01 window over which an item fades out. */
   fade: { from: number; to: number }
-  zoneGrid: { gap: number; padding: number; orientation: 'wide' | 'tall'; cols?: number; rows?: number }
+  zoneGrid: { gap: number; orientation: 'wide' | 'tall'; cols?: number; rows?: number }
   camera: {
     projection: Projection
     /** Perspective only. */
@@ -147,7 +147,7 @@ export const defaultParams: StackParams = {
   shoveMs: 420,
   rankCap: 200,
   fade: { from: 0.88, to: 1 },
-  zoneGrid: { gap: 0.02, padding: 0.02, orientation: 'wide' },
+  zoneGrid: { gap: 0.02, orientation: 'wide' },
   camera: {
     projection: 'orthographic',
     fovDeg: 35,

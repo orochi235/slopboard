@@ -419,6 +419,7 @@ Base64-over-WebSocket hitches every time a render lands.
 | Core Animation instead of Metal | Noted for a future native port. `CALayer` + `CATransform3D` + `sublayerTransform` gets a receding wall with no renderer. Metal is overkill at a few hundred quads. |
 | Native `NSPanel` hosting `WKWebView` | Only if cards ever need to float over the primary display. Correct window semantics, keeps React, ~200 lines of Swift written once. |
 | File System Access API (no daemon) | Rejected. No change notification, so you'd poll on an interval and re-consent every browser restart. The daemon is less code. |
+| `zoneGrid.padding` | Retired. windease insets the cells correctly, but a card's size comes from `side` in world units, so cards do not shrink with their cells: raising it moved the anchors together while the cards stayed put, and the piles collided. `camera.margins[0]` already owns breathing room around the wall, in the one place that survives framing the union. |
 | HTML/React artifacts on the wall, not just images | Rejected. A CSS3D or iframe layer means no depth sorting against WebGL planes, no shared fade, no texture control, and arbitrary JS running on the wall. If HTML artifacts want a wall, they want a different one. |
 
 ## Open questions

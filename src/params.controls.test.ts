@@ -51,7 +51,6 @@ describe('controlFor', () => {
   it('reaches far enough up the zone grid to find the answer', () => {
     // A container is about one unit tall, so a third of it was not headroom.
     expect(controlFor('zoneGrid.gap', 0.02)).toMatchObject({ max: 1 })
-    expect(controlFor('zoneGrid.padding', 0.02)).toMatchObject({ max: 1 })
   })
 
   it('ranges every element of a list from one entry, so a rung added later needs none', () => {

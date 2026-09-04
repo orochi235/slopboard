@@ -27,7 +27,6 @@ export function createZoneGrid() {
       state: undefined,
       options: {
         gap: cfg.gap,
-        padding: cfg.padding,
         orientation: cfg.orientation,
         ...(cfg.cols === undefined ? {} : { cols: cfg.cols }),
         ...(cfg.rows === undefined ? {} : { rows: cfg.rows }),
