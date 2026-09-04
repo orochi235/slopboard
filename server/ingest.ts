@@ -1,7 +1,7 @@
 import chokidar from 'chokidar'
 import sharp from 'sharp'
 import { randomUUID } from 'node:crypto'
-import { mkdir, stat, rename, writeFile } from 'node:fs/promises'
+import { mkdir, stat, rename, utimes, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, extname } from 'node:path'
 import { config } from './config.ts'
 import * as store from './store.ts'
@@ -22,11 +22,15 @@ const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.
  * and a silent quality loss for anything else. A JPEG keeps its bytes and
  * goes unstamped rather than being quietly degraded.
  */
-async function stampOriginal(sourcePath: string, xmp: string): Promise<void> {
+export async function stampOriginal(sourcePath: string, xmp: string): Promise<void> {
   if (extname(sourcePath).toLowerCase() !== '.png') return
   try {
+    const { atime, mtime } = await stat(sourcePath)
     // Through a buffer: sharp cannot read and write the same path.
     await writeFile(sourcePath, await sharp(sourcePath).withXmp(xmp).png().toBuffer())
+    // `adopt` reads mtime so that a restart cannot resurrect the wall, so a
+    // stamp that bumps it re-ages every item the daemon re-adopts.
+    await utimes(sourcePath, atime, mtime)
   } catch (err) {
     console.warn(`[ingest] unstamped ${basename(sourcePath)}: ${(err as Error).message}`)
   }

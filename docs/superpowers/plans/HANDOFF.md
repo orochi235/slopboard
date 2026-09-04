@@ -109,6 +109,11 @@ and its cards show up on the real wall for a TTL.
 
 ## Traps already paid for
 
+- **Rewriting a file in the inbox re-ages the wall.** `adopt` reads mtime so a
+  daemon restart cannot resurrect anything, so anything that rewrites an
+  original — the XMP stamp does — has to put mtime back. It did not at first,
+  and with `tsx watch` restarting the daemon on every server edit the effect
+  was that nothing expired for a whole night.
 - **slopboard builds `windease` from source, so which branch that checkout is
   on is part of every result here.** The vite and vitest aliases both point at
   `~/src/windease/src`. As of this writing that checkout sits on

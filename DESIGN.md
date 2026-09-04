@@ -333,6 +333,12 @@ unstamped. The caption is written to `dc:description` as well as the private
 description in Spotlight or Get Info, so the standard field is for the
 Adobe-family and `exiftool` readers, not for Finder.
 
+Stamping restores the file's **mtime** afterwards. `adopt` derives `bornAt`
+from mtime precisely so a restart cannot resurrect the wall, so a stamp that
+bumps it re-ages every item the daemon re-adopts — and with `tsx watch`
+restarting on every server edit, nothing would ever expire while the server is
+being worked on.
+
 **Binding a repo** is a skill (`skills/slopboard/`, symlinked into the harness
 skill directories). It writes a standing instruction into the repo's
 uncommitted `CLAUDE.local.md` telling future agents to send renders here and to
