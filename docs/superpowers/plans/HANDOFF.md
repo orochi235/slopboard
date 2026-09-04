@@ -54,8 +54,11 @@ question rather than a task.
   theme" is not a side question about a bridge. It is the whole question.
 
   Both options are on the wall as `theme-options` for 48 hours, A above B.
-  The branch `spike/weasel-theme` rendered them and is throwaway:
-  `?theme=weasel` is A, `?theme=weasel-scene` is B.
+  The branch `spike/weasel-theme` rendered them: `?theme=weasel` is A,
+  `?theme=weasel-scene` is B. It is **parked on purpose, not clutter** — it is
+  the starting point if the answer is B, and the only place
+  `@weasel-js/theme` is installed. Its mapping of token to palette entry is
+  one plausible reading, not a design.
 
   What the spike settled, so nobody re-derives it: `resolveTheme(theme, mode)`
   is pure, DOM-free, and hands back a concrete `#hex` per token — the scene
@@ -105,6 +108,13 @@ points its proxy at `SLOP_PORT`. Without that the sim writes into `~/slop/inbox`
 and its cards show up on the real wall for a TTL.
 
 ## Traps already paid for
+
+- **slopboard builds `windease` from source, so which branch that checkout is
+  on is part of every result here.** The vite and vitest aliases both point at
+  `~/src/windease/src`. As of this writing that checkout sits on
+  `fix/nested-preset-placement`, clean but not `main` — so a green suite and a
+  render are statements about that branch. Check it before trusting either
+  against windease `main`.
 
 - **A `Rect`'s x/y is its top-left, everywhere windease emits one.** The card
   mesh read it as a centre, which hung every pile half a card up and left of its
