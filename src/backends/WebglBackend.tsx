@@ -21,6 +21,7 @@ import { toStackItems } from '@/model.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import { createGestureRail } from '@/nav/gesture.ts'
+import { directionFor, isForAControl } from '@/nav/keys.ts'
 import { neighbourOf } from '@/nav/neighbour.ts'
 import { zoneAt } from '@/nav/pick.ts'
 import { stepToward } from '@/nav/step.ts'
@@ -349,18 +350,9 @@ function Wall({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (isForAControl(e.target)) return
       if (e.key === 'Escape') return dispatch({ type: 'out' })
-      // PageUp/PageDown page a pile wherever the arrows do, so cycling through
-      // a stack does not depend on which hand is on which key.
-      const map = {
-        ArrowLeft: 'left',
-        ArrowRight: 'right',
-        ArrowUp: 'up',
-        ArrowDown: 'down',
-        PageUp: 'left',
-        PageDown: 'right',
-      } as const
-      const direction = map[e.key as keyof typeof map]
+      const direction = directionFor(e)
       if (!direction) return
       const zone = zoneOf(viewRef.current)
       if (!zone) return
