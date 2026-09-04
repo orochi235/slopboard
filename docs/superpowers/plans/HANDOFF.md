@@ -21,12 +21,17 @@ still unticked, because their deliverable is a judgment.
 Both repos are green; `npm test` in each is the count, and it is current in a
 way a number written here stops being the moment anyone commits.
 
-Since then, on `main`: a per-item TTL written into the filename
+Since the plans, also on `main`: a per-item TTL written into the filename
 (`name.ttl5m.ext`, bare number is seconds, wall default now 24h and `sim` tags
 its own cards `ttl60`); a port guard on both halves (a taken 8787 attaches to a
 live daemon or names `SLOP_PORT` and exits 1, instead of an unhandled error
-event; the client has its own port 5183 with `strictPort`); card outlines,
-panel grouping, and params persisted to localStorage.
+event; the client has its own port 5183 with `strictPort`); params persisted to
+localStorage and movable by clipboard or file; the hierarchy walked by wheel,
+pinch and click over a path-based view, and by WASD wherever the arrows go; a
+zone presenting itself with an outline, a label and a hatched backdrop on its
+base card; `params.colors` as the wall's whole palette, which a zone can
+override with the colour of the project bound to it; and a sky behind
+everything.
 
 Read `DESIGN.md` under **The stack's camera** before touching the camera or the
 arrangement. It carries the one thing that is not visible in the code: a pile
@@ -36,54 +41,35 @@ extent. That is why framing goes loose once you turn the camera off head-on.
 
 ## Asked for and not built
 
-Four requests arrived while the last commit was in flight. None is started.
+Two of the four asks landed. These are what is left, and the first one is a
+question rather than a task.
 
-- **Navigate the hierarchy by wheel, click and pinch.** Scrolling out from a
-  focused pile returns to the wall; scrolling in focuses the group **under the
-  cursor**, not the focused one. A threshold keeps a stray trackpad nudge from
-  firing it. Clicking a group focuses it too, and so does a pinch. The ask is
-  explicitly general: wall → zone → card is only today's hierarchy, and the
-  navigation should hold for however many levels it grows.
+- **Wear weasel's themes — the decision is yours, and it is bigger than it
+  looked.** The question in the words it needs answering in: **should the
+  wall's own furniture go violet?** Weasel's accent is a midnight violet where
+  slopboard's is cyan, so a scene that follows the theme repaints every card
+  outline, every zone label and the sky. A wall that follows it in the DOM
+  chrome only changes almost nothing you can see — the panel's hand-picked
+  darks already sit within a hair of weasel's. So "does the scene follow the
+  theme" is not a side question about a bridge. It is the whole question.
 
-  `src/view-state.ts` already models the levels as a reducer, so this is a
-  gesture layer dispatching into it plus a camera level per rung — not a new
-  model.
+  Both options are on the wall as `theme-options` for 48 hours, A above B.
+  The branch `spike/weasel-theme` rendered them and is throwaway:
+  `?theme=weasel` is A, `?theme=weasel-scene` is B.
 
-  Two things in the way, both load-bearing:
+  What the spike settled, so nobody re-derives it: `resolveTheme(theme, mode)`
+  is pure, DOM-free, and hands back a concrete `#hex` per token — the scene
+  needs no `getComputedStyle` and no CSS parse, and a token goes straight into
+  a `THREE.Color`. `@weasel-js/theme/react` publishes the same record as
+  `useTheme().resolved`, for precisely this case. The bridge is not the work.
 
-  A group has **no click target**. The card mesh's `onClick` is the only one in
-  the scene (`WebglBackend.tsx:356`), and `ZoneOverlay` raycasts nothing, so
-  clicking a cell's empty space does nothing and hovering a group cannot be
-  detected at all. Both the click and the hover-then-wheel need an invisible
-  plane per zone cell, behind the cards, which is also what would let a pile be
-  focused before it has any cards in it.
-
-  **Pinch arrives as a wheel event with `ctrlKey` set** — that is how macOS
-  delivers trackpad pinch to a page, and browsers report it nowhere else. So
-  pinch and wheel are one handler with two scale factors, not two gestures.
-  Guard `preventDefault` or the page zooms instead of the wall.
-
-- **A cosmetic background layer.** A skybox behind the wall, nebula-ish. Purely
-  decorative, so the constraint is that it must not compete with the cards:
-  they are the content and most of them are dark. A procedural shader on a
-  large inverted sphere or a full-screen quad behind the scene costs no texture
-  budget and needs no asset, which suits a wall that already accounts every
-  byte it uploads. Its knobs belong in `params.overlay`'s neighbourhood so the
-  panel can tune it, and it should be switchable off.
-- **Wear weasel's themes, as far as they reach.** `@weasel-js/theme` is
-  published (1.3.0), so this is an ordinary npm dependency, not a linked
-  checkout like windease. It is DTCG tokens with a mode layer (`weaselTheme`
-  defaults to dark) applied as CSS custom properties.
-
-  The qualifier is the work. Two halves reach differently: the DOM chrome —
-  params panel, HUD, lightbox, minimap — takes `tokens.css` and `applyTheme`
-  directly, and slopboard's hand-picked hex values in `params.css` become token
-  references. The scene does not: three wants a `THREE.Color`, not a CSS
-  variable, so the card outline, the zone outline's idle and focus colors, the
-  label fill and the flat-quad tier need a token→Color bridge read once at
-  startup and on a mode change, not per frame. Decide whether the scene follows
-  the theme at all before building that bridge — a wall of images may want a
-  neutral surround more than a branded one.
+  Two things the ask did not know. `tokens.css` also sets `:root { font-family:
+  Oswald; font-weight: 300 }`, so importing it re-types the whole wall and not
+  only its colours. And a second fork waits behind the first: whether a theme
+  **replaces** `params.colors` or only **seeds** it. `mergeStored` lays a stored
+  tuning over the defaults, so a theme that merely seeds them is outranked
+  forever by any entry the panel has ever touched, and a mode flip never
+  reaches it.
 
 - **Make the page a lab.** The params panel, the minimap and the HUD are
   developer chrome that a real wall display should not carry. The ask is to
@@ -105,7 +91,13 @@ open 'http://localhost:5183/?backend=webgl'
 
 Every question there is a control in the `params` panel, so a bad answer is a
 drag and not a code change. When the numbers settle, write them into
-`src/params.ts`.
+`src/params.ts` — or copy the whole tuned set to the clipboard from the panel,
+which pastes straight into that file.
+
+More has arrived unlooked-at than those two tasks ask about: the gesture rail's
+two thresholds and its cooldown (`nav`), the hatch backdrop's spacing, width
+and angle, and every `sky` knob. All are guesses that have never been judged
+against a moving wall.
 
 To run against a daemon other than the one serving the real wall, set
 `SLOP_ROOT` and `SLOP_PORT` on both the daemon and the client — `vite.config.ts`
@@ -139,6 +131,16 @@ and its cards show up on the real wall for a TTL.
   and killing the daemon child takes `concurrently` and vite down with it. A
   taken 8787 is now handled: the daemon attaches to a live one and exits 0, so
   a second `npm run dev` gives you a client against the running daemon.
+- **`bin/slop` renames every file to a UUID**, which defeats the caption it
+  feeds. A card's caption is its source filename less the TTL segment, so
+  anything arriving through the CLI — which is nearly everything — captions as
+  a UUID. Either the CLI keeps the basename and disambiguates some other way,
+  or captions come from somewhere else.
+- **A raw shader must not let three convert its colours.** `Color.set` takes an
+  authored hex into the linear working space, and a `ShaderMaterial` writing
+  `gl_FragColor` never converts back, so the value renders several stops too
+  dark. `srgb()` in `sky.ts` is the fix; the zone hatch still has the bug and
+  reads darker than its palette entry claims.
 - **The client is on 5183, not vite's 5173.** Other projects on this machine
   take 5173 first, and `strictPort` makes that a loud failure rather than a
   silent drift to a port nobody opens.
