@@ -25,6 +25,9 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   rankCap: [1, 400, 1],
   'fade.from': [0, 1, 0.01],
   'fade.to': [0, 1, 0.01],
+  'distance.from': [0, 200, 1],
+  'distance.to': [0, 200, 1],
+  'distance.floor': [0, 1, 0.01],
   'zoneGrid.gap': [0, 1, 0.005],
   'zoneGrid.cols': [1, 12, 1],
   'zoneGrid.rows': [1, 12, 1],
@@ -55,6 +58,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
 }
 
 const CHOICES: Record<string, readonly (number | string)[]> = {
+  'distance.combine': ['ceiling', 'min'],
   'zones.backdrop': ['none', 'hatch', 'solid'],
   'camera.projection': ['orthographic', 'perspective'],
   'zoneGrid.orientation': ['wide', 'tall'],

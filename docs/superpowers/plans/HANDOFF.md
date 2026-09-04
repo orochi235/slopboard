@@ -48,50 +48,25 @@ extent. That is why framing goes loose once you turn the camera off head-on.
 
 ## Asked for and not built
 
-Four things, and the first two arrived together and are really one question.
+Three things. The depth question is answered; what it settled is below it.
 
-### How should depth read on this wall?
+### How depth read on this wall — answered and built
 
-Asked as two things: **the fade needs better control — what exists is temporal,
-and there probably wants to be a distance-based falloff too**; and **a zone's
-background should shade another zone's panels where it occludes them, because
-not shading them is confusing.**
+`distance` is in `params.ts`: presence falls across a rank window to a floor,
+combined with the temporal fade by a rule that is itself a live control
+(`ceiling` compounds the two, `min` takes the dimmer). DESIGN.md under
+**How depth reads** carries the design; the tinted-glass backdrop is in the
+rejected table with the reason.
 
-They are one question because three mechanisms now compete to say "this card is
-far away", and picking two that double up is the failure mode:
+`172fc14` stands — nothing about `renderOrder` changed. The falloff dims a
+stranger's panel because reaching a neighbour's cell requires depth, so the
+occlusion complaint went with it.
 
-- **Temporal fade, which is all that exists.** `opacity = 1 - ramp(age01,
-  fade.from, fade.to)`, defaulting to a `0.88 → 1` window, so a card holds full
-  presence for most of its life and then drops. Nothing in it reads z.
-- **A distance falloff, which does not exist.** A second curve over depth or
-  rank. The real question is not the curve but how the two combine — multiplied,
-  `min`, or distance setting a floor that age cannot push below.
-- **The backdrop as tinted glass**, which is what the second ask amounts to.
-
-**Why the backdrop shades nothing today, and it is not about geometry.** It
-draws at `renderOrder = -1`, ahead of every card, so blending composites it
-against the framebuffer as it stood then — the sky. Cards draw afterwards and
-blend over it. Its z is irrelevant to the outcome.
-
-That property is load-bearing: it is precisely why `172fc14` could move the
-plane to `BACKDROP_Z` without hiding the deep ranks. **Making the backdrop
-shade what is behind it partly reverses that commit's reasoning**, and the
-`DESIGN.md` line it deleted — "the pile's deep ranks disappear into it" — turns
-out to describe the behaviour now being asked for.
-
-Every card is already `transparent = true` with a per-frame `opacity`, so they
-all sit in three's transparent bucket sorted back to front. Dropping the forced
-`renderOrder` lets the backdrop sort in by its own z and tint everything behind
-it — **foreign panels and the zone's own deep ranks alike**, since those are all
-at z below the plane. At a `backdropOpacity` of 0.5, which is what the tuned set
-carries, that is a heavy wash rather than a hint. Shading only foreign cards
-while sparing the home pile needs per-zone masking or a stencil, which is a
-different order of complexity and probably not wanted once the simple version
-has been looked at.
-
-Nothing here is decided. The session that raised it leaned toward the distance
-falloff being the mechanism worth having, since it is per-card, tunable, and
-does not fight the camera's framing.
+Defaults are `to: 22, floor: 0.12, combine: 'ceiling'`, tuned by eye against the
+live wall in one pass and worth a second opinion — the four renders are on the
+wall, captioned, showing before, the first guess at `to: 60` and the tuned set.
+The mid-ranks of a big pile (`weasel`, `slopboard`) are still fairly bright and
+that may or may not be right.
 
 ### Stats in the bottom-left corner
 

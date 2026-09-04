@@ -174,6 +174,43 @@ params, so the angle has one home rather than two. Framing itself is stated once
 as a half-height; perspective derives a distance from it, orthographic parks at
 `camera.standoff` and drives the frustum.
 
+### How depth reads
+
+Two things say "this card is far back," and they are deliberately different
+senses of far: **rank** is how buried a card is in its pile, and **age** is how
+close it is to expiry. A busy zone buries a card in minutes; a quiet one holds
+its second card for a day. So both earn a curve.
+
+**Detail falls off with rank, and so does presence.** The LOD tiers already
+drop a card from 512 to 128 to 32 to a flat colour chip as it is buried, which
+means depth read as *loses detail* and nothing else — a buried card came out
+blocky and at full luminance at once, and turned off head-on the deep tail was
+the brightest thing on the wall. `distance` is the other half: presence falls
+across a rank window to `distance.floor` and stops there. Never to zero, because
+an invisible tail is a shorter pile rather than a deeper one.
+
+The window is in **ranks, not world z**, so it keeps its meaning while `step.z`
+is tuned, and so it lines up with the tiers that already divide the pile.
+
+**How the two curves meet is a live control**, because it is a judgment and not
+a fact. `ceiling` scales age's presence by depth's, so they compound and a card
+that is both deep and old is dimmer than either alone; `min` takes whichever is
+dimmer, which holds a deep card at the floor and hides its fade until age drops
+past it. Both end at nothing for a fully expired card — they only disagree while
+a fade is running. `distance.enabled` off is the wall before any of this.
+
+**A foreign card in a zone's cell is dim because it is deep.** `step.x`/`step.y`
+walk a pile diagonally out of its own cell as rank grows — past two card widths
+by rank 40 — so a card only reaches a neighbour's cell by trailing there in z.
+The falloff therefore dims exactly the intruders while sparing every zone's
+front ranks, and the confusion of a stranger's panel reading as local is a
+symptom of the missing falloff rather than its own problem.
+
+**The fade and distance curves are swappable from code and are not parameters.**
+`createStack` takes an optional pair of functions. `StackParams` round-trips
+through localStorage and the clipboard as JSON, where a function does not
+survive, so a curve shape cannot live there. Nothing in the repo passes them.
+
 ### Walking the hierarchy
 
 The view is a **path**, not a level: `[]` is the wall, `['weasel']` a pile with
@@ -422,6 +459,7 @@ Base64-over-WebSocket hitches every time a render lands.
 | File System Access API (no daemon) | Rejected. No change notification, so you'd poll on an interval and re-consent every browser restart. The daemon is less code. |
 | `zoneGrid.padding` | Retired. windease insets the cells correctly, but a card's size comes from `side` in world units, so cards do not shrink with their cells: raising it moved the anchors together while the cards stayed put, and the piles collided. `camera.margins[0]` already owns breathing room around the wall, in the one place that survives framing the union. |
 | HTML/React artifacts on the wall, not just images | Rejected. A CSS3D or iframe layer means no depth sorting against WebGL planes, no shared fade, no texture control, and arbitrary JS running on the wall. If HTML artifacts want a wall, they want a different one. |
+| The zone backdrop as tinted glass, shading what sits behind it | Rejected. Dropping the backdrop's `renderOrder = -1` would let it sort by its own z and tint everything behind — but at `BACKDROP_Z` that is the zone's own pile from rank 1 back, not just the strangers, and at a `backdropOpacity` of 0.5 it is a wash rather than a hint. Sparing the home pile needs per-zone masking or a stencil. The `distance` falloff answers the same complaint per-card and tunably, so the plane stays a background. |
 
 ## Open questions
 

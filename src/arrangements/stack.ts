@@ -18,16 +18,40 @@ function hashUnit(id: string): number {
 
 const easeOut = (t: number) => 1 - (1 - t) ** 3
 
+/**
+ * The two presence curves, swappable from code. Deliberately not parameters:
+ * `StackParams` round-trips through localStorage and the clipboard as JSON, and
+ * a function does not survive that. Nothing in the repo passes them.
+ */
+export type Curves = {
+  /** How much of a card age has taken, 0 at arrival to 1 at expiry. */
+  fade: (age01: number, params: StackParams) => number
+  /** The presence depth allows a card at this fractional rank, 0..1. */
+  distance: (rank: number, params: StackParams) => number
+}
+
+const defaultCurves: Curves = {
+  fade: (age01, p) => ramp(age01, p.fade.from, p.fade.to),
+  distance: (rank, p) =>
+    p.distance.enabled
+      ? 1 - (1 - p.distance.floor) * ramp(rank, p.distance.from, p.distance.to)
+      : 1,
+}
+
 const lodFor = (rank: number, tiers: StackParams['lod']) =>
   tiers.find((tier) => rank <= tier.maxRank)?.edge ?? 0
 
 /**
  * One diagonal pile per zone, tiled to a grid. Depth is rank, so an arrival
- * shoves its pile back one step and spacing stays even at any arrival rate;
- * age drives opacity alone, which is why a quiet wall shows its top card dying
- * in place rather than at the far end.
+ * shoves its pile back one step and spacing stays even at any arrival rate.
+ * Opacity is rank and age together — a card dies in place rather than at the
+ * far end, and being buried dims it without ever claiming it is dying.
  */
-export function createStack(params: StackParams = defaultParams): Arrangement3D {
+export function createStack(
+  params: StackParams = defaultParams,
+  curves: Partial<Curves> = {},
+): Arrangement3D {
+  const { fade, distance } = { ...defaultCurves, ...curves }
   const ranksByZone = new Map<string, ReturnType<typeof createRanks>>()
   const zoneGrid = createZoneGrid()
 
@@ -103,9 +127,13 @@ export function createStack(params: StackParams = defaultParams): Arrangement3D 
               h: params.side,
             })
 
+            const byAge = 1 - fade(it.age01, params)
+            const byDepth = distance(depth, params)
+
             channels.set(it.id, {
               z: depth * params.step.z,
-              opacity: 1 - ramp(it.age01, params.fade.from, params.fade.to),
+              opacity:
+                params.distance.combine === 'min' ? Math.min(byDepth, byAge) : byDepth * byAge,
               rotX: params.rot.x,
               rotY: params.rot.y,
               rotZ: noise * params.jitter.rot,

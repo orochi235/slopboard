@@ -24,6 +24,31 @@ export type StackParams = {
   rankCap: number
   /** age01 window over which an item fades out. */
   fade: { from: number; to: number }
+  /**
+   * Presence falling off with depth, which is the other half of what the LOD
+   * tiers already do: detail drops with rank, and without this luminance does
+   * not, so a buried card reads as blocky and loud at once.
+   */
+  distance: {
+    /** Off is the wall before this existed: depth changes detail and nothing else. */
+    enabled: boolean
+    /**
+     * Rank window over which presence falls from full to `floor`. Ranks rather
+     * than world z, so the window holds its meaning while `step.z` is tuned.
+     */
+    from: number
+    to: number
+    /** Where the tail settles. Never 0: an invisible tail is a shorter pile. */
+    floor: number
+    /**
+     * How the falloff meets the temporal fade. Both take a fully expired card
+     * to nothing; they disagree while one is running. `ceiling` scales age's
+     * presence by depth's, so the two compound and a deep old card is dimmer
+     * than either alone. `min` takes whichever is dimmer, so a deep card holds
+     * at the floor and ignores its fade until age drops past it.
+     */
+    combine: 'ceiling' | 'min'
+  }
   zoneGrid: { gap: number; orientation: 'wide' | 'tall'; cols?: number; rows?: number }
   camera: {
     projection: Projection
@@ -147,6 +172,7 @@ export const defaultParams: StackParams = {
   shoveMs: 420,
   rankCap: 200,
   fade: { from: 0.88, to: 1 },
+  distance: { enabled: true, from: 1, to: 22, floor: 0.12, combine: 'ceiling' },
   zoneGrid: { gap: 0.02, orientation: 'wide' },
   camera: {
     projection: 'orthographic',

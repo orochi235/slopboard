@@ -57,7 +57,7 @@ describe('stack', () => {
     expect(zMid).toBeGreaterThan(zEnd)
   })
 
-  it('fades only with age, wherever the item sits', () => {
+  it('fades with age at the front of the pile', () => {
     const stack = createStack()
     const out = run(stack, [item('young', 'z', 0), item('dying', 'z', 1)], 0)
     expect(out.channels!.get('young')!.opacity).toBeCloseTo(1)
@@ -78,6 +78,66 @@ describe('stack', () => {
     expect(out.unplaced).toEqual(['i3', 'i4', 'i5'])
     expect(out.channels!.get('i0')!.lod).toBe(512)
     expect(out.channels!.get('i2')!.lod).toBe(128)
+  })
+
+  it('dims a card by depth even when it is fresh', () => {
+    const params = { ...defaultParams, distance: { ...defaultParams.distance, from: 0, to: 4 } }
+    const items = Array.from({ length: 5 }, (_, i) => item(`i${i}`, 'z'))
+    const out = run(createStack(params), items, 0)
+    expect(out.channels!.get('i0')!.opacity).toBeCloseTo(1)
+    expect(out.channels!.get('i4')!.opacity).toBeCloseTo(params.distance.floor)
+  })
+
+  it('never takes depth alone below the floor, so the tail still reads as a pile', () => {
+    const params = { ...defaultParams, distance: { ...defaultParams.distance, from: 0, to: 4 } }
+    const items = Array.from({ length: 40 }, (_, i) => item(`i${i}`, 'z'))
+    const out = run(createStack(params), items, 0)
+    for (const [, ch] of out.channels!) {
+      expect(ch.opacity).toBeGreaterThanOrEqual(params.distance.floor)
+    }
+  })
+
+  it('still takes a dying card to nothing at any depth, under `ceiling`', () => {
+    const params = {
+      ...defaultParams,
+      distance: { ...defaultParams.distance, from: 0, to: 4, combine: 'ceiling' as const },
+    }
+    const items = [...Array.from({ length: 4 }, (_, i) => item(`i${i}`, 'z')), item('deep', 'z', 1)]
+    const out = run(createStack(params), items, 0)
+    expect(out.channels!.get('deep')!.opacity).toBeCloseTo(0)
+  })
+
+  it('compounds depth with a running fade under `ceiling`, where `min` ignores it', () => {
+    // Half way through the fade window, so age has taken half the card and the
+    // rules disagree — at either end of the window they agree.
+    const half = (defaultParams.fade.from + defaultParams.fade.to) / 2
+    const deep = (combine: 'ceiling' | 'min') => {
+      const params = {
+        ...defaultParams,
+        distance: { ...defaultParams.distance, from: 0, to: 4, combine },
+      }
+      const items = [
+        ...Array.from({ length: 4 }, (_, i) => item(`i${i}`, 'z')),
+        item('deep', 'z', half),
+      ]
+      return run(createStack(params), items, 0).channels!.get('deep')!.opacity
+    }
+    const floor = defaultParams.distance.floor
+    expect(deep('min')).toBeCloseTo(floor)
+    expect(deep('ceiling')).toBeCloseTo(floor * 0.5)
+  })
+
+  it('leaves opacity to age alone when the falloff is off', () => {
+    const params = { ...defaultParams, distance: { ...defaultParams.distance, enabled: false } }
+    const items = Array.from({ length: 40 }, (_, i) => item(`i${i}`, 'z'))
+    const out = run(createStack(params), items, 0)
+    for (const [, ch] of out.channels!) expect(ch.opacity).toBeCloseTo(1)
+  })
+
+  it('takes an overridden curve, so the escape hatch is wired and not decorative', () => {
+    const stack = createStack(defaultParams, { distance: () => 0.5 })
+    const out = run(stack, [item('a', 'z')], 0)
+    expect(out.channels!.get('a')!.opacity).toBeCloseTo(0.5)
   })
 
   it('places nothing for an empty wall', () => {
