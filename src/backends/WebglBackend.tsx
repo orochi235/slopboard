@@ -192,7 +192,6 @@ function Wall({
   /** Each pile front to back, so the arrows can page it from the lightbox. */
   const cardsByZone = useRef<Map<string, string[]>>(new Map())
   /** The deepest z each pile reaches, so its backdrop can sit behind it. */
-  const zoneDepth = useRef<Map<string, number>>(new Map())
   const viewRef = useRef(view)
   viewRef.current = view
 
@@ -433,10 +432,6 @@ function Wall({
     cardsByZone.current = new Map(
       [...ranked].map(([zone, list]) => [zone, list.sort((a, b) => b.z - a.z).map((e) => e.id)]),
     )
-    zoneDepth.current = new Map(
-      [...ranked].map(([zone, list]) => [zone, Math.min(...list.map((e) => e.z))]),
-    )
-
     const liveZones = [...new Set(model.map((m) => m.zone))]
     const focused = zoneOf(view)
     if (focused && !liveZones.includes(focused)) {
@@ -545,7 +540,6 @@ function Wall({
         focus={zoneOf(view)}
         settings={params.zones}
         colors={params.colors}
-        depths={zoneDepth}
         hued={huedColors}
       />
     </group>

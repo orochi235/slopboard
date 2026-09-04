@@ -231,9 +231,10 @@ against every arrangement.
 - **The `zones` group** owns how a zone presents itself: outline, label, and a
   backdrop filling its cell — a ruled hatch by default, drawn by a shader in
   world space so it holds one density across the wall and costs the texture
-  budget nothing. The backdrop sits behind the deepest card its pile has
-  reached, which is only known per frame, or the pile's deep ranks disappear
-  into it.
+  budget nothing. The backdrop sits a hair behind the zone outline rather than
+  behind the pile: it writes no depth and draws ahead of the cards, so it never
+  occludes them however deep they go, while a plane parked at the deepest rank
+  parallaxes away from its own border as soon as the wall turns.
 - **Zone chrome is drawn on the pile's base card, not on what it has drawn.**
   Outline, backdrop, label and the plan view all use `baseCellsOf`, so a tall
   pile does not claim more of the wall than its neighbour. The camera is the

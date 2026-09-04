@@ -14,13 +14,18 @@ type Props = {
   focus: string | null
   settings: StackParams['zones']
   colors: StackParams['colors']
-  /** The deepest card standing in each zone, written by the wall's frame loop.
-   *  A backdrop has to sit behind the pile or the pile's deep ranks vanish
-   *  into it, and how deep a pile has grown is only known per frame. */
-  depths: RefObject<Map<string, number>>
   /** A zone's project colour, where the daemon found one. */
   hued: Map<string, THREE.Color>
 }
+
+/**
+ * Just behind the zone outline, which sits at 0 — near enough to read as the
+ * same plane, far enough not to fight it. It does not follow the pile's depth:
+ * the material writes no depth and draws before the cards, so it never
+ * occludes them however far back they go, and a plane parked at the deepest
+ * rank visibly parallaxes away from its own border the moment the wall turns.
+ */
+const BACKDROP_Z = -0.001
 
 /** A rect's four corners, in three's world space — the one place besides the
  *  card meshes that has to undo windease's downward-growing y. */
@@ -33,7 +38,7 @@ function corners(box: Rect): number[] {
  * wall. Off by default: a diagnostic first, and furniture only once the labels
  * earn their place in the design.
  */
-export function ZoneOverlay({ cells, zones, focus, settings, colors, depths, hued }: Props) {
+export function ZoneOverlay({ cells, zones, focus, settings, colors, hued }: Props) {
   const { gl } = useThree()
   const idle = useMemo(() => new THREE.Color(colors.zoneIdle), [colors.zoneIdle])
   const highlight = useMemo(() => new THREE.Color(colors.zoneFocus), [colors.zoneFocus])
@@ -105,8 +110,7 @@ export function ZoneOverlay({ cells, zones, focus, settings, colors, depths, hue
       mesh.scale.set(box.w, box.h, 1)
       // A rect's x/y is its top-left and three positions a plane by its centre,
       // in a world whose y grows the other way.
-      const behind = (depths.current?.get(zone) ?? 0) - 0.005
-      mesh.position.set(box.x + box.w / 2, -(box.y + box.h / 2), behind)
+      mesh.position.set(box.x + box.w / 2, -(box.y + box.h / 2), BACKDROP_Z)
 
       const u = (mesh.material as THREE.ShaderMaterial).uniforms
       const ownBackdrop = settings.huedBackdrop ? hued.get(zone) : undefined
