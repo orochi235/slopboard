@@ -10,6 +10,7 @@ import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
 import { readStamp } from './sidecar.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
+import { createLimiter } from './limit.ts'
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.tiff'])
 
@@ -111,10 +112,24 @@ export function watchInbox(onArrive: (item: WallItem) => void) {
     awaitWriteFinish: { stabilityThreshold: 400, pollInterval: 50 },
   })
 
-  watcher.on('add', async (path) => {
+  // Capped because ingest is the daemon's only heavy work: a decode, a resize,
+  // a webp encode and a full-resolution re-encode per file. Uncapped, a restart
+  // with a full inbox starts all of them at once.
+  const gate = createLimiter(config.ingestAtOnce)
+
+  watcher.on('add', (path) => {
     if (dirname(path) === config.inbox) return // zone dirs only
-    const item = ready ? await ingest(path, Date.now()) : await adopt(path)
-    if (item) onArrive(item)
+    // Both read at arrival rather than when the turn comes. A file waiting
+    // behind others must not be dated when it finally runs, and one that was
+    // already on disk at startup must not be re-read as a live arrival because
+    // `ready` flipped while it queued — which would date it now and resurrect
+    // the wall, the exact thing `adopt` exists to prevent.
+    const at = Date.now()
+    const adopting = !ready
+    void gate(async () => {
+      const item = adopting ? await adopt(path) : await ingest(path, at)
+      if (item) onArrive(item)
+    })
   })
   watcher.on('ready', () => {
     ready = true

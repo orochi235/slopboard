@@ -333,6 +333,15 @@ unstamped. The caption is written to `dc:description` as well as the private
 description in Spotlight or Get Info, so the standard field is for the
 Adobe-family and `exiftool` readers, not for Finder.
 
+**Ingest is capped at `config.ingestAtOnce`, which bounds buffers rather than
+threads.** sharp already runs libvips' own pool at one thread per core and
+queues the rest, so an unbounded fan-out was never a parallel decode per file —
+its cost was holding every pending full-resolution buffer alive at once.
+Adopting an 85-file inbox peaks at 549MB uncapped against 469MB at a cap of 3
+(410MB against 330MB for the largest single process), and the gap grows with
+the inbox rather than staying flat. `SLOP_INGEST_AT_ONCE` overrides it so the
+ceiling can be measured instead of argued about.
+
 Stamping restores the file's **mtime** afterwards. `adopt` derives `bornAt`
 from mtime precisely so a restart cannot resurrect the wall, so a stamp that
 bumps it re-ages every item the daemon re-adopts — and with `tsx watch`
