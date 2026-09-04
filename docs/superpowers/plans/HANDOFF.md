@@ -33,6 +33,13 @@ base card; `params.colors` as the wall's whole palette, which a zone can
 override with the colour of the project bound to it; and a sky behind
 everything.
 
+Since then, still on `main`: WASD navigates wherever the arrows do; a caption
+and the writing repo's commit ride into every render's XMP through a
+`<image>.slop.json` sidecar `bin/slop` writes; ingest is capped; the zone
+backdrop sits on its border instead of behind its pile; and `zoneGrid.padding`
+is retired. `git log --oneline` from `6fc3f8e` covers the lot, and each commit
+message carries the reasoning that is not in the diff.
+
 Read `DESIGN.md` under **The stack's camera** before touching the camera or the
 arrangement. It carries the one thing that is not visible in the code: a pile
 is a volume — deeper than the whole wall is tall at 29 cards — and every box
@@ -41,44 +48,118 @@ extent. That is why framing goes loose once you turn the camera off head-on.
 
 ## Asked for and not built
 
-Two of the four asks landed. These are what is left, and the first one is a
-question rather than a task.
+Four things, and the first two arrived together and are really one question.
 
-- **Wear weasel's themes — the decision is yours, and it is bigger than it
-  looked.** The question in the words it needs answering in: **should the
-  wall's own furniture go violet?** Weasel's accent is a midnight violet where
-  slopboard's is cyan, so a scene that follows the theme repaints every card
-  outline, every zone label and the sky. A wall that follows it in the DOM
-  chrome only changes almost nothing you can see — the panel's hand-picked
-  darks already sit within a hair of weasel's. So "does the scene follow the
-  theme" is not a side question about a bridge. It is the whole question.
+### How should depth read on this wall?
 
-  Both options are on the wall as `theme-options` for 48 hours, A above B.
-  The branch `spike/weasel-theme` rendered them: `?theme=weasel` is A,
-  `?theme=weasel-scene` is B. It is **parked on purpose, not clutter** — it is
-  the starting point if the answer is B, and the only place
-  `@weasel-js/theme` is installed. Its mapping of token to palette entry is
-  one plausible reading, not a design.
+Asked as two things: **the fade needs better control — what exists is temporal,
+and there probably wants to be a distance-based falloff too**; and **a zone's
+background should shade another zone's panels where it occludes them, because
+not shading them is confusing.**
 
-  What the spike settled, so nobody re-derives it: `resolveTheme(theme, mode)`
-  is pure, DOM-free, and hands back a concrete `#hex` per token — the scene
-  needs no `getComputedStyle` and no CSS parse, and a token goes straight into
-  a `THREE.Color`. `@weasel-js/theme/react` publishes the same record as
-  `useTheme().resolved`, for precisely this case. The bridge is not the work.
+They are one question because three mechanisms now compete to say "this card is
+far away", and picking two that double up is the failure mode:
 
-  Two things the ask did not know. `tokens.css` also sets `:root { font-family:
-  Oswald; font-weight: 300 }`, so importing it re-types the whole wall and not
-  only its colours. And a second fork waits behind the first: whether a theme
-  **replaces** `params.colors` or only **seeds** it. `mergeStored` lays a stored
-  tuning over the defaults, so a theme that merely seeds them is outranked
-  forever by any entry the panel has ever touched, and a mode flip never
-  reaches it.
+- **Temporal fade, which is all that exists.** `opacity = 1 - ramp(age01,
+  fade.from, fade.to)`, defaulting to a `0.88 → 1` window, so a card holds full
+  presence for most of its life and then drops. Nothing in it reads z.
+- **A distance falloff, which does not exist.** A second curve over depth or
+  rank. The real question is not the curve but how the two combine — multiplied,
+  `min`, or distance setting a floor that age cannot push below.
+- **The backdrop as tinted glass**, which is what the second ask amounts to.
 
-- **Make the page a lab.** The params panel, the minimap and the HUD are
-  developer chrome that a real wall display should not carry. The ask is to
-  name that: this page is the lab, and a non-lab wall comes later. No decision
-  yet on the mechanism — a `?lab` flag beside `?backend`, a separate route, or
-  a build-time split — and that decision is the first thing to settle.
+**Why the backdrop shades nothing today, and it is not about geometry.** It
+draws at `renderOrder = -1`, ahead of every card, so blending composites it
+against the framebuffer as it stood then — the sky. Cards draw afterwards and
+blend over it. Its z is irrelevant to the outcome.
+
+That property is load-bearing: it is precisely why `172fc14` could move the
+plane to `BACKDROP_Z` without hiding the deep ranks. **Making the backdrop
+shade what is behind it partly reverses that commit's reasoning**, and the
+`DESIGN.md` line it deleted — "the pile's deep ranks disappear into it" — turns
+out to describe the behaviour now being asked for.
+
+Every card is already `transparent = true` with a per-frame `opacity`, so they
+all sit in three's transparent bucket sorted back to front. Dropping the forced
+`renderOrder` lets the backdrop sort in by its own z and tint everything behind
+it — **foreign panels and the zone's own deep ranks alike**, since those are all
+at z below the plane. At a `backdropOpacity` of 0.5, which is what the tuned set
+carries, that is a heavy wash rather than a hint. Shading only foreign cards
+while sparing the home pile needs per-zone masking or a stencil, which is a
+different order of complexity and probably not wanted once the simple version
+has been looked at.
+
+Nothing here is decided. The session that raised it leaned toward the distance
+falloff being the mechanism worth having, since it is per-card, tunable, and
+does not fight the camera's framing.
+
+### Stats in the bottom-left corner
+
+Asked for: VRAM, GPU and FPS on screen. Designed in conversation, approved by
+nobody, built not at all.
+
+**Two of the three are not available to a web page.** There is no VRAM query in
+WebGL — no total, no free, no per-context usage — and `performance.memory` is
+the JS heap and Chrome-only. GPU time per frame needs
+`EXT_disjoint_timer_query_webgl2`, which Chrome ships disabled in most contexts.
+What is gettable: FPS and frame time from the frame loop; **the wall's own
+texture bytes against its budget**, which `createTextureStore` already accounts
+exactly and is a truer number than the browser would give; `renderer.info` for
+draw calls, triangles, textures and programs; and the GPU name once from
+`WEBGL_debug_renderer_info`, often masked. Label the memory line `tex`, not
+`vram`, so it does not claim to be what it is not.
+
+The shape agreed in conversation: a block stacked above `.hud` rather than rows
+inside it, so the HUD keeps its flash-on-change behaviour; sampling every frame
+but repainting the DOM at about 4Hz, since text layout at 60Hz costs more than
+the readout is worth; FPS as a rolling average, not an instantaneous
+reciprocal; behind `overlay.stats`. It is lab chrome, so it is the first thing
+the `?lab` decision below should retire.
+
+### Wear weasel's themes — the decision is yours
+
+**Should the wall's own furniture go violet?** Weasel's accent is a midnight
+violet where slopboard's is cyan, so a scene that follows the theme repaints
+every card outline, every zone label and the sky. Following it in the DOM chrome
+only changes almost nothing you can see, because the panel's hand-picked darks
+already sit within a hair of weasel's. So "does the scene follow the theme" is
+not a side question about a bridge — it is the whole question.
+
+Both options were rendered to the wall as `theme-options`, A above B, and the
+branch `spike/weasel-theme` is **parked on purpose**: `?theme=weasel` is A,
+`?theme=weasel-scene` is B, and it is the only place `@weasel-js/theme` is
+installed. Its mapping of token to palette entry is one plausible reading, not
+a design.
+
+What the spike settled: `resolveTheme(theme, mode)` is pure, DOM-free, and hands
+back a concrete `#hex` per token, so the scene needs no `getComputedStyle` and
+no CSS parse. `@weasel-js/theme/react` publishes the same record as
+`useTheme().resolved`, for precisely this case. The bridge is not the work.
+
+Two things the ask did not know. `tokens.css` also sets `:root { font-family:
+Oswald; font-weight: 300 }`, so importing it re-types the whole wall and not
+only its colours. And a second fork waits behind the first: whether a theme
+**replaces** `params.colors` or only **seeds** it. `mergeStored` lays a stored
+tuning over the defaults, so a theme that merely seeds them is outranked forever
+by any entry the panel has ever touched, and a mode flip never reaches it.
+
+### Make the page a lab
+
+The params panel, the minimap and the HUD are developer chrome that a real wall
+display should not carry. The ask is to name that: this page is the lab, and a
+non-lab wall comes later. No decision yet on the mechanism — a `?lab` flag
+beside `?backend`, a separate route, or a build-time split — and that decision
+is the first thing to settle.
+
+### Also parked
+
+`spike/cell-relative-side` renders `side` as a fraction of the zone's cell
+rather than a world constant (`?side=cell`), scaling the pile's step and jitter
+to match. Both readings were rendered to the wall as `side: world constant vs
+fraction of the cell, at 6 columns`, at six columns because that is where they
+diverge. Adopting it means re-tuning `side` once and re-reading what the `lod`
+tiers mean, since rank-to-edge was calibrated against a card of stable size. It
+leaves `step.z` absolute, so a deep pile still trails past its cell either way.
 
 ## Do this first
 
@@ -102,6 +183,15 @@ two thresholds and its cooldown (`nav`), the hatch backdrop's spacing, width
 and angle, and every `sky` knob. All are guesses that have never been judged
 against a moving wall.
 
+**The client and the daemon are owned by different things right now.** A memory
+squeeze killed vite one morning while the daemon rode it out, so the client was
+restarted by hand from a session rather than by the original `npm run dev` —
+`concurrently` is still running its daemon leg alone. Expect the wall's page to
+go dark whenever whichever session started vite exits, while the daemon keeps
+ingesting. `npm run dev:client` brings the page back on its own; a full
+`npm run dev` also works, because the daemon leg finds 8787 taken, attaches and
+exits 0.
+
 To run against a daemon other than the one serving the real wall, set
 `SLOP_ROOT` and `SLOP_PORT` on both the daemon and the client — `vite.config.ts`
 points its proxy at `SLOP_PORT`. Without that the sim writes into `~/slop/inbox`
@@ -109,6 +199,11 @@ and its cards show up on the real wall for a TTL.
 
 ## Traps already paid for
 
+- **`DomBackend` ignores a per-item TTL.** It computes `age01` inline from the
+  wall default, where the WebGL path goes through `toStackItems` and honours
+  `i.ttlMs`. So a `ttl60` card fades on the 2D backend as though it had a day,
+  then vanishes when the sweeper takes it. One line, if that backend still
+  matters.
 - **Rewriting a file in the inbox re-ages the wall.** `adopt` reads mtime so a
   daemon restart cannot resurrect anything, so anything that rewrites an
   original — the XMP stamp does — has to put mtime back. It did not at first,
