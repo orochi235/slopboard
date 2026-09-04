@@ -131,11 +131,12 @@ and its cards show up on the real wall for a TTL.
   and killing the daemon child takes `concurrently` and vite down with it. A
   taken 8787 is now handled: the daemon attaches to a live one and exits 0, so
   a second `npm run dev` gives you a client against the running daemon.
-- **`bin/slop` renames every file to a UUID**, which defeats the caption it
-  feeds. A card's caption is its source filename less the TTL segment, so
-  anything arriving through the CLI — which is nearly everything — captions as
-  a UUID. Either the CLI keeps the basename and disambiguates some other way,
-  or captions come from somewhere else.
+- **`bin/slop` renames every file to a UUID**, so the filename cannot carry a
+  caption — and expiry renames it again to `<id>-<zone>`, without even an
+  extension. Captions and provenance now travel in a `<image>.slop.json`
+  sidecar the daemon folds into the image's XMP; see `DESIGN.md` under the
+  ingest contract. The sidecar must be written before the image, or it loses
+  the race against the watcher.
 - **A raw shader must not let three convert its colours.** `Color.set` takes an
   authored hex into the linear working space, and a `ShaderMaterial` writing
   `gl_FragColor` never converts back, so the value renders several stops too

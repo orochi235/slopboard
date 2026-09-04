@@ -4,19 +4,26 @@
 #   slop FILE...              zone defaults to the repo directory name
 #   slop --zone Z FILE...
 #   slop --ttl 5m FILE...      how long it lives; bare number is seconds
+#   slop --caption "what it shows" FILE
 #   some-generator | slop     reads stdin, writes a .png
 #   slop --print-zone         prints the zone this repo resolves to, and exits
 #
 # Writing the file is the whole protocol; there is nothing to start or connect to.
+# Provenance rides in a `<image>.slop.json` sidecar the daemon folds into the
+# image's own metadata: the caption, plus the repo and commit this ran in. The
+# sidecar is written first, because the image landing is what the daemon
+# triggers on.
 set -eu
 
 zone=""
 ttl=""
+caption=""
 [ -n "${SLOP_ZONE:-}" ] && zone="$SLOP_ZONE"
 while :; do
   case "${1:-}" in
     --zone) zone="$2"; shift 2 ;;
     --ttl) ttl="$2"; shift 2 ;;
+    --caption) caption="$2"; shift 2 ;;
     *) break ;;
   esac
 done
@@ -24,12 +31,33 @@ done
 # Not `[ -n ... ] && ...`: that returns non-zero when unset, and set -e exits.
 suffix=""
 if [ -n "$ttl" ]; then suffix=".ttl$ttl"; fi
+root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+repo=$(basename "$root")
+sha=$(git rev-parse --short HEAD 2>/dev/null || true)
 if [ -z "$zone" ]; then
-  root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
   # printf, not a bare pipe: tr -c would turn basename's trailing newline into a
   # separator character and silently bind the repo to a second, adjacent zone.
-  zone=$(printf '%s' "$(basename "$root")" | tr -c 'A-Za-z0-9._-' '-')
+  zone=$(printf '%s' "$repo" | tr -c 'A-Za-z0-9._-' '-')
 fi
+
+# JSON string escaping, for a caption that may hold a quote or a backslash.
+json_escape() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+# Beside the image and before it: the daemon triggers on the image arriving, so
+# a sidecar written afterwards is a race it would lose.
+write_sidecar() {
+  dest_image=$1
+  dest_caption=$2
+  [ -z "$dest_caption" ] && [ -z "$sha" ] && return 0
+  {
+    printf '{"repo":"%s"' "$(json_escape "$repo")"
+    [ -n "$sha" ] && printf ',"sha":"%s"' "$(json_escape "$sha")"
+    [ -n "$dest_caption" ] && printf ',"caption":"%s"' "$(json_escape "$dest_caption")"
+    printf '}\n'
+  } > "$dest_image.slop.json"
+}
 
 if [ "${1:-}" = "--print-zone" ]; then echo "$zone"; exit 0; fi
 
@@ -38,6 +66,7 @@ mkdir -p "$dir"
 
 if [ $# -eq 0 ]; then
   dest="$dir/$(uuidgen)$suffix.png"
+  write_sidecar "$dest" "$caption"
   cat > "$dest"
   echo "$dest"
   exit 0
@@ -48,6 +77,14 @@ for f in "$@"; do
   ext="${f##*.}"
   case "$ext" in "$f") ext=png ;; esac
   dest="$dir/$(uuidgen)$suffix.$ext"
+  # The destination name is a UUID, so without this the source name — the only
+  # caption most renders have — is lost at the copy.
+  if [ -n "$caption" ]; then
+    own=$caption
+  else
+    own=$(basename "$f"); own="${own%.*}"
+  fi
+  write_sidecar "$dest" "$own"
   cp "$f" "$dest"
   echo "$dest"
 done

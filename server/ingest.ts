@@ -1,15 +1,36 @@
 import chokidar from 'chokidar'
 import sharp from 'sharp'
 import { randomUUID } from 'node:crypto'
-import { mkdir, stat, rename } from 'node:fs/promises'
+import { mkdir, stat, rename, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, extname } from 'node:path'
 import { config } from './config.ts'
 import * as store from './store.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import { ttlFromName } from './ttlSuffix.ts'
-import { captionFromName } from './captionName.ts'
+import { captionFor } from './captionName.ts'
+import { readStamp } from './sidecar.ts'
+import { buildXmp, type Stamp } from './xmp.ts'
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.tiff'])
+
+/**
+ * The stamp into the file the wall hands out, which is the original — `/orig`
+ * serves it, and expiry renames it to `<id>-<zone>` with no extension, so the
+ * only provenance that survives either trip is the kind carried inside.
+ *
+ * PNG only, because writing metadata means re-encoding: lossless for a PNG,
+ * and a silent quality loss for anything else. A JPEG keeps its bytes and
+ * goes unstamped rather than being quietly degraded.
+ */
+async function stampOriginal(sourcePath: string, xmp: string): Promise<void> {
+  if (extname(sourcePath).toLowerCase() !== '.png') return
+  try {
+    // Through a buffer: sharp cannot read and write the same path.
+    await writeFile(sourcePath, await sharp(sourcePath).withXmp(xmp).png().toBuffer())
+  } catch (err) {
+    console.warn(`[ingest] unstamped ${basename(sourcePath)}: ${(err as Error).message}`)
+  }
+}
 
 async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | null> {
   if (!IMAGE_EXT.has(extname(sourcePath).toLowerCase())) return null
@@ -18,6 +39,11 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   const id = randomUUID()
   const cachePath = join(config.cache, `${id}.webp`)
   await mkdir(config.cache, { recursive: true })
+
+  const zone = basename(dirname(sourcePath))
+  const sidecar = await readStamp(sourcePath)
+  const caption = captionFor(basename(sourcePath), sidecar)
+  const xmp = buildXmp({ ...sidecar, zone, caption } satisfies Stamp)
 
   let info: sharp.OutputInfo
   try {
@@ -29,6 +55,9 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
         fit: 'inside',
         withoutEnlargement: true,
       })
+      // Written rather than kept: the stamp carries what the source file could
+      // not know, starting with the zone it landed in.
+      .withXmp(xmp)
       .webp({ quality: 82 })
       .toFile(cachePath)
   } catch (err) {
@@ -36,14 +65,16 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     return null
   }
 
+  await stampOriginal(sourcePath, xmp)
+
   const ttlMs = ttlFromName(basename(sourcePath))
   const item: WallItem = {
     id,
     ...(ttlMs === null ? {} : { ttlMs }),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,
-    zone: basename(dirname(sourcePath)),
-    name: captionFromName(basename(sourcePath)),
+    zone,
+    name: caption,
     bornAt,
     w: info.width,
     h: info.height,

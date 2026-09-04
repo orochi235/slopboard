@@ -1,6 +1,7 @@
 import { rename, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { config } from './config.ts'
+import { trashStamp } from './sidecar.ts'
 import type { WallItem } from '@shared/protocol.ts'
 
 type Entry = { item: WallItem; sourcePath: string; cachePath: string }
@@ -31,6 +32,7 @@ async function expire(entry: Entry) {
   const dest = join(config.trash, `${entry.item.id}-${entry.item.zone}`)
   await mkdir(config.trash, { recursive: true })
   await rename(entry.sourcePath, dest).catch(() => {})
+  await trashStamp(entry.sourcePath, dest)
   for (const fn of listeners) fn(entry.item.id)
 }
 

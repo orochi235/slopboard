@@ -292,6 +292,7 @@ worst available failure for a system whose whole promise is "just write a file."
 
 ```sh
 ~/src/slopboard/bin/slop render.png       # zone defaults to the repo name
+~/src/slopboard/bin/slop --caption "the sky, turned" render.png
 some-generator | ~/src/slopboard/bin/slop --zone renders
 ~/src/slopboard/bin/slop --print-zone     # the one implementation of the rule
 ```
@@ -299,6 +300,38 @@ some-generator | ~/src/slopboard/bin/slop --zone renders
 Ask `slop` for the zone rather than deriving it. A caller that sanitizes the
 repo name slightly differently binds the repo to a second, adjacent zone, and
 the wall shows the split without ever reporting an error.
+
+**Provenance is written, not asked for.** An instruction to stamp metadata is
+the kind that fails silently and stays failed — nothing about a render looks
+wrong when the field is missing, so compliance drifts. `bin/slop` is the
+chokepoint every render already passes through, so it writes what it can see
+(the repo and the commit it ran in) with no cooperation at all, and takes the
+one thing only the caller knows as an argument: `--caption`. An argument fails
+in front of whoever typed it.
+
+It rides in a `<image>.slop.json` sidecar rather than the filename, which is
+where the TTL rides: a caption holds spaces and slashes, and the name is not
+durable anyway — expiry renames a file to `<id>-<zone>`, dropping even its
+extension. The sidecar is written **before** the image, because the image
+landing is what the watcher triggers on; written after, it would lose the race.
+It follows its image into the trash.
+
+**A sidecar answers the caption outright; the filename is read only without
+one.** Since `bin/slop` names its copy with a UUID, a fallback to the name
+would caption a piped render with a hex string — worse than no caption. So a
+sidecar with no caption means the CLI had nothing to say, and the wall shows
+nothing. A file dropped in by hand has no sidecar, and its name is the only
+thing it says.
+
+**The daemon folds the stamp into the image's own XMP at ingest**, both into the
+cache derivative and into the original — `/orig` serves the original, and it is
+the copy that leaves the wall, where no store is around to ask. **PNG only for
+the original:** writing metadata means re-encoding, which is lossless for a PNG
+and a silent quality loss for anything else, so a JPEG keeps its bytes and goes
+unstamped. The caption is written to `dc:description` as well as the private
+`slop:` namespace — but note that macOS does not surface a PNG's XMP
+description in Spotlight or Get Info, so the standard field is for the
+Adobe-family and `exiftool` readers, not for Finder.
 
 **Binding a repo** is a skill (`skills/slopboard/`, symlinked into the harness
 skill directories). It writes a standing instruction into the repo's
