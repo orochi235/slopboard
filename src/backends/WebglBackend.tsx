@@ -15,6 +15,7 @@ import { framePose, type Pose } from '@/camera/frame.ts'
 import { type Move, poseAt } from '@/camera/move.ts'
 import { orbitOffset } from '@/camera/orbit.ts'
 import { Lightbox } from '@/Lightbox.tsx'
+import { Sky } from '@/backends/Sky.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { toStackItems } from '@/model.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
@@ -581,6 +582,7 @@ export function WebglBackend(props: Props) {
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
         <Wall {...props} view={view} dispatch={dispatch} onPlan={setPlan} />
+        <Sky settings={props.params.sky} colors={props.params.colors} />
       </Canvas>
       <Minimap
         cells={plan.cells}

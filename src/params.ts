@@ -89,6 +89,27 @@ export type StackParams = {
     hatchAngleDeg: number
   }
   /**
+   * A cosmetic layer behind everything. Decoration, so the one constraint is
+   * that it must not compete with the cards: they are the content and most of
+   * them are dark.
+   */
+  sky: {
+    enabled: boolean
+    /** Degrees of sky across the screen's height. Not the camera's own fov: an
+     *  orthographic camera's rays are parallel, so borrowing the projection
+     *  would sample one direction and paint the screen flat. */
+    spreadDeg: number
+    /** Cycles of the first noise octave across a radian of sky. */
+    scale: number
+    octaves: number
+    /** Ceiling on how far the glow travels from the base colour. */
+    intensity: number
+    /** Pulls the clouds away from the empty sky between them. */
+    contrast: number
+    starDensity: number
+    starIntensity: number
+  }
+  /**
    * Every colour the wall picks, in one place so a theme has one surface to
    * drive. Alpha variants are derived in CSS with `color-mix`, so one entry
    * here covers all of its uses rather than one entry per declaration.
@@ -100,6 +121,10 @@ export type StackParams = {
     zoneFocus: string
     zoneBackdrop: string
     label: string
+    /** The empty sky, and the nebula the glow reaches toward. Stars derive
+     *  from the glow rather than earning a third entry. */
+    skyBase: string
+    skyGlow: string
     /** The DOM chrome: panel, HUD, plan view, lightbox. */
     bg: string
     scrim: string
@@ -149,12 +174,24 @@ export const defaultParams: StackParams = {
     hatchWidth: 0.001,
     hatchAngleDeg: 45,
   },
+  sky: {
+    enabled: true,
+    spreadDeg: 90,
+    scale: 1.6,
+    octaves: 4,
+    intensity: 0.45,
+    contrast: 1.7,
+    starDensity: 0.35,
+    starIntensity: 0.5,
+  },
   colors: {
     cardEdge: '#22d3ee',
     zoneIdle: '#64748b',
     zoneFocus: '#38bdf8',
     zoneBackdrop: '#64748b',
     label: '#e2e8f0',
+    skyBase: '#05060a',
+    skyGlow: '#2b3f6b',
     bg: '#0a0a0c',
     scrim: '#000000',
     ink: '#e2e8f0',

@@ -45,6 +45,13 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'zones.hatchSpacing': [0.002, 0.1, 0.001],
   'zones.hatchWidth': [0.0002, 0.02, 0.0002],
   'zones.hatchAngleDeg': [0, 180, 1],
+  'sky.spreadDeg': [20, 160, 1],
+  'sky.scale': [0.2, 8, 0.05],
+  'sky.octaves': [1, 6, 1],
+  'sky.intensity': [0, 1, 0.01],
+  'sky.contrast': [0.5, 4, 0.05],
+  'sky.starDensity': [0, 1, 0.01],
+  'sky.starIntensity': [0, 1, 0.01],
   textureBudgetBytes: [16 * 1024 * 1024, 1024 * 1024 * 1024, 16 * 1024 * 1024],
 }
 

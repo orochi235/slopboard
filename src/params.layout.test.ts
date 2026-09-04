@@ -14,6 +14,7 @@ describe('layoutKeyOf', () => {
     expect(keyWith('camera.yawDeg', 30)).toBe(base)
     expect(keyWith('overlay.cardEdges', true)).toBe(base)
     expect(keyWith('zones.backdrop', 'solid')).toBe(base)
+    expect(keyWith('sky.intensity', 0.9)).toBe(base)
     expect(keyWith('colors.accent', '#ff0088')).toBe(base)
     expect(keyWith('nav.wheelThreshold', 120)).toBe(base)
   })

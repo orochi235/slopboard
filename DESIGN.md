@@ -238,6 +238,22 @@ against every arrangement.
   Outline, backdrop, label and the plan view all use `baseCellsOf`, so a tall
   pile does not claim more of the wall than its neighbour. The camera is the
   exception and still frames the union, because that is what is on screen.
+- **The sky is shaded by the camera's orientation, not its projection.** A
+  full-screen quad whose vertices are already clip coordinates, so it cannot be
+  clipped by the orthographic slab, picked, or made to occlude a card — it is
+  behind everything by render order. The view ray comes from a spread of its
+  own (`sky.spreadDeg`) rather than the camera's fov, because an orthographic
+  camera's rays are parallel: borrowing the real projection samples one
+  direction and paints the screen flat. So turning the wall turns the sky and
+  zooming does not move it, whichever projection is in use. No animation — the
+  frame loop idles down when nothing moves, and a breathing background would
+  hold it awake for decoration.
+- **A raw shader writes sRGB, so its colours must not be converted.** three
+  takes an authored hex into its linear working space on the way in and its
+  built-in materials convert back on the way out; a `ShaderMaterial` writing
+  `gl_FragColor` does neither, so `Color.set` renders several stops too dark.
+  `srgb()` in `sky.ts` keeps the value raw. The zone hatch still uses
+  `Color.set` and reads darker than its palette entry says.
 - **Preferences have two surfaces** — the corner panel and a modal on `,` —
   rendering one `ParamsBody` so they cannot drift while prefs is still a copy
   of params.
