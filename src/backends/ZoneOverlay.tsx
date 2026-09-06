@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { type RefObject, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import type { Rect } from 'windease'
+import { CHROME_ORDER } from '@/backends/order.ts'
 import { createBackdropMaterial } from '@/backends/hatch.ts'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import type { StackParams } from '@/params.ts'
@@ -16,6 +17,10 @@ type Props = {
   colors: StackParams['colors']
   /** A zone's project colour, where the daemon found one. */
   hued: Map<string, THREE.Color>
+  /** The face labels are drawn in, plus a token that changes once the vendored
+   *  faces have loaded — a label built before then wears the fallback. */
+  family: string
+  fontsReady: boolean
 }
 
 /**
@@ -38,7 +43,16 @@ function corners(box: Rect): number[] {
  * wall. Off by default: a diagnostic first, and furniture only once the labels
  * earn their place in the design.
  */
-export function ZoneOverlay({ cells, zones, focus, settings, colors, hued }: Props) {
+export function ZoneOverlay({
+  cells,
+  zones,
+  focus,
+  settings,
+  colors,
+  hued,
+  family,
+  fontsReady,
+}: Props) {
   const { gl } = useThree()
   const idle = useMemo(() => new THREE.Color(colors.zoneIdle), [colors.zoneIdle])
   const highlight = useMemo(() => new THREE.Color(colors.zoneFocus), [colors.zoneFocus])
@@ -71,13 +85,21 @@ export function ZoneOverlay({ cells, zones, focus, settings, colors, hued }: Pro
         // rather than set per frame like the outline's.
         const own = settings.huedLabel ? hued.get(zone) : undefined
         const ink = own ? `#${own.getHexString()}` : colors.label
-        const { texture, aspect } = labelTexture(zone, ink)
-        const material = new THREE.SpriteMaterial({ map: texture, transparent: true })
+        const { texture, aspect } = labelTexture(zone, ink, family)
+        const material = new THREE.SpriteMaterial({
+          map: texture,
+          transparent: true,
+          depthTest: false,
+          depthWrite: false,
+        })
         const sprite = new THREE.Sprite(material)
+        sprite.renderOrder = CHROME_ORDER
         return [zone, { sprite, aspect }] as const
       }),
     )
-  }, [zones, colors.label, settings.huedLabel, hued])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fontsReady is a
+    // rebuild token, not a value the labels read.
+  }, [zones, colors.label, settings.huedLabel, hued, family, fontsReady])
 
   useEffect(
     () => () => {
@@ -142,10 +164,18 @@ export function ZoneOverlay({ cells, zones, focus, settings, colors, hued }: Pro
       if (!box) continue
       const h = settings.labelSize
       sprite.scale.set(h * aspect, h, 1)
-      // Above the cell's top-left, clear of the cards. The camera frames the
-      // union of the cells and a label hangs outside that, so it relies on
-      // camera.wallMargin / stackMargin for its headroom.
-      sprite.position.set(box.x + (h * aspect) / 2, -box.y + h * 0.75, 0)
+      // Turned a quarter turn and stood on the cell's left edge, climbing. A
+      // sprite always faces the camera, so the turn is the material's — screen
+      // space — and the scale stays in the sprite's own unrotated axes.
+      sprite.material.rotation = Math.PI / 2
+      // Reading bottom to top, so the run starts at the cell's floor. This also
+      // keeps the name clear of the top-left corner, which is where a flagged
+      // artifact's badge sits.
+      sprite.position.set(
+        box.x - h * 0.75,
+        -(box.y + box.h) + (h * aspect) / 2,
+        0,
+      )
     }
   })
 

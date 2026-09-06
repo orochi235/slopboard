@@ -20,7 +20,9 @@ import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { toStackItems } from '@/model.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
+import { CHROME_ORDER } from '@/backends/order.ts'
 import { badgeTexture } from '@/textures/badge.ts'
+import { loadFaces, stackFor } from '@/typeface.ts'
 import type { Level } from '@shared/attention.ts'
 import { createGestureRail } from '@/nav/gesture.ts'
 import { directionFor, isForAControl } from '@/nav/keys.ts'
@@ -95,6 +97,18 @@ function Wall({
   const { gl, camera } = useThree()
   const cardEdges = params.overlay.cardEdges
   const cardEdgeColor = params.colors.cardEdge
+  const family = stackFor(params.typeface)
+  // Canvas text falls back silently for a face the document has not finished
+  // loading, so everything drawn to a canvas is rebuilt once they are in.
+  const [fontsReady, setFontsReady] = useState(false)
+  useEffect(() => {
+    let live = true
+    void loadFaces().then(() => live && setFontsReady(true))
+    return () => {
+      live = false
+    }
+  }, [])
+
   const levelColors: Record<Level, string> = {
     look: params.colors.attentionLook,
     soon: params.colors.attentionSoon,
@@ -198,10 +212,16 @@ function Wall({
     return {
       byId,
       /** Rebuilt only when what it draws changes, so a per-frame call is free. */
-      sync(id: string, key: string, text: string, plate: string, ink: string) {
+      sync(id: string, key: string, text: string, plate: string, ink: string, font: string) {
         let held = byId.get(id)
         if (!held) {
-          const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true }))
+          // Signage, not scenery: it composites over the wall rather than
+          // sorting into it, so a nearer pile cannot bury the thing that is
+          // asking to be looked at.
+          const sprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false }),
+          )
+          sprite.renderOrder = CHROME_ORDER
           // The badge is a shortcut to its own artifact, so it takes a pick.
           sprite.userData.slopId = id
           sprite.userData.slopBadge = true
@@ -210,7 +230,7 @@ function Wall({
         }
         if (held.key !== key) {
           held.sprite.material.map?.dispose()
-          const { texture, aspect } = badgeTexture(text, plate, ink)
+          const { texture, aspect } = badgeTexture(text, plate, ink, font)
           held.sprite.material.map = texture
           held.sprite.material.needsUpdate = true
           held.key = key
@@ -266,7 +286,9 @@ function Wall({
     const wall = unionOf([...cells.current.values()]) ?? { x: 0, y: 0, z: 0, w: aspect, h: 1 }
     const framed = !zone ? wall : (cells.current.get(zone) ?? wall)
     // A label hangs above its cell, so framing the cells alone crops it.
-    const box = withHeadroom(framed, params.zones.labels ? params.zones.labelSize * 1.6 : 0)
+    const headroom =
+      (params.zones.labels ? params.zones.labelSize * 1.6 : 0) + params.attention.badgeSize
+    const box = withHeadroom(framed, headroom)
     const margin = marginFor(params.camera.margins, depth)
     const target = framePose(box, {
       projection: params.camera.projection,
@@ -334,6 +356,22 @@ function Wall({
     return zone ? [zone] : []
   }
 
+  /** Whether a badge is under the pointer. Its own test rather than a read of
+   *  `chainAt`, which answers for the whole wall and would report every card. */
+  const badgeAt = (clientX: number, clientY: number): boolean => {
+    const shown = [...badges.byId.values()].filter((b) => b.sprite.visible)
+    if (shown.length === 0) return false
+    const rect = gl.domElement.getBoundingClientRect()
+    raycaster.setFromCamera(
+      new THREE.Vector2(
+        ((clientX - rect.left) / rect.width) * 2 - 1,
+        -((clientY - rect.top) / rect.height) * 2 + 1,
+      ),
+      camera,
+    )
+    return raycaster.intersectObjects(shown.map((b) => b.sprite), false).length > 0
+  }
+
   /** One rung per gesture: across if the cursor is over another branch, down
    *  otherwise. Both the click and the wheel spend themselves through here. */
   const navigate = (chain: readonly string[]) => {
@@ -346,8 +384,8 @@ function Wall({
 
   // Held by ref so the listeners below bind once and still see this render's
   // view: rebinding a wheel listener would drop the gesture rail's charge.
-  const act = useRef({ chainAt, navigate })
-  act.current = { chainAt, navigate }
+  const act = useRef({ chainAt, navigate, badgeAt })
+  act.current = { chainAt, navigate, badgeAt }
 
   // Bound to the canvas, not to a mesh, so the empty space between piles turns
   // the scene. A press that never travels is a click, and picks a rung.
@@ -364,7 +402,12 @@ function Wall({
       el.setPointerCapture(e.pointerId)
     }
     const onMove = (e: PointerEvent) => {
-      if (!active) return
+      if (!active) {
+        // A badge is a control, so it says so under the pointer. Only while
+        // idle: mid-orbit the cursor belongs to the drag.
+        el.classList.toggle('scene--pointing', act.current.badgeAt(e.clientX, e.clientY))
+        return
+      }
       const dx = e.clientX - last.x
       const dy = e.clientY - last.y
       if (!dragged.current && Math.hypot(dx, dy) < DRAG_SLOP_PX) return
@@ -385,6 +428,7 @@ function Wall({
       const turned = dragged.current
       active = false
       el.classList.remove('scene--turning')
+      el.classList.toggle('scene--pointing', act.current.badgeAt(e.clientX, e.clientY))
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
       if (turned || e.button !== 0) return
       act.current.navigate(act.current.chainAt(e.clientX, e.clientY))
@@ -538,7 +582,7 @@ function Wall({
         1 +
         tier.pulseAmp *
           emphasis *
-          Math.sin((tick / 1000) * 2 * Math.PI * params.attention.pulseHz)
+          Math.sin((tick / 1000) * 2 * Math.PI * tier.pulseHz)
       mesh.scale.set(drawnW * pulse, drawnH * pulse, 1)
       // A rect's x/y is its top-left, three positions a plane by its centre, and
       // windease's rect space grows y downward where three's world grows it up.
@@ -568,11 +612,17 @@ function Wall({
         const plate = levelColors[level]
         // White carries the loud plates; the quiet ones ink themselves in the
         // wall's own dark, which lime and amber are far too bright to take.
-        const ink =
-          level === 'urgent' || level === 'problem'
-            ? params.colors.badgeInk
-            : params.colors.badgeInkQuiet
-        const held = badges.sync(id, `${flag?.note ?? ''}|${plate}|${ink}`, flag?.note ?? '', plate, ink)
+        // Only the red plate is dark enough to need white; lime, amber and
+        // orange all read best with black on them.
+        const ink = level === 'problem' ? params.colors.badgeInk : params.colors.badgeInkQuiet
+        const held = badges.sync(
+          id,
+          `${flag?.note ?? ''}|${plate}|${ink}|${family}|${fontsReady}`,
+          flag?.note ?? '',
+          plate,
+          ink,
+          family,
+        )
         held.sprite.visible = wearsBadge
         if (wearsBadge) {
           const h = params.attention.badgeSize
@@ -669,6 +719,8 @@ function Wall({
         settings={params.zones}
         colors={params.colors}
         hued={huedColors}
+        family={family}
+        fontsReady={fontsReady}
       />
     </group>
   )

@@ -1,4 +1,5 @@
 import { leafAt, leafPathsOf } from '@/params.paths.ts'
+import { TYPEFACES } from '@/typeface.ts'
 import type { StackParams } from '@/params.ts'
 
 export type Control =
@@ -28,7 +29,6 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'distance.from': [0, 200, 1],
   'distance.to': [0, 200, 1],
   'distance.floor': [0, 1, 0.01],
-  'attention.pulseHz': [0, 3, 0.05],
   'attention.badgeSize': [0.008, 0.12, 0.002],
   'zoneGrid.gap': [0, 1, 0.005],
   'zoneGrid.cols': [1, 12, 1],
@@ -60,6 +60,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
 }
 
 const CHOICES: Record<string, readonly (number | string)[]> = {
+  typeface: TYPEFACES,
   'distance.combine': ['ceiling', 'min'],
   'zones.backdrop': ['none', 'hatch', 'solid'],
   'camera.projection': ['orthographic', 'perspective'],
@@ -75,6 +76,7 @@ const BY_SUFFIX: Record<string, readonly [number, number, number]> = {
   lift: [0, 1, 0.01],
   haloWidth: [0, 12, 0.5],
   pulseAmp: [0, 0.2, 0.002],
+  pulseHz: [0, 4, 0.05],
 }
 const EDGES = [0, 32, 128, 512] as const
 

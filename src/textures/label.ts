@@ -12,10 +12,11 @@ const PAD = 16
 export function labelTexture(
   text: string,
   color: string,
+  family: string,
 ): { texture: THREE.CanvasTexture; aspect: number } {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
-  const font = `600 ${PX}px ui-monospace, SFMono-Regular, Menlo, monospace`
+  const font = `600 ${PX}px ${family}`
 
   ctx.font = font
   const width = Math.ceil(ctx.measureText(text).width) + PAD * 2

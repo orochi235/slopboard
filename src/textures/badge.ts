@@ -19,11 +19,12 @@ export function badgeTexture(
   text: string,
   plate: string,
   ink: string,
+  family: string,
 ): { texture: THREE.CanvasTexture; aspect: number } {
   const shown = text.length > MAX_CHARS ? `${text.slice(0, MAX_CHARS - 1)}…` : text
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
-  const font = `600 ${PX}px ui-monospace, SFMono-Regular, Menlo, monospace`
+  const font = `600 ${PX}px ${family}`
 
   ctx.font = font
   canvas.width = Math.ceil(ctx.measureText(shown).width) + PAD_X * 2

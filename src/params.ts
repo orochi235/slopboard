@@ -1,4 +1,5 @@
 import type { Level } from '@shared/attention.ts'
+import type { Typeface } from '@/typeface.ts'
 
 /** One LOD tier. `edge` of 0 means no texture — a flat quad in the average color. */
 export type LodTier = { maxRank: number; edge: 0 | 32 | 128 | 512 }
@@ -13,6 +14,9 @@ export type AttentionLevel = {
   haloWidth: number
   /** Half the peak-to-peak scale swing. 0 is no pulse. */
   pulseAmp: number
+  /** Beats per second. Urgency reads as rate before it reads as size, so this
+   *  climbs with the level rather than being one rhythm for the wall. */
+  pulseHz: number
 }
 
 export type StackParams = {
@@ -67,8 +71,6 @@ export type StackParams = {
    * whether a flag is fresh or about to lapse.
    */
   attention: {
-    /** Shared by every level: one wall-wide rhythm rather than four. */
-    pulseHz: number
     /** World height of a badge's text, like a zone label's. */
     badgeSize: number
     /** One row per level, which is what makes a fifth level a row here rather
@@ -105,6 +107,9 @@ export type StackParams = {
      *  a second, and without this one flick walks the whole hierarchy. */
     cooldownMs: number
   }
+  /** The face zone labels and attention badges are drawn in. Text in the scene
+   *  only — the DOM chrome keeps the system stack. */
+  typeface: Typeface
   /** Diagnostics drawn into the scene. Debug today, likely furniture later. */
   overlay: {
     /** Outline each card, so a slot's real extent is visible against its image. */
@@ -120,7 +125,8 @@ export type StackParams = {
     outlineWidth: number
     /** Name each zone in the scene. */
     labels: boolean
-    /** World height of a label's text. */
+    /** World height of a label's text — its thickness, since the label is
+     *  turned a quarter turn and climbs the cell's left edge. */
     labelSize: number
     /** What fills a zone's cell behind its pile. */
     backdrop: 'none' | 'hatch' | 'solid'
@@ -168,15 +174,16 @@ export type StackParams = {
   colors: {
     /** Drawn into the scene, and turning with it. */
     cardEdge: string
-    /** One per attention level. `look` sits outside the traffic-light ramp on
-     *  purpose: it is not a severity, so it must not read as the low end of
-     *  one. Nothing else on this wall uses green. */
+    /** One per attention level, run near-neon: a badge competes with whatever
+     *  the artifact itself is showing, and a muted plate loses. `look` sits
+     *  outside the traffic-light ramp on purpose — it is not a severity, so it
+     *  must not read as the low end of one, and nothing else here uses green. */
     attentionLook: string
     attentionSoon: string
     attentionUrgent: string
     attentionProblem: string
-    /** Badge text. White carries the loud levels; the quiet ones ink their
-     *  own plate in the wall's dark. */
+    /** Badge text. The plates run near-neon, so black carries most of them and
+     *  white is kept for the one plate dark enough to need it. */
     badgeInk: string
     badgeInkQuiet: string
     zoneIdle: string
@@ -211,15 +218,14 @@ export const defaultParams: StackParams = {
   fade: { from: 0.88, to: 1 },
   distance: { enabled: true, from: 1, to: 22, floor: 0.12, combine: 'ceiling' },
   attention: {
-    pulseHz: 0.5,
     badgeSize: 0.026,
     levels: {
       // A bookmark, not an alarm: findable while scanning and quiet enough
-      // that a wall of them stays calm.
-      look: { lift: 0.06, haloWidth: 1.5, pulseAmp: 0 },
-      soon: { lift: 0.16, haloWidth: 2.5, pulseAmp: 0.012 },
-      urgent: { lift: 0.4, haloWidth: 4, pulseAmp: 0.05 },
-      problem: { lift: 0.4, haloWidth: 4, pulseAmp: 0.05 },
+      // that a wall of them stays calm, and still enough not to nag.
+      look: { lift: 0.06, haloWidth: 1.5, pulseAmp: 0, pulseHz: 0 },
+      soon: { lift: 0.16, haloWidth: 2.5, pulseAmp: 0.012, pulseHz: 0.35 },
+      urgent: { lift: 0.4, haloWidth: 4, pulseAmp: 0.05, pulseHz: 0.9 },
+      problem: { lift: 0.4, haloWidth: 4, pulseAmp: 0.05, pulseHz: 1.4 },
     },
   },
   zoneGrid: { gap: 0.02, orientation: 'wide' },
@@ -233,12 +239,13 @@ export const defaultParams: StackParams = {
     moveMs: 520,
   },
   nav: { wheelThreshold: 60, pinchThreshold: 8, cooldownMs: 320 },
+  typeface: 'oxanium',
   overlay: { cardEdges: false, cardEdgeWidth: 1 },
   zones: {
     outline: false,
     outlineWidth: 1.5,
     labels: false,
-    labelSize: 0.03,
+    labelSize: 0.075,
     backdrop: 'hatch',
     huedOutline: false,
     huedLabel: false,
@@ -261,12 +268,12 @@ export const defaultParams: StackParams = {
   },
   colors: {
     cardEdge: '#22d3ee',
-    attentionLook: '#a3e635',
-    attentionSoon: '#fbbf24',
-    attentionUrgent: '#fb923c',
-    attentionProblem: '#e0796b',
+    attentionLook: '#00ff00',
+    attentionSoon: '#ffff00',
+    attentionUrgent: '#ff8000',
+    attentionProblem: '#ff0000',
     badgeInk: '#ffffff',
-    badgeInkQuiet: '#0a0a0c',
+    badgeInkQuiet: '#000000',
     zoneIdle: '#64748b',
     zoneFocus: '#38bdf8',
     zoneBackdrop: '#64748b',

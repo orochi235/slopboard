@@ -1,3 +1,36 @@
+
+/* Vendored so the wall keeps its typography with no network. */
+@font-face {
+  font-family: 'Oxanium';
+  src: url('./fonts/oxanium.woff2') format('woff2');
+  font-weight: 600;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Orbitron';
+  src: url('./fonts/orbitron.woff2') format('woff2');
+  font-weight: 600;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Nova Square';
+  src: url('./fonts/nova-square.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Fira Sans Condensed';
+  src: url('./fonts/fira-sans-condensed.woff2') format('woff2');
+  font-weight: 600;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Fira Code';
+  src: url('./fonts/fira-code.woff2') format('woff2');
+  font-weight: 600;
+  font-display: block;
+}
+
 :root {
   color-scheme: dark;
 }
@@ -70,6 +103,12 @@ body,
   touch-action: none;
 }
 
+/* A badge is a shortcut to its own artifact, so it takes the hand. */
+.scene--pointing {
+  cursor: pointer;
+}
+
+/* Last, so it wins: mid-orbit the cursor belongs to the drag. */
 .scene--turning {
   cursor: grabbing;
 }
