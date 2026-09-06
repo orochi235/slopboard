@@ -5,7 +5,6 @@ import { backendFrom } from '@/backend-flag.ts'
 import { DomBackend } from '@/backends/DomBackend.tsx'
 import { WebglBackend } from '@/backends/WebglBackend.tsx'
 import { ParallaxModal } from '@/ParallaxModal.tsx'
-import { ParamsPanel } from '@/Params.tsx'
 import { Prefs } from '@/Prefs.tsx'
 import { layoutKeyOf } from '@/params.layout.ts'
 import { defaultParams } from '@/params.ts'
@@ -90,7 +89,6 @@ export function App() {
           clockOffset={clockOffset}
         />
       )}
-      {backend === 'webgl' && <ParamsPanel params={params} onChange={setParams} />}
       <ParallaxModal />
       {prefs && <Prefs params={params} onChange={setParams} onClose={() => setPrefs(false)} />}
       <div className={`hud ${flash ? 'hud--flash' : ''}`}>

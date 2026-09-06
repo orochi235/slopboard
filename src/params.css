@@ -1,22 +1,3 @@
-.params {
-  position: fixed;
-  top: 8px;
-  right: 8px;
-  z-index: 50;
-  max-height: 90vh;
-  overflow: auto;
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--scrim) 72%, transparent);
-  color: var(--ink);
-  font: 11px/1.3 ui-monospace, monospace;
-}
-
-.params__summary {
-  cursor: pointer;
-  user-select: none;
-}
-
 .params__grid {
   display: grid;
   gap: 3px;

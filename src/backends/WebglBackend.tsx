@@ -2,6 +2,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
   type Dispatch,
   type SetStateAction,
+  useCallback,
   useEffect,
   useMemo,
   useReducer,
@@ -15,6 +16,8 @@ import { framePose, type Pose } from '@/camera/frame.ts'
 import { type Move, poseAt } from '@/camera/move.ts'
 import { orbitOffset } from '@/camera/orbit.ts'
 import { Lightbox } from '@/Lightbox.tsx'
+import { Sidebar } from '@/Sidebar.tsx'
+import { fakeFlags, type FakeFlag } from '@/debug-flags.ts'
 import { Sky } from '@/backends/Sky.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { toStackItems } from '@/model.ts'
@@ -800,18 +803,48 @@ function Wall({
 export function WebglBackend(props: Props) {
   const [view, dispatch] = useReducer(reduceView, WALL)
   const [plan, setPlan] = useState<Plan>({ cells: [], extent: null })
+  // Flags the wall never received, merged in below. Held here rather than in
+  // App so that a fake reaches the scene by exactly the route a real one does.
+  const [fakes, setFakes] = useState<Record<string, FakeFlag>>({})
   // Read live rather than from the arrangement's descriptor: the panel is the
   // camera's tuning surface, and the arrangement is rebuilt only for layout.
   const { fovDeg: fov, projection } = props.params.camera
   const card = cardOf(view)
+
+  const items = useMemo(() => {
+    if (Object.keys(fakes).length === 0) return props.items
+    return props.items.map((i) => {
+      const fake = fakes[i.id]
+      return fake ? { ...i, attention: fake.attention, note: fake.note } : i
+    })
+  }, [props.items, fakes])
+
+  const dropFake = useCallback((id: string) => {
+    setFakes((was) => {
+      if (!(id in was)) return was
+      const { [id]: _gone, ...rest } = was
+      return rest
+    })
+  }, [])
 
   // Opening a card is the thing the flag was asking for, so looking at it is
   // what clears it. Fire-and-forget: the daemon broadcasts the change, and a
   // dismissal that fails costs a halo that is still accurate.
   useEffect(() => {
     if (card === null) return
+    dropFake(card)
     void fetch(`/api/items/${card}/dismiss`, { method: 'POST' }).catch(() => {})
-  }, [card])
+  }, [card, dropFake])
+
+  // The daemon has no record of a fabricated flag, so the row's × has to clear
+  // it here; a real one still goes the one route that exists for it.
+  const dismiss = useCallback(
+    (id: string) => {
+      dropFake(id)
+      void fetch(`/api/items/${id}/dismiss`, { method: 'POST' }).catch(() => {})
+    },
+    [dropFake],
+  )
   // An orthographic camera sees a slab, not a cone, so `far` has to clear the
   // standoff plus everything the rank cap can put behind the wall.
   const far = props.params.camera.standoff * 2 + 100
@@ -826,7 +859,7 @@ export function WebglBackend(props: Props) {
         camera={{ fov, position: [0, 0, props.params.camera.standoff], near: 0.01, far }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
-        <Wall {...props} view={view} dispatch={dispatch} onPlan={setPlan} />
+        <Wall {...props} items={items} view={view} dispatch={dispatch} onPlan={setPlan} />
         <Sky settings={props.params.sky} colors={props.params.colors} />
       </Canvas>
       <Minimap
@@ -834,6 +867,17 @@ export function WebglBackend(props: Props) {
         extent={plan.extent}
         focus={zoneOf(view)}
         onFocus={(zone) => dispatch({ type: 'to', path: [zone] })}
+      />
+      <Sidebar
+        items={items}
+        clockOffset={props.clockOffset}
+        params={props.params}
+        onParams={props.onParams}
+        onOpen={(item) => dispatch({ type: 'to', path: [item.zone, item.id] })}
+        onDismiss={dismiss}
+        fakeCount={Object.keys(fakes).length}
+        onGenerate={() => setFakes(fakeFlags(items.map((i) => i.id)))}
+        onClearFakes={() => setFakes({})}
       />
       {card !== null && (
         <Lightbox

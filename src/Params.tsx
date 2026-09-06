@@ -92,27 +92,11 @@ function Transfer({
   )
 }
 
-/** Every parameter, editable live. Tuning by editing source and reloading does
- *  not converge, which is the whole reason this exists. */
-export function ParamsPanel({
-  params,
-  onChange,
-}: {
-  params: StackParams
-  onChange: (next: StackParams) => void
-}) {
-  return (
-    <details className="params">
-      <summary className="params__summary">params</summary>
-      <ParamsBody params={params} onChange={onChange} />
-    </details>
-  )
-}
-
 /**
- * The controls themselves. Rendered by the corner panel and by the prefs modal
- * both, so the two surfaces cannot drift apart while prefs is still just a copy
- * of params.
+ * Every parameter, editable live. Tuning by editing source and reloading does
+ * not converge, which is the whole reason this exists. Rendered by the sidebar
+ * and by the prefs modal both, so the two surfaces cannot drift apart while
+ * prefs is still just a copy of params.
  */
 export function ParamsBody({
   params,
