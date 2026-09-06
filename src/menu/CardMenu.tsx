@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { PointerEvent } from 'react'
 import { useReticule } from 'reticul8r/react'
 import type { WallItem } from '@shared/protocol.ts'
 import { menuFor, type Action, type Target } from '@/menu/items.ts'
@@ -16,6 +17,13 @@ export type MenuAt = { target: Target; x: number; y: number }
  * `className` replaces the whole attribute, which would strip it. A row that
  * loses `rz-plane` stops moving and snaps back to its unscaled size.
  */
+/** Stops a pointer event where it lands: nothing under the scrim sees it, and
+ *  the browser starts no selection or autoscroll from it. */
+const eat = (e: PointerEvent<HTMLElement>) => {
+  e.preventDefault()
+  e.stopPropagation()
+}
+
 export function CardMenu({
   at,
   item,
@@ -106,8 +114,20 @@ export function CardMenu({
 
   if (items.length === 0) return null
 
+  // The gesture that dismisses the menu is spent doing it. Closing on
+  // pointerdown would unmount the scrim before the pointerup, which then lands
+  // on the canvas and navigates a rung — so the scrim eats both halves and
+  // closes on the second.
   return (
-    <div className="menu__scrim" onPointerDown={onClose} onContextMenu={(e) => e.preventDefault()}>
+    <div
+      className="menu__scrim"
+      onPointerDown={eat}
+      onPointerUp={(e) => {
+        eat(e)
+        onClose()
+      }}
+      onContextMenu={(e) => e.preventDefault()}
+    >
       {/* Two elements, because `tilt` rotates a deck *inside* the container:
           the shell holds the position and the perspective and never turns, and
           the deck is the surface you can see move. */}
@@ -117,6 +137,7 @@ export function CardMenu({
         ref={hold}
         style={spot ? { left: `${spot.left}px`, top: `${spot.top}px` } : undefined}
         onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
       >
        <div
          className="menu__deck"
