@@ -116,9 +116,11 @@ export type StackParams = {
      *  a second, and without this one flick walks the whole hierarchy. */
     cooldownMs: number
   }
-  /** The face zone labels and attention badges are drawn in. Text in the scene
-   *  only — the DOM chrome keeps the system stack. */
-  typeface: Typeface
+  /** The faces text drawn into the scene wears. One per use rather than one
+   *  for the wall: a zone name is a heading read at a distance and a badge is
+   *  signage read up close, and the face that serves one need not serve the
+   *  other. The DOM chrome keeps the system stack either way. */
+  typeface: { label: Typeface; badge: Typeface }
   /** Diagnostics drawn into the scene. Debug today, likely furniture later. */
   overlay: {
     /** Outline each card, so a slot's real extent is visible against its image. */
@@ -262,7 +264,7 @@ export const defaultParams: StackParams = {
     moveMs: 520,
   },
   nav: { wheelThreshold: 60, pinchThreshold: 8, cooldownMs: 320 },
-  typeface: 'oxanium',
+  typeface: { label: 'oxanium', badge: 'oxanium' },
   overlay: { cardEdges: false, cardEdgeWidth: 1 },
   zones: {
     outline: false,

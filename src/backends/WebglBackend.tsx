@@ -97,7 +97,8 @@ function Wall({
   const { gl, camera } = useThree()
   const cardEdges = params.overlay.cardEdges
   const cardEdgeColor = params.colors.cardEdge
-  const family = stackFor(params.typeface)
+  const labelFamily = stackFor(params.typeface.label)
+  const badgeFamily = stackFor(params.typeface.badge)
   // Canvas text falls back silently for a face the document has not finished
   // loading, so everything drawn to a canvas is rebuilt once they are in.
   const [fontsReady, setFontsReady] = useState(false)
@@ -677,11 +678,11 @@ function Wall({
         const runsTo = base ? base.x + base.w + params.zoneGrid.gap : rect.x + side
         const held = badges.sync(
           id,
-          `${flag?.note ?? ''}|${fill}|${ink}|${family}|${fontsReady}|${params.attention.badgeSize}`,
+          `${flag?.note ?? ''}|${fill}|${ink}|${badgeFamily}|${fontsReady}|${params.attention.badgeSize}`,
           flag?.note ?? '',
           fill,
           ink,
-          family,
+          badgeFamily,
           params.attention.badgeSize,
           Math.max(params.attention.badgeSize, runsTo - rect.x),
         )
@@ -789,7 +790,7 @@ function Wall({
         settings={params.zones}
         colors={params.colors}
         hued={huedColors}
-        family={family}
+        family={labelFamily}
         fontsReady={fontsReady}
       />
     </group>

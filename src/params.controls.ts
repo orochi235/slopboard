@@ -65,7 +65,8 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
 }
 
 const CHOICES: Record<string, readonly (number | string)[]> = {
-  typeface: TYPEFACES,
+  'typeface.label': TYPEFACES,
+  'typeface.badge': TYPEFACES,
   'distance.combine': ['ceiling', 'min'],
   'zones.backdrop': ['none', 'hatch', 'solid'],
   'camera.projection': ['orthographic', 'perspective'],
