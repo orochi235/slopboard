@@ -127,7 +127,7 @@
 }
 
 .pxm__body {
-  --depth: 10px;
+  --depth: 1px;
   --drift: 3px;
   position: relative;
   pointer-events: auto;
@@ -206,7 +206,7 @@
 }
 
 .pxm__crest {
-  --depth: 70px;
+  --depth: 7px;
   --drift: 12px;
   inset: 46px auto auto 40px;
 }
@@ -230,7 +230,7 @@
 }
 
 .pxm__chip {
-  --depth: 110px;
+  --depth: 11px;
   --drift: 20px;
   inset: 40px 44px auto auto;
   display: flex;
