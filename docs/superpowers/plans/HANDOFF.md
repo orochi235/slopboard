@@ -95,6 +95,11 @@ A sidebar is the next chunk, and three of these are one feature:
   attention level onto random stacks. Build this first whatever else happens:
   the stacking question below cannot be judged without a way to produce the
   overlap on demand.
+- **The params panel becomes an item on the sidebar too.** It is the corner
+  panel and the prefs sheet today, both rendering the same `ParamsBody`, so a
+  third host is a third caller of that component and not a rewrite. Decide
+  whether the corner panel then goes away — two ways to reach the same controls
+  was already one more than the wall needed.
 - **Badges collide when flagged artifacts sit near each other in a pile.**
   Unsolved, and deliberately not solved yet — settle the sidebar list first,
   because it decides whether the fix is "fan them all out" or the much cheaper
