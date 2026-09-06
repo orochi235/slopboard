@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { ParamsBody } from '@/Params.tsx'
 import { ago } from '@/age.ts'
+import { emphasisAt } from '@shared/attention.ts'
 import type { StackParams } from '@/params.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import './sidebar.css'
@@ -70,7 +71,12 @@ function Flags({
   return (
     <ul className="sidebar__flags">
       {flagged.map((item) => (
-        <li className="sidebar__flag" key={item.id}>
+        <li
+          className={`sidebar__flag ${
+            emphasisAt(item.attention, item.bornAt, now) > 0 ? '' : 'sidebar__flag--lapsed'
+          }`}
+          key={item.id}
+        >
           {/* The row is the target, not the <li>: a list item's box and role
               belong to the list. */}
           <div
@@ -84,7 +90,7 @@ function Flags({
               onOpen(item)
             }}
           >
-            {/* The level's colour is already a custom property on the root,
+            {/* The level's color is already a custom property on the root,
                 written by applyColors from the same params the scene reads. */}
             <span className={`sidebar__dot sidebar__dot--${item.attention?.level ?? 'look'}`} />
             {/* Never the level's name: a level is a treatment, and reading it

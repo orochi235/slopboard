@@ -82,6 +82,19 @@ export type StackParams = {
     hoverScale: number
     /** What the hover multiplies its halo by. */
     hoverEdge: number
+    /** Badges rise to a shelf above their zone and run a line back down to the
+     *  artifact they belong to, rather than sitting welded to its top border.
+     *  Welded is unreadable the moment two flagged artifacts share a pile: the
+     *  nearer plate buries the deeper one. */
+    float: boolean
+    /** How far the lowest shelf sits above the zone's top border. Zero by
+     *  default, so a pile with one flagged artifact reads exactly as it did
+     *  welded and only a second plate has to climb. */
+    floatLift: number
+    /** Space between two plates on the same shelf. */
+    floatGap: number
+    /** Width of the line back to the artifact, in screen pixels. */
+    leaderWidth: number
     /** One row per level, which is what makes a fifth level a row here rather
      *  than a change to the ingest contract. */
     levels: Record<Level, AttentionLevel>
@@ -254,6 +267,10 @@ export const defaultParams: StackParams = {
     badgeSize: 0.026,
     hoverScale: 1.07,
     hoverEdge: 1.8,
+    float: true,
+    floatLift: 0,
+    floatGap: 0.012,
+    leaderWidth: 1.5,
     levels: {
       // A bookmark, not an alarm: findable while scanning and quiet enough
       // that a wall of them stays calm, and still enough not to nag.
@@ -281,7 +298,7 @@ export const defaultParams: StackParams = {
     outlineWidth: 1.5,
     labels: false,
     labelSize: 0.225,
-    labelOffset: 0.02,
+    labelOffset: 0.07,
     labelAlign: 0,
     backdrop: 'hatch',
     huedOutline: false,

@@ -7,7 +7,7 @@ export type FakeFlag = { attention: Attention; note: string }
 /** Test cases, so the notes read like the ones an agent writes rather than
  *  like "urgent 1". Cycled per level. */
 const NOTES: Record<Level, readonly string[]> = {
-  look: ['hatch angle looks off', 'colour drifted a stop', 'check the framing here'],
+  look: ['hatch angle looks off', 'color drifted a stop', 'check the framing here'],
   soon: ['needs a read before the deadline', 'stale within the hour', 'reply wanted today'],
   urgent: ['render came out muddy', 'texture never promoted', 'wrong zone, moved twice'],
   problem: ['daemon dropped this frame', 'sidecar lost its caption', 'ingest wrote it twice'],

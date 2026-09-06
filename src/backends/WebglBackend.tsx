@@ -26,7 +26,8 @@ import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { badgeTexture } from '@/textures/badge.ts'
 import { loadFaces, stackFor } from '@/typeface.ts'
-import type { Level } from '@shared/attention.ts'
+import { LEVELS, type Level } from '@shared/attention.ts'
+import type { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { createGestureRail } from '@/nav/gesture.ts'
 import { directionFor, isForAControl } from '@/nav/keys.ts'
 import { neighbourOf } from '@/nav/neighbour.ts'
@@ -274,6 +275,29 @@ function Wall({
       },
     }
   }, [])
+  /** One line object per level rather than one per badge: a LineMaterial has a
+   *  single color, and four draw calls is cheaper than one per flag. */
+  const leaders = useMemo(() => {
+    const byLevel = new Map<Level, LineSegments2>()
+    for (const level of LEVELS) {
+      const line = createLoop()
+      line.material.depthTest = false
+      line.material.depthWrite = false
+      line.renderOrder = CHROME_ORDER
+      byLevel.set(level, line)
+    }
+    return byLevel
+  }, [])
+  useEffect(
+    () => () => {
+      for (const line of leaders.values()) {
+        line.geometry.dispose()
+        line.material.dispose()
+      }
+    },
+    [leaders],
+  )
+
   useEffect(
     () => () => {
       for (const { plate } of badges.byId.values()) {
@@ -609,6 +633,27 @@ function Wall({
     cardsByZone.current = new Map(
       [...ranked].map(([zone, list]) => [zone, list.sort((a, b) => b.z - a.z).map((e) => e.id)]),
     )
+    // Which shelf slot each floating badge takes, the front of the pile first.
+    // Assigned over the pile rather than per card, because the collision this
+    // fixes is between two plates that belong to different cards.
+    const shelf = new Map<string, number>()
+    // The bottom plate of a pile whose front card is the flagged one is already
+    // sitting on that card: it gets no line, because there is nothing for a
+    // line to disambiguate. Only a plate that has had to climb needs one.
+    const noLeader = new Set<string>()
+    if (params.attention.float) {
+      for (const ids of cardsByZone.current.values()) {
+        let slot = 0
+        for (const id of ids) {
+          if (!flagged.get(id)?.note) continue
+          if ((channels.get(id)?.emphasis ?? 0) <= 0) continue
+          if (slot === 0 && id === ids[0]) noLeader.add(id)
+          shelf.set(id, slot++)
+        }
+      }
+    }
+    const leaderPoints = new Map<Level, number[]>()
+
     const liveZones = [...new Set(model.map((m) => m.zone))]
     const focused = zoneOf(view)
     if (focused && !liveZones.includes(focused)) {
@@ -678,6 +723,12 @@ function Wall({
         // next zone begins — a note is worth more than the tidiness of a plate
         // that stops where the picture does.
         const base = zoneFor.get(id) ? bases.current.get(zoneFor.get(id)!) : undefined
+        const floats = params.attention.float && shelf.has(id) && !!base
+        // A floating plate is measured from its zone's left edge, where the
+        // shelf stands. Measuring from the card would give a deep rank almost
+        // no width at all, since its rect has already stepped most of the way
+        // across the cell.
+        const runsFrom = floats && base ? base.x : rect.x
         const runsTo = base ? base.x + base.w + params.zoneGrid.gap : rect.x + side
         const held = badges.sync(
           id,
@@ -687,10 +738,40 @@ function Wall({
           ink,
           badgeFamily,
           params.attention.badgeSize,
-          Math.max(params.attention.badgeSize, runsTo - rect.x),
+          Math.max(params.attention.badgeSize, runsTo - runsFrom),
         )
         held.plate.visible = wearsBadge
-        if (wearsBadge) {
+        const slot = shelf.get(id)
+        if (wearsBadge && slot !== undefined && base) {
+          const { w, h } = held
+          held.plate.scale.set(w, h, 1)
+          // Upright on the shelf, not turned with its card: the plate is
+          // signage about the artifact rather than part of it, and inheriting
+          // the card's jitter would tilt every row of the stack differently.
+          held.plate.rotation.set(0, 0, 0)
+          const shelfY =
+            -base.y + params.attention.floatLift + slot * (h + params.attention.floatGap) + h / 2
+          // Left edges flush with the zone's, so the shelf reads as a stack of
+          // rows belonging to the pile rather than as plates scattered over it.
+          held.plate.position.set(base.x + w / 2, shelfY, rect.z + BADGE_LIFT)
+          // Down to the top of the card, so the line says which artifact is
+          // asking even when the plate has climbed clear of the pile. Read off
+          // the mesh rather than the rect: a flagged card stands `tier.lift`
+          // forward of its rank, and a line drawn to the rect's own z lands
+          // behind the card it is pointing at.
+          if (!noLeader.has(id)) {
+            const points = leaderPoints.get(level) ?? []
+            points.push(
+              base.x + params.attention.badgeSize,
+              shelfY - h / 2,
+              rect.z + BADGE_LIFT,
+              mesh.position.x,
+              mesh.position.y + (drawnH * swell * pulse) / 2,
+              mesh.position.z,
+            )
+            leaderPoints.set(level, points)
+          }
+        } else if (wearsBadge) {
           const { w, h } = held
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
@@ -730,6 +811,16 @@ function Wall({
         edge.material.opacity = halo ? Math.max(mat.opacity, emphasis) : mat.opacity
         setResolution(edge.material, gl)
       }
+    }
+
+    for (const [level, line] of leaders) {
+      const points = leaderPoints.get(level)
+      line.visible = !!points
+      if (!points) continue
+      line.geometry.setPositions(points)
+      line.material.color.set(levelColors[level])
+      line.material.linewidth = params.attention.leaderWidth
+      setResolution(line.material, gl)
     }
 
     retarget(depthOf(view), zoneOf(view))
@@ -786,6 +877,9 @@ function Wall({
         const held = badges.byId.get(id)
         return held ? <primitive key={`badge-${id}`} object={held.plate} /> : null
       })}
+      {[...leaders].map(([level, line]) => (
+        <primitive key={`leader-${level}`} object={line} />
+      ))}
       <ZoneOverlay
         cells={bases}
         zones={zoneNames}

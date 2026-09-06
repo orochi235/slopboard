@@ -174,3 +174,9 @@
 .sidebar .params__row {
   grid-template-columns: 116px 1fr 46px;
 }
+
+/* A `soon` whose hold has run out has stopped asking, and the scene has already
+   dropped its badge. The row stays, so the list still says what happened. */
+.sidebar__flag--lapsed {
+  opacity: 0.45;
+}
