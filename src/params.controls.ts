@@ -36,6 +36,10 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'attention.floatLift': [0, 0.4, 0.005],
   'attention.floatGap': [0, 0.1, 0.002],
   'attention.leaderWidth': [0.5, 6, 0.25],
+  'menu.fan': [0, 3, 0.25],
+  'menu.step': [0, 40, 1],
+  'menu.swing': [0, 120, 2],
+  'menu.tilt': [0, 30, 1],
   'attention.seekMs': [60, 1000, 20],
   'attention.seekReach': [1, 6, 1],
   'attention.seekPull': [0, 120, 2],
@@ -84,6 +88,7 @@ const CHOICES: Record<string, readonly (number | string)[]> = {
   'zones.backdrop': ['none', 'hatch', 'solid'],
   'camera.projection': ['orthographic', 'perspective'],
   'zoneGrid.orientation': ['wide', 'tall'],
+  'menu.mode': ['window', 'tilt'],
 }
 
 /** `lod.3.maxRank` is a sentinel far outside any useful range, so the rule is

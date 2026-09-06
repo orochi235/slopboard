@@ -35,9 +35,9 @@ import { LEVELS, type Level } from '@shared/attention.ts'
 import type { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { createGestureRail } from '@/nav/gesture.ts'
 import { directionFor, isForAControl } from '@/nav/keys.ts'
-import { neighbourOf } from '@/nav/neighbour.ts'
+import { neighborOf } from '@/nav/neighbor.ts'
 import { zoneAt } from '@/nav/pick.ts'
-import { choose, makeGrid, mark, score, type Box } from '@/nav/whitespace.ts'
+import { choose, makeGrid, mark, offscreen, score, type Box } from '@/nav/whitespace.ts'
 import { stepFromDrag } from '@/nav/step-drag.ts'
 import { stepToward } from '@/nav/step.ts'
 import { baseCellsOf, unionOf, withHeadroom, zoneCellsOf } from '@/nav/zone-cells.ts'
@@ -62,7 +62,7 @@ type Props = {
   clockOffset: number
   params: StackParams
   onParams: Dispatch<SetStateAction<StackParams>>
-  /** Published by the daemon: a zone's project colour, where it has a `.hued`. */
+  /** Published by the daemon: a zone's project color, where it has a `.hued`. */
   zoneColors: Record<string, string>
 }
 
@@ -171,14 +171,14 @@ function Wall({
     return out
   }, [items])
   const huedCardEdge = params.zones.huedCardEdge
-  // Parsed once per colour rather than per card per frame.
+  // Parsed once per color rather than per card per frame.
   const huedColors = useMemo(() => {
     const out = new Map<string, THREE.Color>()
     for (const [zone, css] of Object.entries(zoneColors)) {
       try {
         out.set(zone, new THREE.Color(css))
       } catch {
-        // hued allows any CSS colour name; anything three cannot read is
+        // hued allows any CSS color name; anything three cannot read is
         // simply a zone that keeps the palette.
       }
     }
@@ -361,7 +361,7 @@ function Wall({
   const cells = useRef<Map<string, Rect>>(new Map())
   /** Each pile's front card. The zone chrome is drawn on this rather than on
    *  the drawn union, so a tall pile does not outline more of the wall than its
-   *  neighbour; the camera still frames the union, which is what is drawn. */
+   *  neighbor; the camera still frames the union, which is what is drawn. */
   const bases = useRef<Map<string, Rect>>(new Map())
   const zoneById = useRef<Map<string, string>>(new Map())
   const move = useRef<Move | null>(null)
@@ -447,12 +447,11 @@ function Wall({
     const id = hit?.object.userData.slopId as string | undefined
     const hitZone = id ? zoneById.current.get(id) : undefined
     if (id && hitZone) {
-      // Anything wearing a flag is a shortcut, not a rung: it goes straight to
-      // its artifact rather than spending the gesture descending one level.
-      // The badge and the card it is welded to behave identically.
-      if (hit?.object.userData.slopBadge || flaggedRef.current.has(id)) {
-        jumpTo.current = [hitZone, id]
-      }
+      // A card is a destination, not a rung: hitting one goes straight to its
+      // artifact rather than spending the gesture descending a level at a time.
+      // A pile's own footprint still steps, which is what reaches a zone. The
+      // badge and the card it is welded to behave identically.
+      jumpTo.current = [hitZone, id]
       return [hitZone, id]
     }
 
@@ -464,18 +463,15 @@ function Wall({
   }
 
   /**
-   * The flagged artifact under the pointer, or null. A badge counts as part of
-   * its own artifact's frame — it is welded to the border, so hitting it has to
-   * mean the same thing as hitting the card.
+   * The artifact under the pointer, or null — what the cursor reads, and what
+   * a click would open. A badge counts as part of its own artifact's frame: it
+   * is welded to the border, so hitting it means hitting the card.
    *
-   * Its own test rather than a read of `chainAt`, which answers for the whole
-   * wall and would report every card on it.
+   * Its own test rather than a read of `chainAt`, which answers with a path for
+   * the whole wall and reports a zone where there is no card at all.
    */
   const hoverAt = (clientX: number, clientY: number): string | null => {
-    const flags = flaggedRef.current
-    if (flags.size === 0) return null
-    const targets: THREE.Object3D[] = []
-    for (const [id, mesh] of meshes.current) if (flags.has(id)) targets.push(mesh)
+    const targets: THREE.Object3D[] = [...meshes.current.values()]
     for (const { plate } of badges.byId.values()) if (plate.visible) targets.push(plate)
     if (targets.length === 0) return null
 
@@ -570,7 +566,7 @@ function Wall({
     }
     const onMove = (e: PointerEvent) => {
       if (!active) {
-        // A flagged artifact is a control, so it says so under the pointer.
+        // Every card is a control, so it says so under the pointer.
         // Only while idle: mid-orbit the cursor belongs to the drag.
         const over = act.current.hoverAt(e.clientX, e.clientY)
         hovered.current = over
@@ -668,7 +664,7 @@ function Wall({
   useEffect(() => {
     const rail = createGestureRail(params.nav)
     const onWheel = (e: WheelEvent) => {
-      if ((e.target as Element | null)?.closest?.('.params, .minimap, .prefs')) return
+      if ((e.target as Element | null)?.closest?.('.params, .minimap, .prefs, .sidebar')) return
       // A trackpad pinch is a wheel event with ctrlKey set; left alone it zooms
       // the page instead of the wall.
       e.preventDefault()
@@ -718,7 +714,7 @@ function Wall({
         return
       }
 
-      const next = neighbourOf(cells.current, zone, direction)
+      const next = neighborOf(cells.current, zone, direction)
       if (next) dispatch({ type: 'to', path: [next] })
     }
     window.addEventListener('keydown', onKey)
@@ -843,7 +839,15 @@ function Wall({
 
       for (const mesh of meshes.current.values()) {
         if (!mesh.visible) continue
-        mark(grid, boxOfPlane(mesh, mesh.scale.x / 2, mesh.scale.y / 2, 0, 0))
+        const box = boxOfPlane(mesh, mesh.scale.x / 2, mesh.scale.y / 2, 0, 0)
+        // A card nobody can see occupies nothing. `mark` clamps a box into the
+        // grid rather than clipping it, so a card projected off the left of the
+        // screen would otherwise pile onto column 0 — and zoomed into one pile,
+        // most of the wall is offscreen. The badges then hunt away from screen
+        // edges that only look busy, and re-hunt whenever the camera moves and
+        // changes which cards are out of frame.
+        if (offscreen(box)) continue
+        mark(grid, box)
       }
 
       // In pile order, so the answer is the same every pass and an earlier
@@ -950,17 +954,22 @@ function Wall({
           emphasis *
           Math.sin((tick / 1000) * 2 * Math.PI * tier.pulseHz)
       // In place, so hovering never reorders what is in front of what.
-      const swell = hovered.current === id ? params.attention.hoverScale : 1
+      const swell = hovered.current === id && emphasis > 0 ? params.attention.hoverScale : 1
       mesh.scale.set(drawnW * pulse * swell, drawnH * pulse * swell, 1)
-      // A rect's x/y is its top-left, three positions a plane by its centre, and
+      // A rect's x/y is its top-left, three positions a plane by its center, and
       // windease's rect space grows y downward where three's world grows it up.
       // All three corrections happen here and nowhere else.
-      // The lift rides on top of the rect's z: an item asking to be looked at
-      // stands out in front of its own pile rather than in its rank.
+      //
+      // The lift is measured in ranks and travels the pile's own axis, which is
+      // the (step.x, step.y, step.z) diagonal rather than world z. Adding it to
+      // z alone shears the card out of the line its pile is drawn along: head-on
+      // that is invisible, and the moment the wall is turned the flagged card
+      // sits beside its stack instead of in front of it.
+      const rise = tier.lift * emphasis
       mesh.position.set(
-        rect.x + drawnW / 2,
-        -(rect.y + drawnH / 2),
-        rect.z + tier.lift * emphasis,
+        rect.x + drawnW / 2 - rise * params.step.x,
+        -(rect.y + drawnH / 2) + rise * params.step.y,
+        rect.z + rise * params.step.z,
       )
       mesh.rotation.set(ch.rotX ?? 0, ch.rotY ?? 0, ch.rotZ ?? 0)
 
@@ -1386,6 +1395,7 @@ export function WebglBackend(props: Props) {
           at={menu}
           item={menuItem}
           canUndo={expired}
+          look={props.params.menu}
           onAct={act}
           onClose={() => setMenu(null)}
         />

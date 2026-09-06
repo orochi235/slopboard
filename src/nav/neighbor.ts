@@ -15,7 +15,7 @@ const CROSS_PENALTY = 3
  * Rect space grows downward, so `down` is increasing y. The renderer flips y
  * once when it converts a rect to a world position; navigation never sees it.
  */
-export function neighbourOf(
+export function neighborOf(
   cells: ReadonlyMap<string, Rect>,
   from: string,
   direction: Direction,

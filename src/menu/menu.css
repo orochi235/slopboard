@@ -6,16 +6,11 @@
   z-index: 260;
 }
 
+/* The shell: position and perspective only. It paints nothing and never
+   turns, which is what `tilt` mode requires of a container. */
 .menu {
   position: fixed;
   min-width: 190px;
-  padding: 5px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent);
-  background: color-mix(in srgb, var(--scrim) 82%, var(--bg));
-  box-shadow: 0 24px 60px -18px color-mix(in srgb, var(--scrim) 94%, transparent);
-  color: var(--ink);
-  font: 12px/1.5 'Fira Code', ui-monospace, monospace;
   /* Measured before it is placed, so it must not flash at the pointer's
      top-left on the way. */
   visibility: hidden;
@@ -25,7 +20,20 @@
   visibility: visible;
 }
 
-.menu:focus {
+/* The surface. Everything you can see move is in here. No `overflow`, no
+   `filter`, no fractional opacity: each of those flattens every plane below
+   it while still reporting `preserve-3d`. */
+.menu__deck {
+  padding: 5px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent);
+  background: color-mix(in srgb, var(--scrim) 82%, var(--bg));
+  box-shadow: 0 24px 60px -18px color-mix(in srgb, var(--scrim) 94%, transparent);
+  color: var(--ink);
+  font: 12px/1.5 'Fira Code', ui-monospace, monospace;
+}
+
+.menu__deck:focus {
   outline: none;
 }
 

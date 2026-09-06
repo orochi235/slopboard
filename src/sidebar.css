@@ -53,21 +53,21 @@
   right: 0;
   z-index: 60;
   translate: 0 -50%;
-  padding: 14px 3px;
-  background: color-mix(in srgb, var(--scrim) 60%, transparent);
-  border: 1px solid color-mix(in srgb, var(--muted) 24%, transparent);
+  padding: 22px 7px;
+  background: color-mix(in srgb, var(--scrim) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 55%, transparent);
   border-right: none;
-  border-radius: 4px 0 0 4px;
-  color: var(--muted);
+  border-radius: 5px 0 0 5px;
+  color: var(--ink);
   font: inherit;
+  font-size: 13px;
   cursor: pointer;
-  opacity: 0.4;
-  transition: opacity 200ms ease;
+  opacity: 1;
+  transition: background 200ms ease;
 }
 
 .sidebar__tab:hover {
-  opacity: 1;
-  color: var(--ink);
+  background: color-mix(in srgb, var(--scrim) 100%, transparent);
 }
 
 .sidebar__section {

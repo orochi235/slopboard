@@ -178,6 +178,26 @@ export type StackParams = {
      *  way to the third without orbiting to find it. */
     dragDepthPerNotch: number
   }
+  /**
+   * The right-click menu's parallax, handed straight to reticul8r. Here rather
+   * than in the component because the only way to judge it is to open the menu
+   * and move the pointer, which is a drag rather than an edit.
+   */
+  menu: {
+    /** `window` moves the viewpoint and leaves every box where it is, so a
+     *  click lands where it was aimed. `tilt` rotates the deck under the
+     *  pointer, which reads harder and moves the target while you approach. */
+    mode: 'window' | 'tilt'
+    /** Steps of depth per row. Zero ties the rows on one plane, which is
+     *  reticul8r's default and is why an unfanned menu looks flat. */
+    fan: number
+    /** Z between adjacent planes, px. */
+    step: number
+    /** How far the viewpoint swings at full deflection, px. */
+    swing: number
+    /** Degrees the deck turns at full deflection. `tilt` only. */
+    tilt: number
+  }
   /** The faces text drawn into the scene wears. One per use rather than one
    *  for the wall: a zone name is a heading read at a distance and a badge is
    *  signage read up close, and the face that serves one need not serve the
@@ -310,11 +330,11 @@ export const defaultParams: StackParams = {
     badgeSize: 0.026,
     hoverScale: 1.07,
     hoverEdge: 1.8,
-    float: true,
+    float: false,
     floatLift: 0,
     floatGap: 0.012,
     leaderWidth: 1.5,
-    seek: true,
+    seek: false,
     seekMs: 220,
     seekReach: 3,
     seekPull: 90,
@@ -326,10 +346,10 @@ export const defaultParams: StackParams = {
     levels: {
       // A bookmark, not an alarm: findable while scanning and quiet enough
       // that a wall of them stays calm, and still enough not to nag.
-      look: { lift: 0.06, haloWidth: 1.5, pulseAmp: 0, pulseHz: 0 },
-      soon: { lift: 0.16, haloWidth: 2.5, pulseAmp: 0.012, pulseHz: 0.35 },
-      urgent: { lift: 0.4, haloWidth: 4, pulseAmp: 0.05, pulseHz: 0.9 },
-      problem: { lift: 0.4, haloWidth: 4, pulseAmp: 0.05, pulseHz: 1.4 },
+      look: { lift: 0, haloWidth: 1.5, pulseAmp: 0, pulseHz: 0 },
+      soon: { lift: 0, haloWidth: 2.5, pulseAmp: 0.012, pulseHz: 0.35 },
+      urgent: { lift: 0, haloWidth: 4, pulseAmp: 0.05, pulseHz: 0.9 },
+      problem: { lift: 0, haloWidth: 4, pulseAmp: 0.05, pulseHz: 1.4 },
     },
   },
   zoneGrid: { gap: 0.02, orientation: 'wide', reverseX: false, reverseY: false },
@@ -349,6 +369,7 @@ export const defaultParams: StackParams = {
     dragCardSetsStep: true,
     dragDepthPerNotch: 0.0006,
   },
+  menu: { mode: 'tilt', fan: 1, step: 16, swing: 40, tilt: 12 },
   typeface: { label: 'oxanium', badge: 'oxanium' },
   overlay: { cardEdges: false, cardEdgeWidth: 1, filterDim: 0.12 },
   zones: {

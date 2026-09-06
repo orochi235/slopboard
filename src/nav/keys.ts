@@ -1,4 +1,4 @@
-import type { Direction } from '@/nav/neighbour.ts'
+import type { Direction } from '@/nav/neighbor.ts'
 
 /**
  * WASD and the arrows are the same four directions. PageUp/PageDown page a

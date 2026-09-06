@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { useReticule } from 'reticul8r/react'
 import type { WallItem } from '@shared/protocol.ts'
 import { menuFor, type Action, type Target } from '@/menu/items.ts'
+import type { StackParams } from '@/params.ts'
 import { placeMenu } from '@/menu/place.ts'
 import './menu.css'
 
@@ -19,12 +20,14 @@ export function CardMenu({
   at,
   item,
   canUndo,
+  look,
   onAct,
   onClose,
 }: {
   at: MenuAt
   item?: WallItem
   canUndo: boolean
+  look: StackParams['menu']
   onAct: (action: Action) => void
   onClose: () => void
 }) {
@@ -32,7 +35,14 @@ export function CardMenu({
   const [spot, setSpot] = useState<{ left: number; top: number } | null>(null)
   const [active, setActive] = useState(0)
   const box = useRef<HTMLDivElement>(null)
-  const { ref, handle } = useReticule<HTMLDivElement>({ maxDepth: 3, swing: 14 })
+  const { ref, handle } = useReticule<HTMLDivElement>({
+    mode: look.mode,
+    fan: look.fan,
+    step: look.step,
+    swing: look.swing,
+    tilt: look.tilt,
+    maxDepth: 4,
+  })
   // One stable function, not an inline arrow: React detaches and reattaches a
   // ref whose identity changed, `useReticule` sets state on every attach, and
   // that is an infinite render loop rather than a slow one.
@@ -51,7 +61,7 @@ export function CardMenu({
     setSpot(
       placeMenu(at, { w: r.width, h: r.height }, { w: window.innerWidth, h: window.innerHeight }),
     )
-    el.focus()
+    el.querySelector<HTMLElement>('.menu__deck')?.focus()
   }, [at])
 
   // The wall's own keys are bound to the window, so the menu takes what it
@@ -90,15 +100,21 @@ export function CardMenu({
 
   return (
     <div className="menu__scrim" onPointerDown={onClose} onContextMenu={(e) => e.preventDefault()}>
+      {/* Two elements, because `tilt` rotates a deck *inside* the container:
+          the shell holds the position and the perspective and never turns, and
+          the deck is the surface you can see move. */}
       <div
         className={`menu ${spot ? 'menu--placed' : ''}`}
         ref={hold}
         style={spot ? { left: `${spot.left}px`, top: `${spot.top}px` } : undefined}
-        role="menu"
-        aria-label={at.target.kind === 'card' ? (item?.name ?? 'Card') : 'Wall'}
-        tabIndex={-1}
         onPointerDown={(e) => e.stopPropagation()}
       >
+       <div
+         className="menu__deck"
+         role="menu"
+         aria-label={at.target.kind === 'card' ? (item?.name ?? 'Card') : 'Wall'}
+         tabIndex={-1}
+       >
         {at.target.kind !== 'sky' && (
           <div className="menu__head">
             <span className="menu__zone">{'zone' in at.target ? at.target.zone : ''}</span>
@@ -119,6 +135,7 @@ export function CardMenu({
             {entry.label}
           </div>
         ))}
+       </div>
       </div>
     </div>
   )

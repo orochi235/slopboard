@@ -20,6 +20,17 @@ const span = (lo: number, hi: number, n: number) => {
   return [a, Math.max(a, b)] as const
 }
 
+/**
+ * Nothing of this box is on screen.
+ *
+ * `mark` clamps a box into the grid rather than clipping it, so a box wholly
+ * off one side lands on the edge row or column it was clamped to and reads as
+ * occupied. Anything being marked as occupancy has to be dropped through here
+ * first. Candidate placements do not: `score` already prices being outside.
+ */
+export const offscreen = (box: Box): boolean =>
+  box.x1 <= 0 || box.x0 >= 1 || box.y1 <= 0 || box.y0 >= 1
+
 /** Everything drawn is marked once, so overlapping cards read as busier. */
 export function mark(grid: Grid, box: Box, weight = 1): void {
   const [cx0, cx1] = span(box.x0, box.x1, grid.cols)

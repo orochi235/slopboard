@@ -75,10 +75,21 @@ The menu is a [reticul8r](../../../../reticul8r) window: `useReticule` on the
 menu box, and the header, the items and their text become planes by nesting
 alone.
 
-`window` mode, not `tilt`. The menu is anchored to the pointer and is about to
-be clicked; a deck that rotates moves every hit target out from under the hand
-that opened it. Moving the viewpoint parts the layers and leaves the boxes
-where they are.
+**Both modes are sliders, under `menu` in the params panel**, because the only
+way to judge this is to open the menu and move the pointer. `window` moves the
+viewpoint and leaves every box where it is, so a click lands where it was
+aimed; `tilt` rotates the deck, which reads harder and moves the target while
+you approach it. The default is tilt, deliberately overdone, so there is
+something to dial back from rather than up to.
+
+**Siblings tie on one plane** unless `fan` says otherwise — reticul8r will not
+staircase rows by document order, on the grounds that four rows that do not
+overlap carry no depth. That default is why an unfanned menu looks flat, and
+`menu.fan` is the knob.
+
+The markup is a shell and a deck: `tilt` rotates a deck *inside* the container,
+so the container holds position and perspective and paints nothing, and
+everything visible lives on `.menu__deck`.
 
 Two traps, both of which make the effect vanish silently rather than break
 loudly: `overflow` other than `visible`, `opacity` below 1 and `filter`
