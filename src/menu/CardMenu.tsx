@@ -64,6 +64,14 @@ export function CardMenu({
     el.querySelector<HTMLElement>('.menu__deck')?.focus()
   }, [at])
 
+  // reticul8r measures every row to cancel perspective magnification, and the
+  // ref attaches while the menu is still at the pointer's top-left waiting to
+  // be placed. Re-read once it has moved, or the first thing that recomputes
+  // does it against the real rect and every row changes size at once.
+  useLayoutEffect(() => {
+    if (spot) handle?.refresh()
+  }, [handle, spot])
+
   // The wall's own keys are bound to the window, so the menu takes what it
   // needs on the way down or the arrows steer the camera behind it.
   useEffect(() => {

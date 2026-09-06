@@ -81,3 +81,52 @@ describe('saveParams', () => {
     ).not.toThrow()
   })
 })
+
+describe('migrating a v1 panel', () => {
+  const fake = (): Storage => {
+    const map = new Map<string, string>()
+    return {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => void map.set(k, v),
+      removeItem: (k: string) => void map.delete(k),
+      clear: () => map.clear(),
+      key: () => null,
+      length: 0,
+    } as unknown as Storage
+  }
+
+  it('gives back the attention subtree so a changed meaning cannot survive', () => {
+    const storage = fake()
+    storage.setItem(
+      'slopboard.params.v1',
+      JSON.stringify({ attention: { seek: true, float: true }, origin: { x: 0.9, y: 0.9 } }),
+    )
+    const out = loadParams(defaultParams, storage)
+    expect(out.attention.seek).toBe(defaultParams.attention.seek)
+    expect(out.attention.float).toBe(defaultParams.attention.float)
+  })
+
+  it('keeps every other tuning, which is why it is not just a version bump', () => {
+    const storage = fake()
+    storage.setItem(
+      'slopboard.params.v1',
+      JSON.stringify({ attention: { seek: true }, origin: { x: 0.9, y: 0.9 } }),
+    )
+    expect(loadParams(defaultParams, storage).origin).toEqual({ x: 0.9, y: 0.9 })
+  })
+
+  it('retires the old key, so the migration runs once', () => {
+    const storage = fake()
+    storage.setItem('slopboard.params.v1', JSON.stringify({ origin: { x: 0.9, y: 0.9 } }))
+    loadParams(defaultParams, storage)
+    expect(storage.getItem('slopboard.params.v1')).toBeNull()
+    expect(storage.getItem('slopboard.params.v2')).not.toBeNull()
+  })
+
+  it('prefers a v2 panel over a v1 left behind', () => {
+    const storage = fake()
+    storage.setItem('slopboard.params.v1', JSON.stringify({ origin: { x: 0.1, y: 0.1 } }))
+    storage.setItem('slopboard.params.v2', JSON.stringify({ origin: { x: 0.7, y: 0.7 } }))
+    expect(loadParams(defaultParams, storage).origin).toEqual({ x: 0.7, y: 0.7 })
+  })
+})
