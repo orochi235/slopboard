@@ -17,6 +17,8 @@ import { type Move, poseAt } from '@/camera/move.ts'
 import { orbitOffset } from '@/camera/orbit.ts'
 import { Lightbox } from '@/Lightbox.tsx'
 import { Sidebar } from '@/Sidebar.tsx'
+import { TopBar } from '@/TopBar.tsx'
+import { keptBy, type Range } from '@/nav/time-filter.ts'
 import { fakeFlags, type FakeFlag } from '@/debug-flags.ts'
 import { Sky } from '@/backends/Sky.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
@@ -66,6 +68,9 @@ type WallProps = Props & {
   view: ViewState
   dispatch: Dispatch<ViewAction>
   onPlan: (plan: Plan) => void
+  /** Excluded by the band's filters. Still drawn, still in rank — faded, so
+   *  what was cut stays legible against what was kept. */
+  dimmed: ReadonlySet<string>
 }
 
 /** The plan view is a diagram, not an animation: republishing it a few times a
@@ -123,6 +128,7 @@ function Wall({
   view,
   dispatch,
   onPlan,
+  dimmed,
 }: WallProps) {
   const meshes = useRef(new Map<string, THREE.Mesh>())
   const { gl, camera } = useThree()
@@ -948,7 +954,8 @@ function Wall({
         mat.map = tex
         mat.needsUpdate = true
       }
-      mat.opacity = ch.opacity ?? 1
+      const cut = dimmed.has(id) ? params.overlay.filterDim : 1
+      mat.opacity = (ch.opacity ?? 1) * cut
       mat.transparent = true
 
       const badge = badges.byId.get(id)
@@ -1026,6 +1033,9 @@ function Wall({
                 )
           ).applyEuler(mesh.rotation)
           held.plate.position.copy(mesh.position).add(offset)
+          const plateMat = held.plate.material as THREE.MeshBasicMaterial
+          plateMat.transparent = true
+          plateMat.opacity = cut
           // Down to the top of the card, so the line says which artifact is
           // asking even when the plate has climbed clear of the pile. Read off
           // the mesh rather than the rect: a flagged card stands `tier.lift`
@@ -1101,7 +1111,7 @@ function Wall({
           ? tier.haloWidth * thicken
           : params.overlay.cardEdgeWidth
         // The halo is the one thing the depth falloff must not mute.
-        edge.material.opacity = halo ? Math.max(mat.opacity, emphasis) : mat.opacity
+        edge.material.opacity = (halo ? Math.max(ch.opacity ?? 1, emphasis) : (ch.opacity ?? 1)) * cut
         setResolution(edge.material, gl)
       }
     }
@@ -1197,6 +1207,15 @@ export function WebglBackend(props: Props) {
   // Flags the wall never received, merged in below. Held here rather than in
   // App so that a fake reaches the scene by exactly the route a real one does.
   const [fakes, setFakes] = useState<Record<string, FakeFlag>>({})
+  const [range, setRange] = useState<Range | null>(null)
+  // The daemon's clock, ticking, so the band's axis ends at the same `now`
+  // every age on the wall is measured against.
+  const [now, setNow] = useState(() => Date.now() + props.clockOffset)
+  const offset = props.clockOffset
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now() + offset), 1000)
+    return () => clearInterval(id)
+  }, [offset])
   // Read live rather than from the arrangement's descriptor: the panel is the
   // camera's tuning surface, and the arrangement is rebuilt only for layout.
   const { fovDeg: fov, projection } = props.params.camera
@@ -1209,6 +1228,15 @@ export function WebglBackend(props: Props) {
       return fake ? { ...i, attention: fake.attention, note: fake.note } : i
     })
   }, [props.items, fakes])
+
+  // Excluded rather than removed: the arrangement never sees the filter, so
+  // nothing reshuffles and a pile keeps the shape you learned.
+  const dimmed = useMemo(() => {
+    const out = new Set<string>()
+    if (!range) return out
+    for (const i of items) if (!keptBy(i.bornAt, range)) out.add(i.id)
+    return out
+  }, [items, range])
 
   const dropFake = useCallback((id: string) => {
     setFakes((was) => {
@@ -1250,7 +1278,14 @@ export function WebglBackend(props: Props) {
         camera={{ fov, position: [0, 0, props.params.camera.standoff], near: 0.01, far }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
-        <Wall {...props} items={items} view={view} dispatch={dispatch} onPlan={setPlan} />
+        <Wall
+          {...props}
+          items={items}
+          view={view}
+          dispatch={dispatch}
+          onPlan={setPlan}
+          dimmed={dimmed}
+        />
         <Sky settings={props.params.sky} colors={props.params.colors} />
       </Canvas>
       <Minimap
@@ -1262,8 +1297,9 @@ export function WebglBackend(props: Props) {
       <div className="axes">
         <Axes yawDeg={props.params.camera.yawDeg} pitchDeg={props.params.camera.pitchDeg} />
       </div>
+      <TopBar items={items} now={now} range={range} onRange={setRange} />
       <Sidebar
-        items={items}
+        items={items.filter((i) => keptBy(i.bornAt, range))}
         clockOffset={props.clockOffset}
         params={props.params}
         onParams={props.onParams}

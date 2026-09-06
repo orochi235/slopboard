@@ -40,7 +40,7 @@
 /* Under the minimap, which is the other thing that answers "where am I". */
 .axes {
   position: fixed;
-  top: 148px;
+  top: calc(var(--band, 0px) + 148px);
   left: 8px;
   z-index: 50;
   width: 96px;

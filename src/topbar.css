@@ -1,0 +1,145 @@
+/* Everything else fixed to the top clears the band by this much. */
+:root {
+  --band: 122px;
+}
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 55;
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--scrim) 78%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 24%, transparent);
+  color: var(--ink);
+  font: 11px/1.3 ui-monospace, monospace;
+}
+
+/* A block, not a strip: a section gets room for a real control. */
+.topbar__block {
+  min-width: 320px;
+  max-width: 520px;
+  flex: 1 1 380px;
+  padding: 6px 8px 7px;
+  border: 1px solid color-mix(in srgb, var(--muted) 20%, transparent);
+  border-radius: 5px;
+}
+
+.topbar__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.topbar__name {
+  margin: 0;
+  font: inherit;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.topbar__count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.topbar__clear {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* The slider sits over the histogram rather than beside it, so the range you
+   drag is read against the shape it is selecting. */
+.topbar__chart {
+  position: relative;
+  margin-top: 4px;
+}
+
+.topbar__hist {
+  display: block;
+  width: 100%;
+  height: 34px;
+}
+
+.topbar__bar {
+  fill: color-mix(in srgb, var(--accent) 62%, transparent);
+}
+
+.topbar__bar--out {
+  fill: color-mix(in srgb, var(--muted) 28%, transparent);
+}
+
+.topbar__scale {
+  display: flex;
+  justify-content: space-between;
+  color: color-mix(in srgb, var(--muted) 80%, transparent);
+  margin-top: 2px;
+}
+
+.topbar__buckets {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.topbar__bucket {
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 26%, transparent);
+  border-radius: 3px;
+  color: var(--muted);
+  font: inherit;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+
+.topbar__bucket:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.topbar__bucket--on {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  border-color: var(--accent);
+}
+
+/*
+ * The tokens weasel's slider reads, mapped onto the wall's own palette. Written
+ * out here rather than by importing `@weasel-js/theme` — its tokens.css also
+ * sets a document font and would re-type the whole wall — and scoped to the
+ * band so nothing here can reach the scene.
+ */
+.topbar__range {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+
+  --wzl-accent: var(--accent);
+  --wzl-accent-strong: color-mix(in srgb, var(--accent) 80%, white);
+  --wzl-fg: var(--ink);
+  --wzl-fg-muted: var(--muted);
+  --wzl-fg-inverse: var(--bg);
+  --wzl-fg-on-accent: var(--bg);
+  /* Translucent: the histogram underneath is the thing being selected, and a
+     solid track would hide the shape you are aiming at. */
+  --wzl-surface-sunken: color-mix(in srgb, var(--ink) 14%, transparent);
+  --wzl-border: color-mix(in srgb, var(--muted) 40%, transparent);
+  --wzl-border-strong: var(--muted);
+  --wzl-slider-thumb-tint: var(--accent);
+  --wzl-focus-ring: var(--accent);
+  --wzl-radius-sm: 2px;
+  --wzl-radius-pill: 999px;
+  --wzl-motion-fast: 120ms;
+  --wzl-font-ui: inherit;
+}

@@ -189,6 +189,10 @@ export type StackParams = {
     cardEdges: boolean
     /** Screen pixels. Real widths need fat lines; WebGL ignores linewidth. */
     cardEdgeWidth: number
+    /** What an artifact the filter excludes fades to. Not zero: the point of
+     *  dimming rather than removing is that you can still see what you cut,
+     *  and where it sat relative to what you kept. */
+    filterDim: number
   }
   /** How a zone presents itself, beyond the cards standing in it. */
   zones: {
@@ -346,7 +350,7 @@ export const defaultParams: StackParams = {
     dragDepthPerNotch: 0.0006,
   },
   typeface: { label: 'oxanium', badge: 'oxanium' },
-  overlay: { cardEdges: false, cardEdgeWidth: 1 },
+  overlay: { cardEdges: false, cardEdgeWidth: 1, filterDim: 0.12 },
   zones: {
     outline: false,
     outlineWidth: 1.5,
