@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createStack } from '@/arrangements/stack.ts'
-import { arrangementsFor } from '@/arrangements/index.ts'
-import { backendFrom } from '@/backend-flag.ts'
-import { DomBackend } from '@/backends/DomBackend.tsx'
+import { arrangements } from '@/arrangements/index.ts'
 import { WebglBackend } from '@/backends/WebglBackend.tsx'
 import { ParallaxModal } from '@/ParallaxModal.tsx'
 import { Prefs } from '@/Prefs.tsx'
@@ -12,10 +10,6 @@ import { loadParams, saveParams } from '@/params.store.ts'
 import { applyColors } from '@/theme.ts'
 import { useWall } from '@/useWall.ts'
 
-// Read once: one backend per window for its life, so a DOM wall and a 3D wall
-// can run on two monitors at the same time.
-const backend = backendFrom(location.search)
-const available = arrangementsFor(backend === 'webgl' ? 3 : 2)
 
 export function App() {
   const { items, zoneColors, ttlMs, clockOffset, connected } = useWall()
@@ -40,7 +34,7 @@ export function App() {
   // tuned one either, since it has no panel to tune with.
   const loaded = useRef(params)
   useEffect(() => {
-    if (backend === 'webgl' && params !== loaded.current) saveParams(params)
+    if (params !== loaded.current) saveParams(params)
   }, [params])
 
   useEffect(() => {
@@ -53,7 +47,7 @@ export function App() {
       if (e.key === ',') return setPrefs((open) => !open)
       if (e.key !== '[' && e.key !== ']') return
       const step = e.key === ']' ? 1 : -1
-      setIndex((i) => (i + step + available.length) % available.length)
+      setIndex((i) => (i + step + arrangements.length) % arrangements.length)
       setFlash(true)
     }
     window.addEventListener('keydown', onKey)
@@ -66,29 +60,20 @@ export function App() {
     return () => clearTimeout(id)
   }, [flash])
 
-  const arrangement = available[index]
+  const arrangement = arrangements[index]
   if (!arrangement) return null
 
   return (
     <>
-      {arrangement.dims === 3 ? (
-        <WebglBackend
-          items={items}
-          arrangement={arrangement.name === 'stack' ? tuned : arrangement}
-          ttlMs={ttlMs}
-          clockOffset={clockOffset}
-          params={params}
-          onParams={setParams}
-          zoneColors={zoneColors}
-        />
-      ) : (
-        <DomBackend
-          items={items}
-          arrangement={arrangement}
-          ttlMs={ttlMs}
-          clockOffset={clockOffset}
-        />
-      )}
+      <WebglBackend
+        items={items}
+        arrangement={arrangement.name === 'stack' ? tuned : arrangement}
+        ttlMs={ttlMs}
+        clockOffset={clockOffset}
+        params={params}
+        onParams={setParams}
+        zoneColors={zoneColors}
+      />
       <ParallaxModal />
       {prefs && <Prefs params={params} onChange={setParams} onClose={() => setPrefs(false)} />}
       <div className={`hud ${flash ? 'hud--flash' : ''}`}>

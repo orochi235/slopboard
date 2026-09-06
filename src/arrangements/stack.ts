@@ -2,7 +2,7 @@ import type { LayoutItem, LayoutResult, Rect } from 'windease'
 import { createRanks, ramp } from './slots.ts'
 import { createZoneGrid } from './zones.ts'
 import { defaultParams, type StackParams } from '@/params.ts'
-import type { Arrangement3D, SlopChannels } from './types.ts'
+import type { Arrangement, SlopChannels } from './types.ts'
 
 type StackItem = LayoutItem & { zone: string; age01: number; emphasis?: number }
 
@@ -50,7 +50,7 @@ const lodFor = (rank: number, tiers: StackParams['lod']['tiers']) =>
 export function createStack(
   params: StackParams = defaultParams,
   curves: Partial<Curves> = {},
-): Arrangement3D {
+): Arrangement {
   const { fade, distance } = { ...defaultCurves, ...curves }
   const ranksByZone = new Map<string, ReturnType<typeof createRanks>>()
   const zoneGrid = createZoneGrid()
@@ -66,7 +66,6 @@ export function createStack(
 
   return {
     name: 'stack',
-    dims: 3,
     camera: {
       projection: params.camera.projection,
       fovDeg: params.camera.fovDeg,

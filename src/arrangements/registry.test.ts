@@ -1,22 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { arrangements, arrangementsFor } from '@/arrangements/index.ts'
+import { arrangements } from '@/arrangements/index.ts'
 
 describe('the arrangement registry', () => {
-  it('tags every arrangement with its dimensionality', () => {
-    for (const a of arrangements) expect([2, 3]).toContain(a.dims)
+  it('offers something to cycle through', () => {
+    expect(arrangements.length).toBeGreaterThan(0)
   })
 
-  it('filters to one backend, and grid stays the 2D control', () => {
-    const flat = arrangementsFor(2)
-    expect(flat.length).toBeGreaterThan(0)
-    expect(flat.every((a) => a.dims === 2)).toBe(true)
-    expect(flat[0]?.name).toBe('grid')
-  })
-
-  it('narrows on dims', () => {
+  it('gives every arrangement a name and a strategy the wall can run', () => {
     for (const a of arrangements) {
-      if (a.dims === 2) expect(typeof a.arrange).toBe('function')
-      else expect(typeof a.strategy.layout).toBe('function')
+      expect(a.name).toBeTruthy()
+      expect(typeof a.strategy.layout).toBe('function')
     }
   })
 })

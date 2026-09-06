@@ -17,10 +17,6 @@ const run = (
 ) => stack.strategy.layout({ items, container, state: undefined, options: { now } })
 
 describe('stack', () => {
-  it('is a 3D arrangement', () => {
-    expect(createStack().dims).toBe(3)
-  })
-
   it('emits a square slot, never the image aspect', () => {
     const out = run(createStack(), [item('a', 'weasel')], 0)
     const rect = out.placements.get('a')!

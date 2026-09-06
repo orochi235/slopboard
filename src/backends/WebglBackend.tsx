@@ -11,7 +11,7 @@ import {
 } from 'react'
 import * as THREE from 'three'
 import type { Rect } from 'windease'
-import type { Arrangement3D, SlopChannels } from '@/arrangements/index.ts'
+import type { Arrangement, SlopChannels } from '@/arrangements/index.ts'
 import { framePose, type Pose } from '@/camera/frame.ts'
 import { type Move, poseAt } from '@/camera/move.ts'
 import { orbitOffset } from '@/camera/orbit.ts'
@@ -57,7 +57,7 @@ import type { WallItem } from '@shared/protocol.ts'
 
 type Props = {
   items: WallItem[]
-  arrangement: Arrangement3D
+  arrangement: Arrangement
   ttlMs: number
   clockOffset: number
   params: StackParams

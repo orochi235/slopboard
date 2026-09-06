@@ -35,18 +35,18 @@ therefore changes nothing about what is on the wall or how far along it is.
 
 **Client** (React, served in the browser)
 
-Two render backends (see Arrangements): a DOM/CSS backend, and an r3f backend
-for arrangements that place in three dimensions — which is not the same as
-perspective, and by default is not perspective at all (see The stack's camera).
-They no longer share one layout interface — 3D arrangements run only in the r3f
-backend, and the DOM backend is a legacy escape hatch that goes away if the 3D
-wall works. See `docs/superpowers/specs/2026-09-02-webgl-backend-design.md`.
+One render backend: r3f. Arrangements place in three dimensions — which is not
+the same as perspective, and by default is not perspective at all (see The
+stack's camera). The DOM/CSS backend it grew up beside was a hedge against the
+3D wall not working; the 3D wall works, so it is gone, and with it the flat
+arrangements and the `?backend=` flag that chose between them. See
+`docs/superpowers/specs/2026-09-02-webgl-backend-design.md`.
 
 Run it chromeless:
 
 ```
 open -na "Google Chrome" --args \
-  --app=http://localhost:5173 \
+  --app=http://localhost:5183 \
   --user-data-dir=/tmp/slopboard
 ```
 
@@ -62,48 +62,18 @@ renderer.
 
 ### The interface
 
-```ts
-type Item = {
-  id: string
-  aspect: number      // w/h
-  age01: number       // 0 at arrival, 1 at expiry
-  zone: string
-  pinned: boolean
-  hovered: boolean
-}
+An arrangement is a windease `LayoutStrategy` plus the camera it wants: a pure
+function from items and a container to rects, with slopboard's own channels
+(`z`, `opacity`, `rotX/Y/Z`, `saturation`, `blur`, `lod`, `emphasis`) riding
+alongside. The contract is in the WebGL spec; `src/arrangements/types.ts` is the
+whole of it in code.
 
-type Placement = {
-  id: string
-  x: number, y: number      // 0..1 of viewport
-  scale: number             // relative to a reference cell
-  depth: number             // 0 = front, 1 = back
-  opacity: number
-  blur?: number
-  saturation?: number
-}
-
-type Arrangement = {
-  name: string
-  dims: 2
-  arrange(items: Item[], viewport: Size, t: number): Placement[]
-}
-```
-
-3D arrangements are a different contract — a windease `LayoutStrategy` returning
-rects and channels, described in the WebGL spec, not here.
-
-```ts
-```
-
-`arrange` is pure and recomputed each frame. Three things follow, and they're
-the reason for the shape:
+It is recomputed each frame, and pure. Two things follow, and they are the
+reason for the shape:
 
 - Swapping arrangements live is free.
-- Cross-fading two arrangements is lerping two `Placement` lists by `id`, so
-  comparison is a smooth A/B rather than a jump cut.
-- `depth` is a z-index in the DOM backend. It was meant to be a Z position in
-  the r3f one so that a single arrangement ran in both; that did not survive
-  contact with real perspective, and 3D arrangements are now r3f-only.
+- Cross-fading two is lerping two rect lists by `id`, so comparing them is a
+  smooth A/B rather than a jump cut.
 
 The constraint this imposes: motion must be a closed-form function of age, not
 accumulated velocity. Springs are fine (a damped spring has a closed form);
@@ -111,31 +81,31 @@ arbitrary physics is not. An arrangement may cache per-`id` derived values, but
 must tolerate that cache being dropped at any time.
 
 That cache is not optional in practice. A stable per-item slot cannot be derived
-from a pure `arrange` call: any index into a sorted list shifts when an item
+from a pure layout call: any index into a sorted list shifts when an item
 arrives (newest-first) or expires (oldest-first), moving every neighbour.
-`slots.ts` holds the two allocators that need — monotonic for `tide`'s lanes,
-lowest-free for `erode`'s cells.
-
-An arrangement that holds position constant must also make sure position does
-not smuggle age in anyway: filling cells in raster order packs the top rows
-newest-last, which is a decay gradient nobody asked for. `erode` maps slots
-through a coprime stride so a partly-full wall scatters.
+`slots.ts` holds the allocators that need, and `stack` uses the rank one.
 
 ### The set
 
-Seven, spanning the space. Each is roughly 40 lines, so the point is to have
-them all and throw most away. `stack` is 3D and runs only in the r3f backend;
-the rest are 2D.
+One. Seven were sketched to span the space, on the plan that most would be
+thrown away — and they were. `stack` is what the wall does.
+
+The six flat ones went with the DOM backend: `grid`, `tide` and `erode` were
+built and are deleted, and `recede`, `settle` and `spiral` were never written.
+They are listed below as what was tried, not as a backlog — anything worth
+having from them is a 3D arrangement someone writes fresh.
+
+✝ built, then deleted with the DOM backend.
 
 | Name | Mechanic | What it tests |
 |---|---|---|
-| `grid` ✅ | Newest first in reading order, oldest falls off the end. No decay signal. | Control. Everything else has to beat this. |
-| `tide` ✅ | Enter at one edge, drift at constant velocity across the wall, exit the far edge. Position *is* age. Size constant throughout. | Whether one coherent slow motion field reads better than N independent fades. Periphery is good at coherent motion. |
+| `grid` ✝ | Newest first in reading order, oldest falls off the end. No decay signal. | Control. Everything else has to beat this. |
+| `tide` ✝ | Enter at one edge, drift at constant velocity across the wall, exit the far edge. Position *is* age. Size constant throughout. | Whether one coherent slow motion field reads better than N independent fades. Periphery is good at coherent motion. |
 | `recede` | Enter at the front plane, move back in Z, shrink and fade with distance. | The original concept. Now a candidate rather than an assumption. |
 | `settle` | Enter at the top, fall to a resting position, pack downward as items leave from the bottom. | Gravity as decay. The bottom row means "going soon" without saying so. |
-| `erode` ✅ | Position fixed for life. Decay is desaturation, then blur, then dissolve. Zero motion. | Whether motion is needed at all, or whether a still wall is calmer and just as legible. |
+| `erode` ✝ | Position fixed for life. Decay is desaturation, then blur, then dissolve. Zero motion. | Whether motion is needed at all, or whether a still wall is calmer and just as legible. |
 | `spiral` | Enter at the perimeter, spiral inward, vanish at the center. | Centripetal reading, and whether a convergence point is restful or maddening. |
-| `stack` | One diagonal pile per zone, tiled to a grid. Depth is rank: an arrival shoves the pile back. Only the top of each pile is legible. | Whether the wall is better as "which repos are producing" plus a zoom, rather than N readable images. |
+| `stack` ✅ | One diagonal pile per zone, tiled to a grid. Depth is rank: an arrival shoves the pile back. Only the top of each pile is legible. | Whether the wall is better as "which repos are producing" plus a zoom, rather than N readable images. |
 
 ### The stack's camera
 
@@ -548,16 +518,15 @@ the whole path an agent would — including the partial-write guard.
 
 ## Build order
 
-1. ~~Daemon + snapshot-on-connect + `grid` arrangement over the DOM backend.~~ **Done.**
+1. ~~Daemon + snapshot-on-connect + a first arrangement.~~ **Done.**
 2. ~~Sim mode.~~ **Done.**
 3. Point one agent at `~/slop/inbox/` and live with it for a day. This answers
    arrival rate, which decides whether 4 and 5 are worth building at all.
 4. r3f backend, `stack`, and zones — designed in
    `docs/superpowers/specs/2026-09-02-webgl-backend-design.md`. Zones arrive
    here rather than last, because one pile per zone is what `stack` is.
-5. The remaining 2D arrangements (`recede`, `settle`, `spiral`), `bloom`,
-   cross-fade. Only if the DOM backend survives step 4 — otherwise they are
-   ported to 3D or dropped. `tide` and `erode` are in, and `[` / `]` cycles.
+5. ~~The remaining flat arrangements.~~ **Dropped** with the DOM backend, which
+   step 4 made redundant. `[` / `]` still cycles, over a set of one.
 6. Rescue, expiry, trash, undo. **Partly done** — keep, expire-now and a
    one-deep undo ship with the right-click menu; the capacity bound and the
    reserved band do not. See

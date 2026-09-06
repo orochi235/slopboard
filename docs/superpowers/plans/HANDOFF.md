@@ -12,7 +12,7 @@ still unticked, because their deliverable is a judgment.
 
 - windease `main`: `Rect.z` (required), `LayoutResult.channels`, both wired
   through `ContainerHost` and the presets.
-- slopboard `main`: the WebGL wall behind `?backend=webgl`, texture LOD with a
+- slopboard `main`: the WebGL wall — now the only wall — texture LOD with a
   byte budget, camera zoom, arrow navigation, the lightbox, and — since the
   plans were written — an orthographic default, corner-anchored piles, an
   orbiting camera you drag, a slider panel over every parameter, a clickable
@@ -108,6 +108,11 @@ weasel's two-thumb `RangeSlider` over it, plus named buckets. An excluded
 artifact is **dimmed where it stands**, never removed — the arrangement never
 sees the filter, so nothing reshuffles. The sidebar's flag list reads the same
 range and has no control of its own.
+
+**The DOM wall is gone**, and with it `grid`, `tide`, `erode`, the `dims` tag,
+the `?backend=` flag and the flat half of the arrangement interface. `stack` is
+the set. The design doc's arrangement table keeps the six as what was tried, so
+nobody re-proposes porting one.
 
 **Right-click, and the rescue under it.** A menu on the canvas — Open, Keep /
 Release, Dismiss the flag, Copy path, Expire now, and Undo last expiry (also
@@ -324,7 +329,7 @@ Run the wall and answer the questions in
 ```bash
 cd ~/src/slopboard && npm run dev
 npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
-open 'http://localhost:5183/?backend=webgl'
+open 'http://localhost:5183/'
 ```
 
 Every question there is a control in the `params` panel, so a bad answer is a
@@ -359,11 +364,6 @@ and its cards show up on the real wall for a TTL.
 
 ## Traps already paid for
 
-- **`DomBackend` ignores a per-item TTL.** It computes `age01` inline from the
-  wall default, where the WebGL path goes through `toStackItems` and honours
-  `i.ttlMs`. So a `ttl60` card fades on the 2D backend as though it had a day,
-  then vanishes when the sweeper takes it. One line, if that backend still
-  matters.
 - **Rewriting a file in the inbox re-ages the wall.** `adopt` reads mtime so a
   daemon restart cannot resurrect anything, so anything that rewrites an
   original — the XMP stamp does — has to put mtime back. It did not at first,
