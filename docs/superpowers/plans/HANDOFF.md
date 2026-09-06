@@ -109,6 +109,18 @@ artifact is **dimmed where it stands**, never removed — the arrangement never
 sees the filter, so nothing reshuffles. The sidebar's flag list reads the same
 range and has no control of its own.
 
+**An arrival can ask for the screen.** `ALERTS` in `shared/attention.ts` is a
+row per attention level — `lightbox`, `sound`, `notify`, `raise` — and the
+daemon owns three of the four, because a page cannot make noise it has not been
+clicked for, cannot notify without a permission, and can never raise its own
+window. `problem` starts the wall if nothing is connected; `clients.size` is
+how the daemon knows. Untested against a real flagged arrival: the plan is
+unit-tested, the three `spawn` calls are not.
+
+**The wall's defaults are now the tuned wall** (`2470b0f`). Remember that a
+stored tuning outranks a changed default forever, so this reaches a new wall
+and nobody who has already touched a control — including this machine.
+
 **The DOM wall is gone**, and with it `grid`, `tide`, `erode`, the `dims` tag,
 the `?backend=` flag and the flat half of the arrangement interface. `stack` is
 the set. The design doc's arrangement table keeps the six as what was tried, so
@@ -182,6 +194,27 @@ The user's instruction is to work all of it, not just the head.
   `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.
 - **Kept cards do not move to a band of their own.** The decay freeze is all
   that marks one today. The reserved band is arrangement work.
+
+**Asked for and not started:**
+
+- **A refresh replays the last day.** Reloading the wall makes 118 cards arrive
+  one at a time rather than showing the wall already assembled. Ranks are not
+  the cause — `createRanks` gives a first-sighted id `prevRank === rank`, so
+  nothing shoves. Suspect the texture path: every card decodes its own webp and
+  becomes visible when its own decode lands, in snapshot order, which reads as
+  the day replaying. Confirm that before designing anything. Two shapes worth
+  weighing: hold the wall until the fronts of the piles are in and then show it
+  assembled, or decode in screen order rather than snapshot order so the thing
+  you are looking at is never last.
+- **Artifacts that are not images.** Self-contained HTML bundles first, and
+  "similar" — the ask is a plan, not an implementation. Note what it collides
+  with before designing: ingest is `sharp`-shaped end to end (decode, resize,
+  webp, XMP stamp), a card is a textured quad whose aspect comes from the
+  image, and the lightbox is an `<img>`. An HTML artifact has no intrinsic
+  size, cannot be a texture without rendering it first, and would want an
+  iframe in the lightbox with everything that implies. The zone/TTL/attention
+  half of the design does not care what the file is; the render half cares
+  about nothing else.
 
 **Independent of all of the above:**
 
