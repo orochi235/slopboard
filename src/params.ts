@@ -137,6 +137,13 @@ export type StackParams = {
     /** World height of a label's text — its thickness, since the label is
      *  turned a quarter turn and climbs the cell's left edge. */
     labelSize: number
+    /** How far the label sits outside its cell's border, in world units.
+     *  Negative brings it inside. */
+    labelOffset: number
+    /** Where the label sits across the cell, 0..1. 0 is hard against the left
+     *  border, 1 against the right — so this is what moves a turned label off
+     *  the edge it climbs and across the pile. */
+    labelAlign: number
     /** What fills a zone's cell behind its pile. */
     backdrop: 'none' | 'hatch' | 'solid'
     /** Borrow the colour of the project bound to a zone, where it has a
@@ -210,9 +217,14 @@ export type StackParams = {
     accent: string
     danger: string
   }
-  lod: LodTier[]
-  /** Texture byte budget. A backstop, not the thing shaping the design. */
-  textureBudgetBytes: number
+  /** What each rank costs to draw, and the ceiling on all of it together. The
+   *  budget lives here rather than on its own because it is the same decision
+   *  read from the other end: the tiers spend, and this is the purse. */
+  lod: {
+    tiers: LodTier[]
+    /** Texture byte budget. A backstop, not the thing shaping the design. */
+    budgetBytes: number
+  }
 }
 
 export const defaultParams: StackParams = {
@@ -257,6 +269,8 @@ export const defaultParams: StackParams = {
     outlineWidth: 1.5,
     labels: false,
     labelSize: 0.225,
+    labelOffset: 0.02,
+    labelAlign: 0,
     backdrop: 'hatch',
     huedOutline: false,
     huedLabel: false,
@@ -297,11 +311,13 @@ export const defaultParams: StackParams = {
     accent: '#38bdf8',
     danger: '#e0796b',
   },
-  lod: [
-    { maxRank: 1, edge: 512 },
-    { maxRank: 8, edge: 128 },
-    { maxRank: 40, edge: 32 },
-    { maxRank: Number.MAX_SAFE_INTEGER, edge: 0 },
-  ],
-  textureBudgetBytes: 256 * 1024 * 1024,
+  lod: {
+    tiers: [
+      { maxRank: 1, edge: 512 },
+      { maxRank: 8, edge: 128 },
+      { maxRank: 40, edge: 32 },
+      { maxRank: Number.MAX_SAFE_INTEGER, edge: 0 },
+    ],
+    budgetBytes: 256 * 1024 * 1024,
+  },
 }

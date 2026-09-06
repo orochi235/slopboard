@@ -38,7 +38,7 @@ const defaultCurves: Curves = {
       : 1,
 }
 
-const lodFor = (rank: number, tiers: StackParams['lod']) =>
+const lodFor = (rank: number, tiers: StackParams['lod']['tiers']) =>
   tiers.find((tier) => rank <= tier.maxRank)?.edge ?? 0
 
 /**
@@ -141,7 +141,7 @@ export function createStack(
               rotX: params.rot.x,
               rotY: params.rot.y,
               rotZ: noise * params.jitter.rot,
-              lod: lodFor(entry.rank, params.lod),
+              lod: lodFor(entry.rank, params.lod.tiers),
               emphasis,
             } satisfies SlopChannels)
           }

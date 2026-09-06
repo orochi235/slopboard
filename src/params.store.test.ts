@@ -31,8 +31,8 @@ describe('mergeStored', () => {
   })
 
   it('replaces an array wholesale, since a tier list has no key to merge on', () => {
-    const lod = [{ maxRank: 1, edge: 32 }]
-    expect(mergeStored(defaultParams, { lod }).lod).toEqual(lod)
+    const tiers = [{ maxRank: 1, edge: 32 }]
+    expect(mergeStored(defaultParams, { lod: { tiers } }).lod.tiers).toEqual(tiers)
   })
 
   it('ignores a stored blob that is not an object', () => {

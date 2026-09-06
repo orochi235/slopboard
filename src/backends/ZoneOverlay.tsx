@@ -171,11 +171,13 @@ export function ZoneOverlay({
       // Reading bottom to top, so the run starts at the cell's floor. This also
       // keeps the name clear of the top-left corner, which is where a flagged
       // artifact's badge sits.
-      sprite.position.set(
-        box.x - h * 0.75,
-        -(box.y + box.h) + (h * aspect) / 2,
-        0,
-      )
+      //
+      // `labelAlign` slides it across the cell and `labelOffset` pushes it out
+      // past the border, so the pair covers both "which edge" and "how far
+      // clear of it" without a second concept for the right-hand side.
+      const across = box.x + settings.labelAlign * box.w
+      const outward = settings.labelAlign < 0.5 ? -settings.labelOffset : settings.labelOffset
+      sprite.position.set(across + outward - h / 2, -(box.y + box.h) + (h * aspect) / 2, 0)
     }
   })
 

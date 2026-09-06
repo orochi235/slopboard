@@ -48,6 +48,8 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'overlay.cardEdgeWidth': [0.5, 12, 0.5],
   'zones.outlineWidth': [0.5, 12, 0.5],
   'zones.labelSize': [0.01, 0.6, 0.005],
+  'zones.labelOffset': [-0.3, 0.3, 0.005],
+  'zones.labelAlign': [0, 1, 0.01],
   'zones.backdropOpacity': [0, 1, 0.01],
   'zones.hatchSpacing': [0.002, 0.1, 0.001],
   'zones.hatchWidth': [0.0002, 0.02, 0.0002],
@@ -59,7 +61,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'sky.contrast': [0.5, 4, 0.05],
   'sky.starDensity': [0, 1, 0.01],
   'sky.starIntensity': [0, 1, 0.01],
-  textureBudgetBytes: [16 * 1024 * 1024, 1024 * 1024 * 1024, 16 * 1024 * 1024],
+  'lod.budgetBytes': [16 * 1024 * 1024, 1024 * 1024 * 1024, 16 * 1024 * 1024],
 }
 
 const CHOICES: Record<string, readonly (number | string)[]> = {

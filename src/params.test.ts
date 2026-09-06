@@ -8,8 +8,9 @@ describe('defaultParams', () => {
     expect(p.shoveMs).toBeGreaterThan(0)
     expect(p.zoneGrid.gap).toBeGreaterThan(0)
     expect(p.camera.fovDeg).toBeGreaterThan(0)
-    expect(p.lod.map((t) => t.maxRank)).toEqual([...p.lod.map((t) => t.maxRank)].sort((a, b) => a - b))
-    expect(p.lod.at(-1)?.edge).toBe(0) // the tail is a flat colored quad
+    const ranks = p.lod.tiers.map((t) => t.maxRank)
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b))
+    expect(p.lod.tiers.at(-1)?.edge).toBe(0) // the tail is a flat colored quad
   })
 
   it('is a plain object, so a control panel can clone and patch it', () => {

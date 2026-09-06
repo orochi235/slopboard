@@ -76,7 +76,7 @@ describe('controlsOf', () => {
   })
 
   it('leaves the deep-tail sentinel typeable rather than draggable', () => {
-    const tail = controlsOf(defaultParams).find((c) => c.path === 'lod.3.maxRank')
+    const tail = controlsOf(defaultParams).find((c) => c.path === 'lod.tiers.3.maxRank')
     expect(tail?.kind).toBe('number')
   })
 })

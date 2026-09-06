@@ -144,7 +144,7 @@ function Wall({
   const textures = useMemo(
     () =>
       createTextureManager<THREE.Texture>({
-        budgetBytes: params.textureBudgetBytes,
+        budgetBytes: params.lod.budgetBytes,
         urlFor: (id) => `/img/${id}`,
         load: async (url, edge) => {
           const bitmap = await loadBitmap(url, edge)
@@ -156,7 +156,7 @@ function Wall({
         },
         dispose: (tex) => tex.dispose(),
       }),
-    [params.textureBudgetBytes],
+    [params.lod.budgetBytes],
   )
 
   // A lost context invalidates every GPU handle; rebuilding from an empty store
