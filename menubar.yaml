@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=./menubar.schema.json
+#
+# The wall's menu bar widget. `perch install` from this directory builds it and
+# hands it to launchd; `perch run` puts it in the foreground to look at.
+#
+# It reports and it opens things. It deliberately cannot start the daemon: an
+# action is a subprocess perch waits on, and `npm run dev:daemon` never returns.
+
+app:
+  name: slopboard
+  id: tech.michaelbaker.slopboard.menubar
+  icon: rectangle.stack
+  interval: 5s
+
+watch:
+  # The paths come from the daemon rather than this file, which is what keeps
+  # a home directory out of a committed config.
+  wall:
+    http: http://localhost:8787/api/health
+    json: true
+    shape:
+      ok: bool
+      items: int
+      ttlMs: int
+      inbox: string
+      trash: string
+  zones:
+    http: http://localhost:8787/api/zones
+    json: true
+    shape:
+      zones: [{zone: string, items: int, path: string}]
+
+status:
+  - when: "!wall.ok"
+    icon: exclamationmark.triangle
+  - when: "wall.data.items == 0"
+    dim: true
+  - badge: "wall.data.items"
+
+menu:
+  - text: "{{wall.data.items}} on the wall"
+    when: "wall.ok"
+  - text: "daemon not running"
+    when: "!wall.ok"
+  - separator
+  # Its own Chrome profile, so the wall is not in the main browser's process
+  # pool and cannot be tab-discarded under memory pressure.
+  - text: Open the wall
+    run:
+      - open
+      - -na
+      - Google Chrome
+      - --args
+      - --app=http://localhost:5183
+      - --user-data-dir=/tmp/slopboard
+  - separator
+  - each: zones.data.zones
+    when: "zones.ok"
+    text: "{{it.zone}} — {{it.items}}"
+    open: "{{it.path}}"
+  - separator
+  - text: Undo last expiry
+    when: "wall.ok"
+    post: {url: "http://localhost:8787/api/undo"}
+  - text: Open the inbox
+    when: "wall.ok"
+    open: "{{wall.data.inbox}}"
+  - text: Open the trash
+    when: "wall.ok"
+    open: "{{wall.data.trash}}"
+  - separator
+  - {text: Quit, quit: true}

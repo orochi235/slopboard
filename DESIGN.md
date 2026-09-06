@@ -53,6 +53,21 @@ open -na "Google Chrome" --args \
 The separate profile keeps it out of the main browser's process pool so it
 doesn't get tab-discarded under memory pressure.
 
+## The menu bar widget
+
+`menubar.yaml` at the repo root, generated into a status-bar app by
+[perch](../perch). It reports and it opens things: the item count as a badge, a
+warning glyph when the daemon is not answering, one row per zone that opens
+that zone's folder, undo, and the inbox and trash.
+
+It cannot start the daemon, and that is a property of perch rather than a gap:
+an action is a subprocess it waits on, and `npm run dev:daemon` never returns.
+Starting the wall wants a LaunchAgent of its own.
+
+The two routes it polls — `/api/health` and `/api/zones` — hand back the
+inbox and trash paths and each zone's folder, so the YAML names no directory.
+That is what keeps a home directory out of a committed file.
+
 ## Arrangements
 
 An arrangement is how images enter, move over their life, and leave. Which one

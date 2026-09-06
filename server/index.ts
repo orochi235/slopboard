@@ -7,6 +7,7 @@ import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
 import { watchZoneColors } from './zoneColors.ts'
+import { zoneCounts } from './zoneCounts.ts'
 import type { ServerMessage } from '@shared/protocol.ts'
 
 await mkdir(config.inbox, { recursive: true })
@@ -80,7 +81,19 @@ app.post('/api/undo', async (_req, res) => {
 })
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, items: store.snapshot().length, ttlMs: config.ttlMs })
+  // The paths are here for anything that has to open a folder without being
+  // told where the wall keeps its files — the menu bar widget, today.
+  res.json({
+    ok: true,
+    items: store.snapshot().length,
+    ttlMs: config.ttlMs,
+    inbox: config.inbox,
+    trash: config.trash,
+  })
+})
+
+app.get('/api/zones', (_req, res) => {
+  res.json({ zones: zoneCounts(store.snapshot()) })
 })
 
 watchZoneColors((colors) => {
