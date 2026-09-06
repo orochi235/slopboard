@@ -1,7 +1,19 @@
+import type { Level } from '@shared/attention.ts'
+
 /** One LOD tier. `edge` of 0 means no texture — a flat quad in the average color. */
 export type LodTier = { maxRank: number; edge: 0 | 32 | 128 | 512 }
 
 export type Projection = 'orthographic' | 'perspective'
+
+/** How one attention level is drawn. */
+export type AttentionLevel = {
+  /** World units toward the viewer, in front of the pile's own front rank. */
+  lift: number
+  /** Screen pixels, like the other line widths. 0 draws no halo. */
+  haloWidth: number
+  /** Half the peak-to-peak scale swing. 0 is no pulse. */
+  pulseAmp: number
+}
 
 export type StackParams = {
   /** Per-rank offset within a pile, in world units. z is negative: away. */
@@ -55,13 +67,13 @@ export type StackParams = {
    * whether a flag is fresh or about to lapse.
    */
   attention: {
-    /** World units toward the viewer, in front of the pile's own front rank. */
-    lift: number
-    /** Half the peak-to-peak scale swing. 0 is no pulse. */
-    pulseAmp: number
+    /** Shared by every level: one wall-wide rhythm rather than four. */
     pulseHz: number
-    /** Screen pixels, like the other line widths. 0 draws no halo. */
-    haloWidth: number
+    /** World height of a badge's text, like a zone label's. */
+    badgeSize: number
+    /** One row per level, which is what makes a fifth level a row here rather
+     *  than a change to the ingest contract. */
+    levels: Record<Level, AttentionLevel>
   }
   zoneGrid: { gap: number; orientation: 'wide' | 'tall'; cols?: number; rows?: number }
   camera: {
@@ -156,8 +168,17 @@ export type StackParams = {
   colors: {
     /** Drawn into the scene, and turning with it. */
     cardEdge: string
-    /** The halo around an item asking to be looked at. */
-    attention: string
+    /** One per attention level. `look` sits outside the traffic-light ramp on
+     *  purpose: it is not a severity, so it must not read as the low end of
+     *  one. Nothing else on this wall uses green. */
+    attentionLook: string
+    attentionSoon: string
+    attentionUrgent: string
+    attentionProblem: string
+    /** Badge text. White carries the loud levels; the quiet ones ink their
+     *  own plate in the wall's dark. */
+    badgeInk: string
+    badgeInkQuiet: string
     zoneIdle: string
     zoneFocus: string
     zoneBackdrop: string
@@ -189,7 +210,18 @@ export const defaultParams: StackParams = {
   rankCap: 200,
   fade: { from: 0.88, to: 1 },
   distance: { enabled: true, from: 1, to: 22, floor: 0.12, combine: 'ceiling' },
-  attention: { lift: 0.2, pulseAmp: 0.02, pulseHz: 0.5, haloWidth: 2 },
+  attention: {
+    pulseHz: 0.5,
+    badgeSize: 0.026,
+    levels: {
+      // A bookmark, not an alarm: findable while scanning and quiet enough
+      // that a wall of them stays calm.
+      look: { lift: 0.06, haloWidth: 1.5, pulseAmp: 0 },
+      soon: { lift: 0.16, haloWidth: 2.5, pulseAmp: 0.012 },
+      urgent: { lift: 0.4, haloWidth: 4, pulseAmp: 0.05 },
+      problem: { lift: 0.4, haloWidth: 4, pulseAmp: 0.05 },
+    },
+  },
   zoneGrid: { gap: 0.02, orientation: 'wide' },
   camera: {
     projection: 'orthographic',
@@ -229,7 +261,12 @@ export const defaultParams: StackParams = {
   },
   colors: {
     cardEdge: '#22d3ee',
-    attention: '#fbbf24',
+    attentionLook: '#a3e635',
+    attentionSoon: '#fbbf24',
+    attentionUrgent: '#fb923c',
+    attentionProblem: '#e0796b',
+    badgeInk: '#ffffff',
+    badgeInkQuiet: '#0a0a0c',
     zoneIdle: '#64748b',
     zoneFocus: '#38bdf8',
     zoneBackdrop: '#64748b',

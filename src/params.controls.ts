@@ -28,10 +28,8 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'distance.from': [0, 200, 1],
   'distance.to': [0, 200, 1],
   'distance.floor': [0, 1, 0.01],
-  'attention.lift': [0, 1, 0.01],
-  'attention.pulseAmp': [0, 0.2, 0.002],
   'attention.pulseHz': [0, 3, 0.05],
-  'attention.haloWidth': [0, 12, 0.5],
+  'attention.badgeSize': [0.008, 0.12, 0.002],
   'zoneGrid.gap': [0, 1, 0.005],
   'zoneGrid.cols': [1, 12, 1],
   'zoneGrid.rows': [1, 12, 1],
@@ -72,6 +70,11 @@ const CHOICES: Record<string, readonly (number | string)[]> = {
  *  by suffix and the out-of-range guard below is what spares it a slider. */
 const BY_SUFFIX: Record<string, readonly [number, number, number]> = {
   maxRank: [0, 400, 1],
+  // One entry ranges the same knob on every attention level, so a fifth level
+  // needs no new control registration.
+  lift: [0, 1, 0.01],
+  haloWidth: [0, 12, 0.5],
+  pulseAmp: [0, 0.2, 0.002],
 }
 const EDGES = [0, 32, 128, 512] as const
 

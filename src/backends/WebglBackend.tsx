@@ -20,6 +20,8 @@ import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { toStackItems } from '@/model.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
+import { badgeTexture } from '@/textures/badge.ts'
+import type { Level } from '@shared/attention.ts'
 import { createGestureRail } from '@/nav/gesture.ts'
 import { directionFor, isForAControl } from '@/nav/keys.ts'
 import { neighbourOf } from '@/nav/neighbour.ts'
@@ -64,6 +66,9 @@ const PLAN_MS = 250
 /** How far the scene turns per pixel dragged. */
 const DEG_PER_PX = 0.25
 
+/** Clear of its own card, so the plate never z-fights the border it sits on. */
+const BADGE_LIFT = 0.002
+
 /** Movement past this is an orbit; anything less is the click it looks like. */
 const DRAG_SLOP_PX = 4
 
@@ -90,7 +95,23 @@ function Wall({
   const { gl, camera } = useThree()
   const cardEdges = params.overlay.cardEdges
   const cardEdgeColor = params.colors.cardEdge
-  const attentionColor = params.colors.attention
+  const levelColors: Record<Level, string> = {
+    look: params.colors.attentionLook,
+    soon: params.colors.attentionSoon,
+    urgent: params.colors.attentionUrgent,
+    problem: params.colors.attentionProblem,
+  }
+  // Which artifacts are asking, and what their badges say. Off the items
+  // rather than the channels: a level is a name and a note is a sentence,
+  // and `SlopChannels` carries numbers.
+  const flagged = useMemo(() => {
+    const out = new Map<string, { level: Level; note?: string }>()
+    for (const i of items) {
+      if (!i.attention) continue
+      out.set(i.id, { level: i.attention.level, ...(i.note ? { note: i.note } : {}) })
+    }
+    return out
+  }, [items])
   const huedCardEdge = params.zones.huedCardEdge
   // Parsed once per colour rather than per card per frame.
   const huedColors = useMemo(() => {
@@ -172,6 +193,44 @@ function Wall({
     [edges],
   )
 
+  const badges = useMemo(() => {
+    const byId = new Map<string, { sprite: THREE.Sprite; key: string; aspect: number }>()
+    return {
+      byId,
+      /** Rebuilt only when what it draws changes, so a per-frame call is free. */
+      sync(id: string, key: string, text: string, plate: string, ink: string) {
+        let held = byId.get(id)
+        if (!held) {
+          const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true }))
+          // The badge is a shortcut to its own artifact, so it takes a pick.
+          sprite.userData.slopId = id
+          sprite.userData.slopBadge = true
+          held = { sprite, key: '', aspect: 1 }
+          byId.set(id, held)
+        }
+        if (held.key !== key) {
+          held.sprite.material.map?.dispose()
+          const { texture, aspect } = badgeTexture(text, plate, ink)
+          held.sprite.material.map = texture
+          held.sprite.material.needsUpdate = true
+          held.key = key
+          held.aspect = aspect
+        }
+        return held
+      },
+    }
+  }, [])
+  useEffect(
+    () => () => {
+      for (const { sprite } of badges.byId.values()) {
+        sprite.material.map?.dispose()
+        sprite.material.dispose()
+      }
+      badges.byId.clear()
+    },
+    [badges],
+  )
+
   const latest = useRef({ items, ttlMs, clockOffset })
   latest.current = { items, ttlMs, clockOffset }
 
@@ -234,6 +293,9 @@ function Wall({
     }
   }
 
+  /** Set by the pick when a badge was what got hit, read and cleared by the
+   *  navigate that follows it. */
+  const badgeJump = useRef<readonly string[] | null>(null)
   const raycaster = useMemo(() => new THREE.Raycaster(), [])
   const zeroPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), [])
 
@@ -253,10 +315,17 @@ function Wall({
       camera,
     )
 
-    const hit = raycaster.intersectObjects([...meshes.current.values()], false)[0]
+    const targets: THREE.Object3D[] = [...meshes.current.values()]
+    for (const { sprite } of badges.byId.values()) if (sprite.visible) targets.push(sprite)
+    const hit = raycaster.intersectObjects(targets, false)[0]
     const id = hit?.object.userData.slopId as string | undefined
     const hitZone = id ? zoneById.current.get(id) : undefined
-    if (id && hitZone) return [hitZone, id]
+    if (id && hitZone) {
+      // A badge is a shortcut, not a rung: it goes straight to its artifact
+      // rather than spending the gesture descending one level.
+      if (hit?.object.userData.slopBadge) badgeJump.current = [hitZone, id]
+      return [hitZone, id]
+    }
 
     const point = new THREE.Vector3()
     if (!raycaster.ray.intersectPlane(zeroPlane, point)) return []
@@ -268,6 +337,9 @@ function Wall({
   /** One rung per gesture: across if the cursor is over another branch, down
    *  otherwise. Both the click and the wheel spend themselves through here. */
   const navigate = (chain: readonly string[]) => {
+    const jump = badgeJump.current
+    badgeJump.current = null
+    if (jump) return void dispatch({ type: 'to', path: jump })
     const next = stepToward(viewRef.current.path, chain)
     if (next) dispatch({ type: 'to', path: next })
   }
@@ -458,11 +530,13 @@ function Wall({
       const drawnW = aspect >= 1 ? side : side * aspect
       const drawnH = aspect >= 1 ? side / aspect : side
       const emphasis = ch.emphasis ?? 0
+      const flag = flagged.get(id)
+      const tier = params.attention.levels[flag?.level ?? 'look']
       // Breathing, so a flag is findable on a wall the eye is scanning. Scaled
-      // by emphasis, so an unflagged card is exactly as still as it ever was.
+      // by emphasis, so an unflagged artifact is exactly as still as it ever was.
       const pulse =
         1 +
-        params.attention.pulseAmp *
+        tier.pulseAmp *
           emphasis *
           Math.sin((tick / 1000) * 2 * Math.PI * params.attention.pulseHz)
       mesh.scale.set(drawnW * pulse, drawnH * pulse, 1)
@@ -474,7 +548,7 @@ function Wall({
       mesh.position.set(
         rect.x + drawnW / 2,
         -(rect.y + drawnH / 2),
-        rect.z + params.attention.lift * emphasis,
+        rect.z + tier.lift * emphasis,
       )
       mesh.rotation.set(ch.rotX ?? 0, ch.rotY ?? 0, ch.rotZ ?? 0)
 
@@ -487,22 +561,47 @@ function Wall({
       mat.opacity = ch.opacity ?? 1
       mat.transparent = true
 
+      const badge = badges.byId.get(id)
+      const wearsBadge = emphasis > 0 && !!flag?.note
+      if (badge || wearsBadge) {
+        const level = flag?.level ?? 'look'
+        const plate = levelColors[level]
+        // White carries the loud plates; the quiet ones ink themselves in the
+        // wall's own dark, which lime and amber are far too bright to take.
+        const ink =
+          level === 'urgent' || level === 'problem'
+            ? params.colors.badgeInk
+            : params.colors.badgeInkQuiet
+        const held = badges.sync(id, `${flag?.note ?? ''}|${plate}|${ink}`, flag?.note ?? '', plate, ink)
+        held.sprite.visible = wearsBadge
+        if (wearsBadge) {
+          const h = params.attention.badgeSize
+          const w = h * held.aspect
+          held.sprite.scale.set(w, h, 1)
+          // Sitting on the top border, left edges flush, so it reads as welded
+          // to the card rather than floating over it.
+          held.sprite.position.set(
+            rect.x + w / 2,
+            -rect.y + h / 2,
+            rect.z + tier.lift * emphasis + BADGE_LIFT,
+          )
+        }
+      }
+
       // Set here rather than in the memo, which cannot see a zone that arrived
       // since, and which does not know how far the card has faded.
       const edge = edges.byId.get(id)
       if (edge) {
         // The halo wins the line where both want it: a flagged card is not
         // also reporting its slot extent.
-        const halo = emphasis > 0 && params.attention.haloWidth > 0
+        const halo = emphasis > 0 && tier.haloWidth > 0
         edge.visible = halo || cardEdges
         const zone = zoneFor.get(id)
         const own = huedCardEdge && zone ? huedColors.get(zone) : undefined
-        if (halo) edge.material.color.set(attentionColor)
+        if (halo) edge.material.color.set(levelColors[flag?.level ?? 'look'])
         else if (own) edge.material.color.copy(own)
         else edge.material.color.set(cardEdgeColor)
-        edge.material.linewidth = halo
-          ? params.attention.haloWidth
-          : params.overlay.cardEdgeWidth
+        edge.material.linewidth = halo ? tier.haloWidth : params.overlay.cardEdgeWidth
         // The halo is the one thing the depth falloff must not mute.
         edge.material.opacity = halo ? Math.max(mat.opacity, emphasis) : mat.opacity
         setResolution(edge.material, gl)
@@ -559,6 +658,10 @@ function Wall({
   return (
     <group>
       {quads}
+      {live.map((id) => {
+        const held = badges.byId.get(id)
+        return held ? <primitive key={`badge-${id}`} object={held.sprite} /> : null
+      })}
       <ZoneOverlay
         cells={bases}
         zones={zoneNames}

@@ -13,6 +13,8 @@ export type WallItem = {
   ttlMs?: number
   /** Set when the item asks to be looked at. Absent is the ordinary case. */
   attention?: Attention
+  /** The badge a flagged item wears. Absent means it wears none. */
+  note?: string
   w: number
   h: number
 }

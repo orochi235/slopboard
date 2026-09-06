@@ -7,16 +7,30 @@ import { parseDuration } from './duration.ts'
  */
 export type Attention = { level: Level; holdMs: number | null }
 
-/** The treatments the wall knows. Adding one is an entry here and a row in the
- *  params table it drives — never a change to the ingest contract. */
-export const LEVELS = ['look'] as const
+/**
+ * The treatments the wall knows. Presets rather than points on a scale: a
+ * serious problem and a deadline are different kinds of asking, not different
+ * volumes of it, so there is no ordering between them to get wrong. Adding one
+ * is an entry here and a row in the params table it drives — never a change to
+ * the ingest contract.
+ */
+export const LEVELS = ['look', 'soon', 'urgent', 'problem'] as const
 export type Level = (typeof LEVELS)[number]
 
 const DEFAULT_LEVEL: Level = 'look'
 
-/** Long enough to survive stepping away from the desk, short enough that a
- *  day's worth of "look at this" is not still shouting in the evening. */
-export const DEFAULT_HOLD_MS = 600_000
+/**
+ * How long each level holds when the caller does not say. Null holds until
+ * someone dismisses it, which is right for everything except a deadline: a
+ * passed deadline is exactly when a card should stop asking, so `soon` is the
+ * one that lapses on its own.
+ */
+export const DEFAULT_HOLD: Record<Level, number | null> = {
+  look: null,
+  soon: 1_800_000,
+  urgent: null,
+  problem: null,
+}
 
 const UNTIL_DISMISSED = 'until-dismissed'
 
@@ -38,7 +52,7 @@ export function parseAttention(token: string): Attention | null {
 
   if (tail === null) {
     if (head === UNTIL_DISMISSED) return { level: DEFAULT_LEVEL, holdMs: null }
-    if (isLevel(head)) return { level: head, holdMs: DEFAULT_HOLD_MS }
+    if (isLevel(head)) return { level: head, holdMs: DEFAULT_HOLD[head] }
     const holdMs = parseDuration(head)
     return holdMs === null ? null : { level: DEFAULT_LEVEL, holdMs }
   }

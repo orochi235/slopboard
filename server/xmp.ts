@@ -9,6 +9,8 @@ export type Stamp = {
   /** How hard this asks to be looked at, as written: `look`, `30m`,
    *  `look:90s`, `until-dismissed`. Parsed at ingest, not here. */
   attention?: string
+  /** What the badge on a flagged card says. The agent's words, not the wall's. */
+  note?: string
 }
 
 const NS_SLOP = 'https://slopboard.local/ns/1.0/'

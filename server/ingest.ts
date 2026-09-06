@@ -82,6 +82,8 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     id,
     ...(ttlMs === null ? {} : { ttlMs }),
     ...(attention === null ? {} : { attention }),
+    // A note without a flag has nothing to hang on, so it is dropped with it.
+    ...(attention !== null && sidecar?.note ? { note: sidecar.note } : {}),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,
     zone,

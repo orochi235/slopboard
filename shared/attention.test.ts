@@ -1,9 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_HOLD_MS, emphasisAt, parseAttention } from './attention.ts'
+import { DEFAULT_HOLD, emphasisAt, parseAttention } from './attention.ts'
 
 describe('parseAttention', () => {
-  it('reads a bare level and holds it for the default', () => {
-    expect(parseAttention('look')).toEqual({ level: 'look', holdMs: DEFAULT_HOLD_MS })
+  it('reads a bare level and holds it for that level default', () => {
+    expect(parseAttention('look')).toEqual({ level: 'look', holdMs: null })
+    expect(parseAttention('problem')).toEqual({ level: 'problem', holdMs: null })
+  })
+
+  it('lapses only the deadline level on its own, since a passed deadline stops asking', () => {
+    expect(parseAttention('soon')).toEqual({ level: 'soon', holdMs: DEFAULT_HOLD.soon })
+    expect(DEFAULT_HOLD.soon).not.toBeNull()
+    for (const level of ['look', 'urgent', 'problem'] as const) {
+      expect(DEFAULT_HOLD[level]).toBeNull()
+    }
+  })
+
+  it('reads every level the wall knows', () => {
+    for (const level of ['look', 'soon', 'urgent', 'problem'] as const) {
+      expect(parseAttention(level)?.level).toBe(level)
+    }
   })
 
   it('reads a bare duration as the default level', () => {
