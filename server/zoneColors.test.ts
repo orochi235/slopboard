@@ -1,0 +1,64 @@
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+
+let slopRoot: string
+let projects: string
+
+beforeEach(async () => {
+  const base = await mkdtemp(join(tmpdir(), 'slop-zones-'))
+  slopRoot = join(base, 'slop')
+  projects = join(base, 'src')
+  await mkdir(join(slopRoot, 'zones'), { recursive: true })
+  await mkdir(projects, { recursive: true })
+  vi.resetModules()
+  process.env.SLOP_ROOT = slopRoot
+})
+
+afterEach(() => {
+  delete process.env.SLOP_ROOT
+})
+
+async function project(name: string, hued?: string) {
+  const root = join(projects, name)
+  await mkdir(root, { recursive: true })
+  if (hued !== undefined) await writeFile(join(root, '.hued'), hued)
+  await writeFile(join(slopRoot, 'zones', `${name}.json`), JSON.stringify({ root }))
+  return root
+}
+
+async function read() {
+  const { readZoneColors } = await import('./zoneColors.ts')
+  return readZoneColors()
+}
+
+test('takes a zone color from the recorded project .hued', async () => {
+  await project('weasel', 'background=#1b2a41  # navy\n')
+  expect(await read()).toEqual({ weasel: '#1b2a41' })
+})
+
+test('a zone whose project has no .hued has no entry', async () => {
+  await project('weasel', 'background=#1b2a41  # navy\n')
+  await project('wod')
+  expect(await read()).toEqual({ weasel: '#1b2a41' })
+})
+
+test('a record pointing at a directory that no longer exists is skipped', async () => {
+  await writeFile(
+    join(slopRoot, 'zones', 'ghost.json'),
+    JSON.stringify({ root: join(projects, 'gone') }),
+  )
+  expect(await read()).toEqual({})
+})
+
+test('an unparseable record does not lose the other zones', async () => {
+  await project('weasel', 'background=#1b2a41  # navy\n')
+  await writeFile(join(slopRoot, 'zones', 'half-written.json'), '{"root":')
+  expect(await read()).toEqual({ weasel: '#1b2a41' })
+})
+
+test('no zones directory yields no colors rather than throwing', async () => {
+  process.env.SLOP_ROOT = join(slopRoot, 'nonexistent')
+  await expect(read()).resolves.toEqual({})
+})

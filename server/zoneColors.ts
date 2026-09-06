@@ -1,45 +1,47 @@
 import chokidar from 'chokidar'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { config } from './config.ts'
 import { parseHued } from '../shared/hued.ts'
 
-const bindingsPath = join(config.root, 'bindings.json')
-
-type Binding = { zone: string }
+const zonesDir = join(config.root, 'zones')
 
 /**
- * A colour per zone, taken from the `.hued` file of the project bound to it.
- * The browser cannot read either file, so the daemon owns this and publishes
- * it; a zone with no binding or no `.hued` simply has no entry, and the wall
- * falls back to its own palette.
+ * A color per zone, taken from the `.hued` file of the project the zone's
+ * renders come from. `bin/slop` records that project on every send, so a repo
+ * appears here by rendering once and never by being registered. The browser
+ * cannot read either file, so the daemon owns this and publishes it; a zone
+ * with no record or no `.hued` simply has no entry, and the wall falls back to
+ * its own palette.
  */
 export async function readZoneColors(): Promise<Record<string, string>> {
-  let bindings: Record<string, Binding>
+  let names: string[]
   try {
-    bindings = JSON.parse(await readFile(bindingsPath, 'utf8'))
+    names = (await readdir(zonesDir)).filter((n) => n.endsWith('.json'))
   } catch {
     return {}
   }
 
   const out: Record<string, string> = {}
   await Promise.all(
-    Object.entries(bindings).map(async ([path, binding]) => {
-      const zone = binding?.zone ?? basename(path)
+    names.map(async (name) => {
+      const zone = basename(name, '.json')
       try {
-        const hued = parseHued(await readFile(join(path, '.hued'), 'utf8'))
+        const { root } = JSON.parse(await readFile(join(zonesDir, name), 'utf8'))
+        if (typeof root !== 'string' || !root) return
+        const hued = parseHued(await readFile(join(root, '.hued'), 'utf8'))
         if (hued.background) out[zone] = hued.background
       } catch {
-        // No .hued, or an unreadable project directory. Not an error: most
-        // zones are not bound to a project at all.
+        // No `.hued`, an unreadable project directory, or a record written
+        // half-way through a send. Not an error: most zones have no color.
       }
     }),
   )
   return out
 }
 
-/** Re-reads whenever the bindings or any bound project's `.hued` changes, so
- *  recolouring a project reaches the wall without restarting the daemon. */
+/** Re-reads whenever a zone record or any recorded project's `.hued` changes,
+ *  so recoloring a project reaches the wall without restarting the daemon. */
 export function watchZoneColors(onChange: (colors: Record<string, string>) => void) {
   let watcher: ReturnType<typeof chokidar.watch> | null = null
 
@@ -47,15 +49,24 @@ export function watchZoneColors(onChange: (colors: Record<string, string>) => vo
     const colors = await readZoneColors()
     onChange(colors)
 
-    let bindings: Record<string, Binding> = {}
+    const roots: string[] = []
     try {
-      bindings = JSON.parse(await readFile(bindingsPath, 'utf8'))
+      const names = (await readdir(zonesDir)).filter((n) => n.endsWith('.json'))
+      await Promise.all(
+        names.map(async (name) => {
+          try {
+            const { root } = JSON.parse(await readFile(join(zonesDir, name), 'utf8'))
+            if (typeof root === 'string' && root) roots.push(join(root, '.hued'))
+          } catch {
+            // Unreadable record; nothing to watch for it.
+          }
+        }),
+      )
     } catch {
-      bindings = {}
+      // No zones directory yet. Watching it still picks one up when it appears.
     }
-    const hueds = Object.keys(bindings).map((path) => join(path, '.hued'))
     await watcher?.close()
-    watcher = chokidar.watch([bindingsPath, ...hueds], { ignoreInitial: true })
+    watcher = chokidar.watch([zonesDir, ...roots], { ignoreInitial: true })
     watcher.on('all', () => void rescan())
   }
 

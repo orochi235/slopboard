@@ -428,13 +428,25 @@ bumps it re-ages every item the daemon re-adopts — and with `tsx watch`
 restarting on every server edit, nothing would ever expire while the server is
 being worked on.
 
-**Binding a repo** is a skill (`skills/slopboard/`, symlinked into the harness
-skill directories). It writes a standing instruction into the repo's
-uncommitted `CLAUDE.local.md` telling future agents to send renders here and to
-stop opening them in Preview — which is the point, but note it deliberately
-overrides the global "always open the image" preference inside that repo, and
-nowhere else. `~/slop/bindings.json` records what is bound so unbind can reverse
-it exactly; it is a record, never the source of truth for agent behavior.
+**The wall is the default in every repo, not something a repo opts into.** Each
+harness `CLAUDE.md` says renders go to `bin/slop` and not to Preview, so a repo
+is on the wall the first time it renders — no install, no registration, nothing
+to forget when a repo is created. Per-repo binding was the earlier model and
+scaled the wrong way: eighty repos meant eighty standing instructions to write
+and to keep, and repo eighty-one was silently invisible until someone noticed.
+The skill (`skills/slopboard/`, symlinked into the harness skill directories)
+now only writes the exceptions — Preview back for one repo, or a zone name that
+isn't the directory's.
+
+**Zones self-register, because the daemon needs a path the image doesn't carry.**
+A zone colored by its project's `.hued` means mapping a zone back to a working
+copy, and the inbox holds only the images. So `bin/slop` writes
+`~/slop/zones/<zone>.json` recording the directory it ran in, on every send.
+One file per zone rather than a shared registry: two concurrent sends both
+read-modify-writing one JSON file lose each other's entry, and the failure looks
+like a zone that intermittently forgets its color. A record whose directory has
+gone, or that is caught half-written, drops that zone's color and never the
+others'.
 
 ## Rescue, expiry, and the trash
 

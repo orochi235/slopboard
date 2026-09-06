@@ -71,8 +71,17 @@ write_sidecar() {
 
 if [ "${1:-}" = "--print-zone" ]; then echo "$zone"; exit 0; fi
 
-dir="${SLOP_ROOT:-$HOME/slop}/inbox/$zone"
+slop_root="${SLOP_ROOT:-$HOME/slop}"
+dir="$slop_root/inbox/$zone"
 mkdir -p "$dir"
+
+# Where this zone's renders come from, so the daemon can find the project's
+# `.hued` and color the zone. One file per zone, rewritten on every send: a
+# shared registry would be a read-modify-write that two concurrent sends lose.
+zones_dir="$slop_root/zones"
+mkdir -p "$zones_dir"
+tmp="$zones_dir/.$zone.$$"
+printf '{"root":"%s"}\n' "$(json_escape "$root")" > "$tmp" && mv "$tmp" "$zones_dir/$zone.json"
 
 if [ $# -eq 0 ]; then
   dest="$dir/$(uuidgen)$suffix.png"
