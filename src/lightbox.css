@@ -8,12 +8,21 @@
   cursor: zoom-out;
 }
 
+/* A frame the artifact itself cannot contain, so a screenshot of the wall is
+   never mistaken for the wall: an accent keyline and a glow that bleeds beyond
+   the image's own edge. Whatever is inside the picture stops at the picture. */
 .lightbox__img {
   max-width: 94vw;
   max-height: 94vh;
   cursor: default;
   opacity: 0;
   transition: opacity 180ms ease-out;
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--scrim) 60%, transparent),
+    0 0 28px 6px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 0 90px 24px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .lightbox__img--in {

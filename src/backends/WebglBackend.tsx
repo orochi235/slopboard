@@ -208,33 +208,63 @@ function Wall({
   )
 
   const badges = useMemo(() => {
-    const byId = new Map<string, { sprite: THREE.Sprite; key: string; aspect: number }>()
+    const quad = new THREE.PlaneGeometry(1, 1)
+    const byId = new Map<string, { plate: THREE.Mesh; key: string; w: number; h: number }>()
     return {
+      quad,
       byId,
       /** Rebuilt only when what it draws changes, so a per-frame call is free. */
-      sync(id: string, key: string, text: string, plate: string, ink: string, font: string) {
+      sync(
+        id: string,
+        key: string,
+        text: string,
+        fill: string,
+        ink: string,
+        font: string,
+        lineHeight: number,
+        maxWidth: number,
+      ) {
         let held = byId.get(id)
         if (!held) {
-          // Signage, not scenery: it composites over the wall rather than
-          // sorting into it, so a nearer pile cannot bury the thing that is
-          // asking to be looked at.
-          const sprite = new THREE.Sprite(
-            new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false }),
+          // A plane rather than a sprite, so the badge lies in its artifact's
+          // own plane and turns with the wall. A sprite always faces the
+          // camera, which peeled it off the card as soon as the scene rotated.
+          const plate = new THREE.Mesh(
+            quad,
+            // Signage, not scenery: it composites over the wall rather than
+            // sorting into it, so a nearer pile cannot bury the thing that is
+            // asking to be looked at.
+            new THREE.MeshBasicMaterial({
+              transparent: true,
+              depthTest: false,
+              depthWrite: false,
+              toneMapped: false,
+              side: THREE.DoubleSide,
+            }),
           )
-          sprite.renderOrder = CHROME_ORDER
+          plate.renderOrder = CHROME_ORDER
           // The badge is a shortcut to its own artifact, so it takes a pick.
-          sprite.userData.slopId = id
-          sprite.userData.slopBadge = true
-          held = { sprite, key: '', aspect: 1 }
+          plate.userData.slopId = id
+          plate.userData.slopBadge = true
+          held = { plate, key: '', w: 0, h: 0 }
           byId.set(id, held)
         }
         if (held.key !== key) {
-          held.sprite.material.map?.dispose()
-          const { texture, aspect } = badgeTexture(text, plate, ink, font)
-          held.sprite.material.map = texture
-          held.sprite.material.needsUpdate = true
+          const material = held.plate.material as THREE.MeshBasicMaterial
+          material.map?.dispose()
+          const { texture, width, height } = badgeTexture(
+            text,
+            fill,
+            ink,
+            font,
+            lineHeight,
+            maxWidth,
+          )
+          material.map = texture
+          material.needsUpdate = true
           held.key = key
-          held.aspect = aspect
+          held.w = width
+          held.h = height
         }
         return held
       },
@@ -242,10 +272,12 @@ function Wall({
   }, [])
   useEffect(
     () => () => {
-      for (const { sprite } of badges.byId.values()) {
-        sprite.material.map?.dispose()
-        sprite.material.dispose()
+      for (const { plate } of badges.byId.values()) {
+        const material = plate.material as THREE.MeshBasicMaterial
+        material.map?.dispose()
+        material.dispose()
       }
+      badges.quad.dispose()
       badges.byId.clear()
     },
     [badges],
@@ -343,7 +375,7 @@ function Wall({
     )
 
     const targets: THREE.Object3D[] = [...meshes.current.values()]
-    for (const { sprite } of badges.byId.values()) if (sprite.visible) targets.push(sprite)
+    for (const { plate } of badges.byId.values()) if (plate.visible) targets.push(plate)
     const hit = raycaster.intersectObjects(targets, false)[0]
     const id = hit?.object.userData.slopId as string | undefined
     const hitZone = id ? zoneById.current.get(id) : undefined
@@ -377,7 +409,7 @@ function Wall({
     if (flags.size === 0) return null
     const targets: THREE.Object3D[] = []
     for (const [id, mesh] of meshes.current) if (flags.has(id)) targets.push(mesh)
-    for (const { sprite } of badges.byId.values()) if (sprite.visible) targets.push(sprite)
+    for (const { plate } of badges.byId.values()) if (plate.visible) targets.push(plate)
     if (targets.length === 0) return null
 
     const rect = gl.domElement.getBoundingClientRect()
@@ -636,32 +668,42 @@ function Wall({
       const wearsBadge = emphasis > 0 && !!flag?.note
       if (badge || wearsBadge) {
         const level = flag?.level ?? 'look'
-        const plate = levelColors[level]
-        // White carries the loud plates; the quiet ones ink themselves in the
-        // wall's own dark, which lime and amber are far too bright to take.
+        const fill = levelColors[level]
         // Only the red plate is dark enough to need white; lime, amber and
         // orange all read best with black on them.
         const ink = level === 'problem' ? params.colors.badgeInk : params.colors.badgeInkQuiet
+        // A badge may run past its own artifact's right edge, as far as the
+        // next zone begins — a note is worth more than the tidiness of a plate
+        // that stops where the picture does.
+        const base = zoneFor.get(id) ? bases.current.get(zoneFor.get(id)!) : undefined
+        const runsTo = base ? base.x + base.w + params.zoneGrid.gap : rect.x + side
         const held = badges.sync(
           id,
-          `${flag?.note ?? ''}|${plate}|${ink}|${family}|${fontsReady}`,
+          `${flag?.note ?? ''}|${fill}|${ink}|${family}|${fontsReady}|${params.attention.badgeSize}`,
           flag?.note ?? '',
-          plate,
+          fill,
           ink,
           family,
+          params.attention.badgeSize,
+          Math.max(params.attention.badgeSize, runsTo - rect.x),
         )
-        held.sprite.visible = wearsBadge
+        held.plate.visible = wearsBadge
         if (wearsBadge) {
-          const h = params.attention.badgeSize
-          const w = h * held.aspect
-          held.sprite.scale.set(w, h, 1)
-          // Sitting on the top border, left edges flush, so it reads as welded
-          // to the card rather than floating over it.
-          held.sprite.position.set(
-            rect.x + w / 2,
-            -rect.y + h / 2,
-            rect.z + tier.lift * emphasis + BADGE_LIFT,
-          )
+          const { w, h } = held
+          held.plate.scale.set(w, h, 1)
+          held.plate.rotation.copy(mesh.rotation)
+          // Measured in the card's own frame and then turned with it, so the
+          // badge stays welded to the top border from every angle rather than
+          // sliding off it as the wall turns. Left edges flush.
+          held.plate.position
+            .copy(mesh.position)
+            .add(
+              new THREE.Vector3(
+                (w - drawnW * swell) / 2,
+                (drawnH * swell + h) / 2,
+                BADGE_LIFT,
+              ).applyEuler(mesh.rotation),
+            )
         }
       }
 
@@ -740,7 +782,7 @@ function Wall({
       {quads}
       {live.map((id) => {
         const held = badges.byId.get(id)
-        return held ? <primitive key={`badge-${id}`} object={held.sprite} /> : null
+        return held ? <primitive key={`badge-${id}`} object={held.plate} /> : null
       })}
       <ZoneOverlay
         cells={bases}
