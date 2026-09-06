@@ -33,6 +33,7 @@ import { createGestureRail } from '@/nav/gesture.ts'
 import { directionFor, isForAControl } from '@/nav/keys.ts'
 import { neighbourOf } from '@/nav/neighbour.ts'
 import { zoneAt } from '@/nav/pick.ts'
+import { choose, makeGrid, mark, score, type Box } from '@/nav/whitespace.ts'
 import { stepFromDrag } from '@/nav/step-drag.ts'
 import { stepToward } from '@/nav/step.ts'
 import { baseCellsOf, unionOf, withHeadroom, zoneCellsOf } from '@/nav/zone-cells.ts'
@@ -82,6 +83,27 @@ const DRAG_SLOP_PX = 4
 
 /** `PointerEvent.button` for the wheel pressed as a button. */
 const MIDDLE_BUTTON = 1
+
+/** The corners of a unit quad, for turning a plane into a screen rectangle. */
+const CORNERS = [
+  [-1, -1],
+  [1, -1],
+  [1, 1],
+  [-1, 1],
+] as const
+
+/** Where a plate is willing to look, in its own card's plane. Up first, so a
+ *  tie on an empty wall reads the way the welded badge did. */
+const SEEK_DIRS = [
+  [0, 1],
+  [-1, 1],
+  [1, 1],
+  [1, 0],
+  [-1, 0],
+  [-1, -1],
+  [1, -1],
+  [0, -1],
+] as const
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
@@ -481,6 +503,16 @@ function Wall({
     return rank < 0 ? null : rank
   }
 
+  /** Where each plate has chosen to sit, as an offset in its own card's plane.
+   *  Held between hunts so the plate stays put while the grid is stale. */
+  const plateAt = useRef(new Map<string, { dx: number; dy: number; ring: number }>())
+  /** Where each plate actually is, and how fast, as the spring drives it
+   *  toward the spot above. Separate from the target so a plate that has just
+   *  changed its mind travels rather than teleports. */
+  const plateMotion = useRef(new Map<string, { x: number; y: number; vx: number; vy: number }>())
+  const seekAt = useRef(0)
+  const grid = useMemo(() => makeGrid(48, 27), [])
+
   /** The rank of the card under a live drag, or null. Read by the wheel. */
   const movingRank = useRef<number | null>(null)
   const stepDrag = useRef(params.nav.dragCardSetsStep)
@@ -671,7 +703,7 @@ function Wall({
     return () => window.removeEventListener('keydown', onKey)
   }, [dispatch])
 
-  useFrame(() => {
+  useFrame((_state, delta) => {
     const current = latest.current
     const now = Date.now() + current.clockOffset
     const model = toStackItems(current.items, { now, ttlMs: current.ttlMs })
@@ -746,6 +778,119 @@ function Wall({
       }
     }
     const leaderPoints = new Map<Level, number[]>()
+
+    // Where the plates go, hunted on a cadence rather than per frame: the
+    // answer moves with the camera, and re-asking every frame would have them
+    // crawling around the wall while it turns. Reads the meshes as the last
+    // frame left them, which is a frame stale and invisible at this rate.
+    const nowMs = performance.now()
+    if (
+      params.attention.seek &&
+      params.attention.float &&
+      nowMs - seekAt.current > params.attention.seekMs
+    ) {
+      seekAt.current = nowMs
+      grid.cells.fill(0)
+      const scratch = new THREE.Vector3()
+      const boxOfPlane = (
+        object: THREE.Object3D,
+        hw: number,
+        hh: number,
+        dx: number,
+        dy: number,
+      ): Box => {
+        let x0 = Infinity
+        let y0 = Infinity
+        let x1 = -Infinity
+        let y1 = -Infinity
+        for (const [ox, oy] of CORNERS) {
+          scratch
+            .set((ox as number) * hw + dx, (oy as number) * hh + dy, 0)
+            .applyEuler(object.rotation)
+            .add(object.position)
+            .project(camera)
+          const sx = (scratch.x + 1) / 2
+          const sy = (1 - scratch.y) / 2
+          if (sx < x0) x0 = sx
+          if (sx > x1) x1 = sx
+          if (sy < y0) y0 = sy
+          if (sy > y1) y1 = sy
+        }
+        return { x0, y0, x1, y1 }
+      }
+
+      for (const mesh of meshes.current.values()) {
+        if (!mesh.visible) continue
+        mark(grid, boxOfPlane(mesh, mesh.scale.x / 2, mesh.scale.y / 2, 0, 0))
+      }
+
+      // In pile order, so the answer is the same every pass and an earlier
+      // plate is something a later one has to avoid.
+      for (const ids of cardsByZone.current.values()) {
+        for (const id of ids) {
+          if (!shelf.has(id)) continue
+          const mesh = meshes.current.get(id)
+          const held = badges.byId.get(id)
+          if (!mesh || !held) continue
+          const hw = mesh.scale.x / 2
+          const hh = mesh.scale.y / 2
+          const gap = params.attention.floatGap
+          const offsets: { dx: number; dy: number; ring: number; box: Box; cost: number }[] = []
+          for (const [ux, uy] of SEEK_DIRS) {
+            for (let d = 1; d <= params.attention.seekReach; d++) {
+              const dx = (ux as number) * (hw + held.w / 2 + gap) * d
+              const dy = (uy as number) * (hh + held.h / 2 + gap) * d
+              // Straight up and touching is the one spot that needs no line
+              // back to the artifact, so it is the only one that does not pay
+              // for one. A plate stays welded unless moving buys more.
+              const welded = (ux as number) === 0 && (uy as number) === 1 && d === 1
+              offsets.push({
+                dx,
+                dy,
+                ring: d,
+                box: boxOfPlane(mesh, held.w / 2, held.h / 2, dx, dy),
+                cost:
+                  Math.hypot(dx, dy) * params.attention.seekPull +
+                  (welded ? 0 : params.attention.seekLineCost),
+              })
+            }
+          }
+          const pick = choose(
+            grid,
+            offsets.map((o) => ({ box: o.box, cost: o.cost })),
+          )
+          const won = offsets[pick]
+          if (!won) continue
+
+          // What it would cost to stay put. A plate only moves for a spot that
+          // is better by a margin, so two near-equal spots cannot trade it back
+          // and forth every pass.
+          const holding = plateAt.current.get(id)
+          const holdBox = holding
+            ? boxOfPlane(mesh, held.w / 2, held.h / 2, holding.dx, holding.dy)
+            : null
+          const holdWelded = holding ? holding.ring === 1 && holding.dx === 0 && holding.dy > 0 : false
+          const holdCost =
+            holdBox && holding
+              ? score(grid, holdBox) +
+                Math.hypot(holding.dx, holding.dy) * params.attention.seekPull +
+                (holdWelded ? 0 : params.attention.seekLineCost)
+              : Infinity
+          const wonCost = score(grid, won.box) + won.cost
+          const moves = wonCost + params.attention.seekHysteresis < holdCost
+          if (moves || !holding) plateAt.current.set(id, { dx: won.dx, dy: won.dy, ring: won.ring })
+          mark(grid, moves || !holdBox ? won.box : holdBox, params.attention.seekPlateCost)
+        }
+      }
+
+      // A wall that runs all day sheds artifacts constantly, and neither map
+      // is keyed on anything that expires on its own.
+      for (const id of plateAt.current.keys()) {
+        if (shelf.has(id)) continue
+        plateAt.current.delete(id)
+        plateMotion.current.delete(id)
+      }
+    }
 
     const liveZones = [...new Set(model.map((m) => m.zone))]
     const focused = zoneOf(view)
@@ -844,14 +989,41 @@ function Wall({
           // the plate reads as a face of the artifact rather than as a sticker
           // floating in front of the wall.
           held.plate.rotation.copy(mesh.rotation)
+          // Where the hunt put it, if it ran. Otherwise the shelf: plates
+          // stacked on the zone's top border, left edges flush with the zone's,
+          // which is the arrangement the hunt falls back to on an empty wall
+          // anyway because "up" is the first direction it tries.
+          const hunted = params.attention.seek ? plateAt.current.get(id) : undefined
+          let eased: { x: number; y: number } | undefined
+          if (hunted) {
+            let m = plateMotion.current.get(id)
+            if (!m) {
+              // Born on its own card, so a new plate grows out of the artifact
+              // rather than appearing somewhere else on the wall.
+              m = { x: 0, y: 0, vx: 0, vy: 0 }
+              plateMotion.current.set(id, m)
+            }
+            // Clamped: a tab that has been asleep hands back a delta measured
+            // in seconds, and the spring would fling the plate off the wall.
+            const dt = Math.min(delta, 1 / 30)
+            const k = params.attention.seekStiffness
+            const c = params.attention.seekDamping
+            m.vx += ((hunted.dx - m.x) * k - m.vx * c) * dt
+            m.vy += ((hunted.dy - m.y) * k - m.vy * c) * dt
+            m.x += m.vx * dt
+            m.y += m.vy * dt
+            eased = m
+          }
           const shelfY =
             -base.y + params.attention.floatLift + slot * (h + params.attention.floatGap) + h / 2
-          // Left edges flush with the zone's, so the shelf reads as a stack of
-          // rows belonging to the pile rather than as plates scattered over it.
-          const offset = new THREE.Vector3(
-            base.x + w / 2 - mesh.position.x,
-            shelfY - mesh.position.y,
-            BADGE_LIFT,
+          const offset = (
+            eased
+              ? new THREE.Vector3(eased.x, eased.y, BADGE_LIFT)
+              : new THREE.Vector3(
+                  base.x + w / 2 - mesh.position.x,
+                  shelfY - mesh.position.y,
+                  BADGE_LIFT,
+                )
           ).applyEuler(mesh.rotation)
           held.plate.position.copy(mesh.position).add(offset)
           // Down to the top of the card, so the line says which artifact is
@@ -859,15 +1031,23 @@ function Wall({
           // the mesh rather than the rect: a flagged card stands `tier.lift`
           // forward of its rank, and a line drawn to the rect's own z lands
           // behind the card it is pointing at.
-          if (!noLeader.has(id)) {
+          // A plate resting directly on top of its own card needs no line:
+          // there is nothing for one to disambiguate. Anything that has moved
+          // off the card gets one, however it got there.
+          const resting = hunted
+            ? hunted.ring === 1 && hunted.dx === 0 && Math.abs(eased?.x ?? 0) < h / 4
+            : noLeader.has(id)
+          if (!resting) {
             // From the plate's own bottom edge, wherever its card's plane put
             // it, to the top of the card. Read off the meshes rather than the
             // rects: a flagged card stands `tier.lift` forward of its rank, and
             // a line drawn to the rect's own z lands behind the card it points
             // at.
+            // The edge of the plate that faces its card, so the line never
+            // crosses the plate it comes from.
             const foot = new THREE.Vector3(
-              params.attention.badgeSize - w / 2,
-              -h / 2,
+              clamp(mesh.position.x - held.plate.position.x, -w / 2, w / 2),
+              clamp(mesh.position.y - held.plate.position.y, -h / 2, h / 2),
               0,
             ).applyEuler(held.plate.rotation)
             const head = new THREE.Vector3(0, (drawnH * swell * pulse) / 2, 0).applyEuler(
@@ -931,6 +1111,10 @@ function Wall({
       line.visible = !!points
       if (!points) continue
       line.geometry.setPositions(points)
+      // setPositions leaves the instance count from whichever frame had the
+      // most segments, so a frame with fewer draws past the end of its own
+      // buffer. Six numbers is one segment: two endpoints.
+      line.geometry.instanceCount = points.length / 6
       line.material.color.set(levelColors[level])
       line.material.linewidth = params.attention.leaderWidth
       setResolution(line.material, gl)

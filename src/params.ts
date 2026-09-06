@@ -95,6 +95,38 @@ export type StackParams = {
     floatGap: number
     /** Width of the line back to the artifact, in screen pixels. */
     leaderWidth: number
+    /** Plates hunt for the emptiest part of the screen near their artifact
+     *  rather than always standing on the zone's top border. */
+    seek: boolean
+    /** How often the hunt runs, in ms. Not every frame: the answer would
+     *  change under a moving camera and the plates would crawl. */
+    seekMs: number
+    /** How many plate-widths out a plate may go looking. */
+    seekReach: number
+    /** What a plate pays per world unit of distance from its artifact, against
+     *  the busyness it saves by moving. Zero makes it take the emptiest spot on
+     *  screen however far away that is. */
+    seekPull: number
+    /** What one plate already placed costs a later one that would overlap it.
+     *  Well above `seekLineCost`, because two plates on top of each other
+     *  leaves neither readable, where a plate over a picture is merely untidy.
+     *  This is what decides that a plate moves at all. */
+    seekPlateCost: number
+    /** What a plate pays for any placement that needs a line back to its
+     *  artifact. Only the spot resting on the card needs none, so this is what
+     *  keeps a plate welded unless moving buys more than the line costs. */
+    seekLineCost: number
+    /** How much better a new spot has to score before a plate will leave the
+     *  one it is in. Without it two near-equal spots trade the plate back and
+     *  forth every pass, which reads as a twitch. */
+    seekHysteresis: number
+    /** The spring pulling a plate toward the spot it has chosen. A plate is
+     *  never moved outright: it is driven there, so a wall settling reads as
+     *  motion rather than as a jump. */
+    seekStiffness: number
+    /** Damping on that spring. Around twice the square root of the stiffness
+     *  arrives without overshooting; below that a plate bounces. */
+    seekDamping: number
     /** One row per level, which is what makes a fifth level a row here rather
      *  than a change to the ingest contract. */
     levels: Record<Level, AttentionLevel>
@@ -278,6 +310,15 @@ export const defaultParams: StackParams = {
     floatLift: 0,
     floatGap: 0.012,
     leaderWidth: 1.5,
+    seek: true,
+    seekMs: 220,
+    seekReach: 3,
+    seekPull: 90,
+    seekPlateCost: 90,
+    seekLineCost: 140,
+    seekHysteresis: 8,
+    seekStiffness: 26,
+    seekDamping: 10,
     levels: {
       // A bookmark, not an alarm: findable while scanning and quiet enough
       // that a wall of them stays calm, and still enough not to nag.
