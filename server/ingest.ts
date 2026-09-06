@@ -1,6 +1,5 @@
 import chokidar from 'chokidar'
 import sharp from 'sharp'
-import { randomUUID } from 'node:crypto'
 import { mkdir, stat, rename, utimes, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, extname } from 'node:path'
 import { config } from './config.ts'
@@ -8,6 +7,7 @@ import * as store from './store.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
+import { idFor } from './itemId.ts'
 import { readStamp } from './sidecar.ts'
 import { parseAttention } from '@shared/attention.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
@@ -42,7 +42,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   if (!IMAGE_EXT.has(extname(sourcePath).toLowerCase())) return null
   if (store.has(sourcePath)) return null
 
-  const id = randomUUID()
+  const id = idFor(sourcePath)
   const cachePath = join(config.cache, `${id}.webp`)
   await mkdir(config.cache, { recursive: true })
 

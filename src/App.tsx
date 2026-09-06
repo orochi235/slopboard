@@ -4,6 +4,7 @@ import { arrangementsFor } from '@/arrangements/index.ts'
 import { backendFrom } from '@/backend-flag.ts'
 import { DomBackend } from '@/backends/DomBackend.tsx'
 import { WebglBackend } from '@/backends/WebglBackend.tsx'
+import { ParallaxModal } from '@/ParallaxModal.tsx'
 import { ParamsPanel } from '@/Params.tsx'
 import { Prefs } from '@/Prefs.tsx'
 import { layoutKeyOf } from '@/params.layout.ts'
@@ -90,6 +91,7 @@ export function App() {
         />
       )}
       {backend === 'webgl' && <ParamsPanel params={params} onChange={setParams} />}
+      <ParallaxModal />
       {prefs && <Prefs params={params} onChange={setParams} onClose={() => setPrefs(false)} />}
       <div className={`hud ${flash ? 'hud--flash' : ''}`}>
         <span className="hud__name">{arrangement.name}</span>
