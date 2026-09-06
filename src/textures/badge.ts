@@ -1,14 +1,18 @@
 import * as THREE from 'three'
+import { wrapLines } from '@/textures/text.ts'
 
 /** Drawn at a fixed pixel height and scaled in world units by the caller, so a
  *  badge stays crisp at any camera distance the wall actually uses. */
-const PX = 72
-const PAD_X = 22
-const PAD_Y = 12
-/** Long enough to say what is wrong, short enough to read across a room. */
-const MAX_CHARS = 42
+const PX = 160
+const PAD_X = 48
+const PAD_Y = 26
+const LINE = 1.18
+/** Long enough to say what is wrong, short enough to read across a room. A
+ *  plate wider than this stops being signage and starts being a paragraph. */
+const MAX_WIDTH = PX * 9
+const MAX_LINES = 2
 
-const RADIUS = 10
+const RADIUS = 22
 
 /**
  * A filled plate with one line of text: what a flagged card wears on its top
@@ -21,14 +25,15 @@ export function badgeTexture(
   ink: string,
   family: string,
 ): { texture: THREE.CanvasTexture; aspect: number } {
-  const shown = text.length > MAX_CHARS ? `${text.slice(0, MAX_CHARS - 1)}…` : text
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
   const font = `600 ${PX}px ${family}`
 
   ctx.font = font
-  canvas.width = Math.ceil(ctx.measureText(shown).width) + PAD_X * 2
-  canvas.height = PX + PAD_Y * 2
+  const lines = wrapLines(ctx, text, MAX_WIDTH, MAX_LINES)
+  const widest = Math.max(...lines.map((l) => ctx.measureText(l).width))
+  canvas.width = Math.ceil(widest) + PAD_X * 2
+  canvas.height = Math.ceil(PX * LINE * lines.length) + PAD_Y * 2
 
   // Sizing the canvas resets the context, so everything is set again here.
   ctx.font = font
@@ -48,7 +53,9 @@ export function badgeTexture(
   ctx.fill()
 
   ctx.fillStyle = ink
-  ctx.fillText(shown, PAD_X, canvas.height / 2 + 2)
+  const step = PX * LINE
+  const top = (canvas.height - step * lines.length) / 2
+  lines.forEach((line, i) => ctx.fillText(line, PAD_X, top + step * (i + 0.5)))
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace

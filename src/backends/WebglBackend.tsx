@@ -251,6 +251,11 @@ function Wall({
     [badges],
   )
 
+  const flaggedRef = useRef(flagged)
+  flaggedRef.current = flagged
+  /** The flagged artifact under the pointer, badge included. */
+  const hovered = useRef<string | null>(null)
+
   const latest = useRef({ items, ttlMs, clockOffset })
   latest.current = { items, ttlMs, clockOffset }
 
@@ -315,9 +320,9 @@ function Wall({
     }
   }
 
-  /** Set by the pick when a badge was what got hit, read and cleared by the
+  /** Set by the pick when what it hit was flagged, read and cleared by the
    *  navigate that follows it. */
-  const badgeJump = useRef<readonly string[] | null>(null)
+  const jumpTo = useRef<readonly string[] | null>(null)
   const raycaster = useMemo(() => new THREE.Raycaster(), [])
   const zeroPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), [])
 
@@ -343,9 +348,12 @@ function Wall({
     const id = hit?.object.userData.slopId as string | undefined
     const hitZone = id ? zoneById.current.get(id) : undefined
     if (id && hitZone) {
-      // A badge is a shortcut, not a rung: it goes straight to its artifact
-      // rather than spending the gesture descending one level.
-      if (hit?.object.userData.slopBadge) badgeJump.current = [hitZone, id]
+      // Anything wearing a flag is a shortcut, not a rung: it goes straight to
+      // its artifact rather than spending the gesture descending one level.
+      // The badge and the card it is welded to behave identically.
+      if (hit?.object.userData.slopBadge || flaggedRef.current.has(id)) {
+        jumpTo.current = [hitZone, id]
+      }
       return [hitZone, id]
     }
 
@@ -356,11 +364,22 @@ function Wall({
     return zone ? [zone] : []
   }
 
-  /** Whether a badge is under the pointer. Its own test rather than a read of
-   *  `chainAt`, which answers for the whole wall and would report every card. */
-  const badgeAt = (clientX: number, clientY: number): boolean => {
-    const shown = [...badges.byId.values()].filter((b) => b.sprite.visible)
-    if (shown.length === 0) return false
+  /**
+   * The flagged artifact under the pointer, or null. A badge counts as part of
+   * its own artifact's frame — it is welded to the border, so hitting it has to
+   * mean the same thing as hitting the card.
+   *
+   * Its own test rather than a read of `chainAt`, which answers for the whole
+   * wall and would report every card on it.
+   */
+  const hoverAt = (clientX: number, clientY: number): string | null => {
+    const flags = flaggedRef.current
+    if (flags.size === 0) return null
+    const targets: THREE.Object3D[] = []
+    for (const [id, mesh] of meshes.current) if (flags.has(id)) targets.push(mesh)
+    for (const { sprite } of badges.byId.values()) if (sprite.visible) targets.push(sprite)
+    if (targets.length === 0) return null
+
     const rect = gl.domElement.getBoundingClientRect()
     raycaster.setFromCamera(
       new THREE.Vector2(
@@ -369,14 +388,15 @@ function Wall({
       ),
       camera,
     )
-    return raycaster.intersectObjects(shown.map((b) => b.sprite), false).length > 0
+    const hit = raycaster.intersectObjects(targets, false)[0]
+    return (hit?.object.userData.slopId as string | undefined) ?? null
   }
 
   /** One rung per gesture: across if the cursor is over another branch, down
    *  otherwise. Both the click and the wheel spend themselves through here. */
   const navigate = (chain: readonly string[]) => {
-    const jump = badgeJump.current
-    badgeJump.current = null
+    const jump = jumpTo.current
+    jumpTo.current = null
     if (jump) return void dispatch({ type: 'to', path: jump })
     const next = stepToward(viewRef.current.path, chain)
     if (next) dispatch({ type: 'to', path: next })
@@ -384,8 +404,8 @@ function Wall({
 
   // Held by ref so the listeners below bind once and still see this render's
   // view: rebinding a wheel listener would drop the gesture rail's charge.
-  const act = useRef({ chainAt, navigate, badgeAt })
-  act.current = { chainAt, navigate, badgeAt }
+  const act = useRef({ chainAt, navigate, hoverAt })
+  act.current = { chainAt, navigate, hoverAt }
 
   // Bound to the canvas, not to a mesh, so the empty space between piles turns
   // the scene. A press that never travels is a click, and picks a rung.
@@ -403,9 +423,11 @@ function Wall({
     }
     const onMove = (e: PointerEvent) => {
       if (!active) {
-        // A badge is a control, so it says so under the pointer. Only while
-        // idle: mid-orbit the cursor belongs to the drag.
-        el.classList.toggle('scene--pointing', act.current.badgeAt(e.clientX, e.clientY))
+        // A flagged artifact is a control, so it says so under the pointer.
+        // Only while idle: mid-orbit the cursor belongs to the drag.
+        const over = act.current.hoverAt(e.clientX, e.clientY)
+        hovered.current = over
+        el.classList.toggle('scene--pointing', over !== null)
         return
       }
       const dx = e.clientX - last.x
@@ -428,7 +450,9 @@ function Wall({
       const turned = dragged.current
       active = false
       el.classList.remove('scene--turning')
-      el.classList.toggle('scene--pointing', act.current.badgeAt(e.clientX, e.clientY))
+      const over = act.current.hoverAt(e.clientX, e.clientY)
+      hovered.current = over
+      el.classList.toggle('scene--pointing', over !== null)
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
       if (turned || e.button !== 0) return
       act.current.navigate(act.current.chainAt(e.clientX, e.clientY))
@@ -580,10 +604,13 @@ function Wall({
       // by emphasis, so an unflagged artifact is exactly as still as it ever was.
       const pulse =
         1 +
-        tier.pulseAmp *
+        params.attention.pulse *
+          tier.pulseAmp *
           emphasis *
           Math.sin((tick / 1000) * 2 * Math.PI * tier.pulseHz)
-      mesh.scale.set(drawnW * pulse, drawnH * pulse, 1)
+      // In place, so hovering never reorders what is in front of what.
+      const swell = hovered.current === id ? params.attention.hoverScale : 1
+      mesh.scale.set(drawnW * pulse * swell, drawnH * pulse * swell, 1)
       // A rect's x/y is its top-left, three positions a plane by its centre, and
       // windease's rect space grows y downward where three's world grows it up.
       // All three corrections happen here and nowhere else.
@@ -651,7 +678,10 @@ function Wall({
         if (halo) edge.material.color.set(levelColors[flag?.level ?? 'look'])
         else if (own) edge.material.color.copy(own)
         else edge.material.color.set(cardEdgeColor)
-        edge.material.linewidth = halo ? tier.haloWidth : params.overlay.cardEdgeWidth
+        const thicken = hovered.current === id ? params.attention.hoverEdge : 1
+        edge.material.linewidth = halo
+          ? tier.haloWidth * thicken
+          : params.overlay.cardEdgeWidth
         // The halo is the one thing the depth falloff must not mute.
         edge.material.opacity = halo ? Math.max(mat.opacity, emphasis) : mat.opacity
         setResolution(edge.material, gl)

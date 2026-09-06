@@ -71,8 +71,17 @@ export type StackParams = {
    * whether a flag is fresh or about to lapse.
    */
   attention: {
+    /** Master gain over every level's pulse. Off by default: the wall earns
+     *  its calm, and motion is the one cue that cannot be ignored on purpose. */
+    pulse: number
     /** World height of a badge's text, like a zone label's. */
     badgeSize: number
+    /** How much a flagged artifact grows under the pointer. In place: it swells
+     *  where it stands rather than coming toward the camera, so hovering never
+     *  reorders what is in front of what. */
+    hoverScale: number
+    /** What the hover multiplies its halo by. */
+    hoverEdge: number
     /** One row per level, which is what makes a fifth level a row here rather
      *  than a change to the ingest contract. */
     levels: Record<Level, AttentionLevel>
@@ -218,7 +227,10 @@ export const defaultParams: StackParams = {
   fade: { from: 0.88, to: 1 },
   distance: { enabled: true, from: 1, to: 22, floor: 0.12, combine: 'ceiling' },
   attention: {
+    pulse: 0,
     badgeSize: 0.026,
+    hoverScale: 1.07,
+    hoverEdge: 1.8,
     levels: {
       // A bookmark, not an alarm: findable while scanning and quiet enough
       // that a wall of them stays calm, and still enough not to nag.
@@ -245,7 +257,7 @@ export const defaultParams: StackParams = {
     outline: false,
     outlineWidth: 1.5,
     labels: false,
-    labelSize: 0.075,
+    labelSize: 0.225,
     backdrop: 'hatch',
     huedOutline: false,
     huedLabel: false,
