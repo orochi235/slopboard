@@ -13,6 +13,12 @@ export type WallItem = {
   ttlMs?: number
   /** Set when the item asks to be looked at. Absent is the ordinary case. */
   attention?: Attention
+  /** When it was rescued. Present means the sweeper leaves it alone and its
+   *  decay is frozen at this moment. */
+  keptAt?: number
+  /** The source file on disk. What "copy path" puts on the clipboard, so the
+   *  wall answers a question the terminal can act on. */
+  path: string
   /** The badge a flagged item wears. Absent means it wears none. */
   note?: string
   w: number
@@ -34,3 +40,5 @@ export type ServerMessage =
   | { type: 'expire'; id: string }
   /** The item is still on the wall; it has just stopped asking to be looked at. */
   | { type: 'dismiss'; id: string }
+  /** Rescued, or let go again. `keptAt` is null for the second. */
+  | { type: 'keep'; id: string; keptAt: number | null }

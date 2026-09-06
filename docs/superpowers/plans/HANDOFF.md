@@ -109,6 +109,14 @@ artifact is **dimmed where it stands**, never removed — the arrangement never
 sees the filter, so nothing reshuffles. The sidebar's flag list reads the same
 range and has no control of its own.
 
+**Right-click, and the rescue under it.** A menu on the canvas — Open, Keep /
+Release, Dismiss the flag, Copy path, Expire now, and Undo last expiry (also
+Cmd-Z). Keeping writes `kept` to the sidecar, so it survives a restart, and
+freezes the card's decay where it stood; expiry is undoable one deep and comes
+back with a fresh `bornAt`, since its old one is already past its TTL. The
+menu is a `reticul8r` parallax window in `window` mode — see the spec for why
+not `tilt`, and for the CSS that silently flattens it.
+
 Also landed: an axis gizmo under the minimap, off `params.camera.yawDeg` and
 `pitchDeg`; the stack direction set by dragging a card with the wheel button;
 `ago` in `src/age.ts`; `cameraBasis` in `src/camera/basis.ts`.
@@ -159,13 +167,16 @@ The user's instruction is to work all of it, not just the head.
 
 **Then:**
 
-- **Lift the parallax out of the modal into a function** over a DOM subtree,
-  taking depth from z-order plus document order rather than a hand-written
-  `--depth`. Do this before the context menu, which is its second caller.
-- **A right-click context menu built from those layers**, on a zone, a pile or
-  a card. `chainAt` in `WebglBackend` already returns the path under the
-  pointer — `[zone]`, `[zone, id]`, or `[]` over sky — so targeting is a read,
-  not new raycasting.
+- **The `?` modal still places its seven planes by hand.** The library that
+  replaces that hand-work exists — `reticul8r` at `~/src/reticul8r`, which the
+  context menu already uses — so the modal is now the odd one out rather than
+  the reference. Wrapping it is a deletion, not a port.
+- **The keep set has no cap.** `DESIGN.md` bounds it at twelve so that keeping
+  costs something; the menu ships without the bound on purpose, because nothing
+  had ever been kept when it was written. Revisit after living with it, and see
+  `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.
+- **Kept cards do not move to a band of their own.** The decay freeze is all
+  that marks one today. The reserved band is arrangement work.
 
 **Independent of all of the above:**
 

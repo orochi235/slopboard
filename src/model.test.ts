@@ -8,6 +8,7 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
   origUrl: '/orig/a',
   zone: 'windease',
   name: 'a',
+  path: '/slop/inbox/windease/a.png',
   bornAt: 1000,
   w: 200,
   h: 100,
@@ -59,5 +60,10 @@ describe('toStackItems', () => {
   it('treats a zero-height item as square rather than dividing by zero', () => {
     const [out] = toStackItems([item({ h: 0 })], { now: 1000, ttlMs: 4000 })
     expect(out!.aspect).toBe(1)
+  })
+
+  it('freezes a rescued item where it stood, however long ago that was', () => {
+    const [kept] = toStackItems([item({ bornAt: 0, keptAt: 250 })], { now: 10_000, ttlMs: 1000 })
+    expect(kept?.age01).toBeCloseTo(0.25)
   })
 })

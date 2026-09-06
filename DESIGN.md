@@ -450,7 +450,9 @@ others'.
 
 ## Rescue, expiry, and the trash
 
-**Saving is capacity-bounded.** The keep set holds N (start at 12). Keeping
+**Saving is capacity-bounded.** Not yet built — keeping is currently unbounded,
+and the bound waits on having watched a wall that can rescue at all. The keep
+set holds N (start at 12). Keeping
 something when the set is full means choosing what it displaces. Without a bound,
 "permanence earned by attention" collapses into one click and forever, and one
 click is not attention — you get the sediment folder back with extra steps.
@@ -556,6 +558,9 @@ the whole path an agent would — including the partial-write guard.
 5. The remaining 2D arrangements (`recede`, `settle`, `spiral`), `bloom`,
    cross-fade. Only if the DOM backend survives step 4 — otherwise they are
    ported to 3D or dropped. `tide` and `erode` are in, and `[` / `]` cycles.
-6. Rescue, expiry, trash, undo.
+6. Rescue, expiry, trash, undo. **Partly done** — keep, expire-now and a
+   one-deep undo ship with the right-click menu; the capacity bound and the
+   reserved band do not. See
+   `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.
 
 Steps 1–3 are cheap and answer most of the open questions.

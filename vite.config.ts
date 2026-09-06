@@ -15,6 +15,10 @@ export default defineConfig({
       // `main` points at dist, where an edit to its src is invisible until a
       // rebuild — a stale answer with no error.
       windease: fileURLToPath(new URL('../windease/src/index.ts', import.meta.url)),
+      // Source for the same reason windease is: co-designed with this repo,
+      // and its `main` points at a dist an edit does not reach.
+      'reticul8r/react': fileURLToPath(new URL('../reticul8r/src/react.ts', import.meta.url)),
+      reticul8r: fileURLToPath(new URL('../reticul8r/src/index.ts', import.meta.url)),
     },
   },
   server: {

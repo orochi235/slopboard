@@ -58,6 +58,27 @@ app.post('/api/items/:id/dismiss', async (req, res) => {
   res.json({ ok: true, cleared })
 })
 
+app.post('/api/items/:id/keep', async (req, res) => {
+  const keptAt = await store.keep(req.params.id, req.query.on !== '0')
+  if (keptAt !== false) broadcast({ type: 'keep', id: req.params.id, keptAt })
+  res.json({ ok: keptAt !== false, keptAt: keptAt === false ? null : keptAt })
+})
+
+// The wall already takes everything eventually; this only says when. The
+// broadcast is `expire`, the same message the sweeper sends, so a client
+// cannot tell a hastened death from a natural one and needs no second path.
+app.post('/api/items/:id/expire', async (req, res) => {
+  const gone = await store.expireNow(req.params.id)
+  if (gone) broadcast({ type: 'expire', id: req.params.id })
+  res.json({ ok: gone })
+})
+
+app.post('/api/undo', async (_req, res) => {
+  const item = await store.undoExpiry()
+  if (item) broadcast({ type: 'arrive', item })
+  res.json({ ok: item !== null })
+})
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, items: store.snapshot().length, ttlMs: config.ttlMs })
 })

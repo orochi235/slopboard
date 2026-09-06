@@ -1,0 +1,72 @@
+/* The scrim catches the click that dismisses the menu. It paints nothing:
+   a right-click on the wall must not dim the wall. */
+.menu__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+}
+
+.menu {
+  position: fixed;
+  min-width: 190px;
+  padding: 5px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent);
+  background: color-mix(in srgb, var(--scrim) 82%, var(--bg));
+  box-shadow: 0 24px 60px -18px color-mix(in srgb, var(--scrim) 94%, transparent);
+  color: var(--ink);
+  font: 12px/1.5 'Fira Code', ui-monospace, monospace;
+  /* Measured before it is placed, so it must not flash at the pointer's
+     top-left on the way. */
+  visibility: hidden;
+}
+
+.menu--placed {
+  visibility: visible;
+}
+
+.menu:focus {
+  outline: none;
+}
+
+.menu__head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 9px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 26%, transparent);
+  margin-bottom: 4px;
+}
+
+.menu__zone {
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.menu__name {
+  color: color-mix(in srgb, var(--ink) 70%, transparent);
+  /* No line clamp and no `overflow: hidden`: either one flattens every plane
+     under it, and the flattening reports itself as `preserve-3d`. */
+  overflow-wrap: anywhere;
+}
+
+.menu__item {
+  padding: 6px 9px;
+  border-radius: 5px;
+  cursor: default;
+}
+
+.menu__item--active {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.menu__item--grave {
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+
+.menu__item--grave.menu__item--active {
+  background: color-mix(in srgb, #e0523f 30%, transparent);
+  color: var(--ink);
+}

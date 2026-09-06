@@ -16,6 +16,8 @@ import { framePose, type Pose } from '@/camera/frame.ts'
 import { type Move, poseAt } from '@/camera/move.ts'
 import { orbitOffset } from '@/camera/orbit.ts'
 import { Lightbox } from '@/Lightbox.tsx'
+import { CardMenu, type MenuAt } from '@/menu/CardMenu.tsx'
+import { targetOf, type Action } from '@/menu/items.ts'
 import { Sidebar } from '@/Sidebar.tsx'
 import { TopBar } from '@/TopBar.tsx'
 import { keptBy, type Range } from '@/nav/time-filter.ts'
@@ -68,6 +70,9 @@ type WallProps = Props & {
   view: ViewState
   dispatch: Dispatch<ViewAction>
   onPlan: (plan: Plan) => void
+  /** A right-click, already resolved to what it was over. The pick lives in
+   *  here with the raycaster; the menu is DOM and lives outside the canvas. */
+  onMenu: (at: MenuAt) => void
   /** Excluded by the band's filters. Still drawn, still in rank — faded, so
    *  what was cut stays legible against what was kept. */
   dimmed: ReadonlySet<string>
@@ -128,6 +133,7 @@ function Wall({
   view,
   dispatch,
   onPlan,
+  onMenu,
   dimmed,
 }: WallProps) {
   const meshes = useRef(new Map<string, THREE.Mesh>())
@@ -631,6 +637,15 @@ function Wall({
     const onAux = (e: MouseEvent) => {
       if (e.button === MIDDLE_BUTTON) e.preventDefault()
     }
+    // Only over the canvas: the lightbox is a real <img> so that the browser's
+    // own menu can save and copy it, and taking that away would cost more than
+    // the menu adds.
+    const onContext = (e: MouseEvent) => {
+      e.preventDefault()
+      const chain = act.current.chainAt(e.clientX, e.clientY)
+      onMenu({ target: targetOf(chain), x: e.clientX, y: e.clientY })
+    }
+    el.addEventListener('contextmenu', onContext)
     el.addEventListener('mousedown', onAux)
     el.addEventListener('auxclick', onAux)
     el.addEventListener('pointerdown', onDown)
@@ -638,6 +653,7 @@ function Wall({
     el.addEventListener('pointerup', onUp)
     el.addEventListener('pointercancel', onUp)
     return () => {
+      el.removeEventListener('contextmenu', onContext)
       el.removeEventListener('mousedown', onAux)
       el.removeEventListener('auxclick', onAux)
       el.removeEventListener('pointerdown', onDown)
@@ -645,7 +661,7 @@ function Wall({
       el.removeEventListener('pointerup', onUp)
       el.removeEventListener('pointercancel', onUp)
     }
-  }, [gl, onParams])
+  }, [gl, onParams, onMenu])
 
   // On the window rather than the canvas, so the gesture keeps working under
   // the lightbox, which covers it.
@@ -1264,6 +1280,57 @@ export function WebglBackend(props: Props) {
     },
     [dropFake],
   )
+
+  const [menu, setMenu] = useState<MenuAt | null>(null)
+  /** Set by the first expiry this client asks for. The daemon holds one undo,
+   *  and the wall cannot see whether it is still loaded — so this only says
+   *  that something has been expired from here, and the route answers for the
+   *  rest. */
+  const [expired, setExpired] = useState(false)
+  const onMenu = useCallback((at: MenuAt) => setMenu(at), [])
+
+  const menuTarget = menu?.target
+  const menuItem =
+    menuTarget?.kind === 'card' ? items.find((i) => i.id === menuTarget.id) : undefined
+
+  const undo = useCallback(() => {
+    void fetch('/api/undo', { method: 'POST' }).catch(() => {})
+  }, [])
+
+  const act = useCallback(
+    (action: Action) => {
+      setMenu(null)
+      if (action === 'undo') return undo()
+      const target = menu?.target
+      if (target?.kind !== 'card') return
+      const id = target.id
+      if (action === 'open') return void dispatch({ type: 'to', path: [target.zone, id] })
+      if (action === 'dismiss') return dismiss(id)
+      if (action === 'copyPath' && menuItem)
+        return void navigator.clipboard?.writeText(menuItem.path).catch(() => {})
+      if (action === 'keep' || action === 'release') {
+        const on = action === 'keep' ? '1' : '0'
+        return void fetch(`/api/items/${id}/keep?on=${on}`, { method: 'POST' }).catch(() => {})
+      }
+      if (action === 'expire') {
+        setExpired(true)
+        return void fetch(`/api/items/${id}/expire`, { method: 'POST' }).catch(() => {})
+      }
+    },
+    [menu, menuItem, dispatch, dismiss, undo],
+  )
+
+  // Cmd-Z is what a hand reaches for, and the wall has nothing else to undo.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return
+      if (isForAControl(e.target)) return
+      e.preventDefault()
+      undo()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo])
   // An orthographic camera sees a slab, not a cone, so `far` has to clear the
   // standoff plus everything the rank cap can put behind the wall.
   const far = props.params.camera.standoff * 2 + 100
@@ -1284,6 +1351,7 @@ export function WebglBackend(props: Props) {
           view={view}
           dispatch={dispatch}
           onPlan={setPlan}
+          onMenu={onMenu}
           dimmed={dimmed}
         />
         <Sky settings={props.params.sky} colors={props.params.colors} />
@@ -1309,6 +1377,15 @@ export function WebglBackend(props: Props) {
         onGenerate={() => setFakes(fakeFlags(items.map((i) => i.id)))}
         onClearFakes={() => setFakes({})}
       />
+      {menu && (
+        <CardMenu
+          at={menu}
+          item={menuItem}
+          canUndo={expired}
+          onAct={act}
+          onClose={() => setMenu(null)}
+        />
+      )}
       {card !== null && (
         <Lightbox
           id={card}

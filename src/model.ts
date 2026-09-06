@@ -20,7 +20,9 @@ export function toStackItems(
   return items.map((i) => ({
     id: i.id,
     zone: i.zone,
-    age01: Math.max(0, Math.min(1, (clock.now - i.bornAt) / (i.ttlMs ?? clock.ttlMs))),
+    // A rescued item ages to where it stood when it was rescued and no
+    // further: the freeze is the whole of what keeping does to the wall.
+    age01: Math.max(0, Math.min(1, ((i.keptAt ?? clock.now) - i.bornAt) / (i.ttlMs ?? clock.ttlMs))),
     aspect: i.h > 0 ? i.w / i.h : 1,
     // On the daemon's clock for the same reason age01 is: a reload must not
     // restart a flag's hold.

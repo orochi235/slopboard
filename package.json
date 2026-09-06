@@ -20,6 +20,7 @@
     "express": "^5.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "reticul8r": "file:../reticul8r",
     "sharp": "^0.34.2",
     "three": "^0.169.0",
     "windease": "file:../windease",

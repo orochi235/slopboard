@@ -11,11 +11,13 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "paths": {
       "@/*": ["./src/*"],
       "@shared/*": ["./shared/*"],
-      "windease": ["../windease/src/index.ts"]
+      "windease": ["../windease/src/index.ts"],
+      "reticul8r": ["../reticul8r/src/index.ts"],
+      "reticul8r/react": ["../reticul8r/src/react.ts"]
     },
     "baseUrl": "."
   },

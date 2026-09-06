@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseStamp, sidecarFor } from './sidecar.ts'
+import { keptFrom, parseStamp, sidecarFor } from './sidecar.ts'
 
 describe('sidecarFor', () => {
   it('sits beside the image, keeping the extension so two images never collide', () => {
@@ -30,5 +30,17 @@ describe('parseStamp', () => {
     expect(parseStamp(null)).toEqual({})
     expect(parseStamp('caption')).toEqual({})
     expect(parseStamp(['caption'])).toEqual({})
+  })
+})
+
+describe('keptFrom', () => {
+  it('reads the rescue back as a moment', () => {
+    expect(keptFrom({ kept: '2026-09-05T12:00:00.000Z' })).toBe(Date.parse('2026-09-05T12:00:00Z'))
+  })
+
+  it('is null for no sidecar, no rescue, or a date nobody can read', () => {
+    expect(keptFrom(null)).toBeNull()
+    expect(keptFrom({ caption: 'a' })).toBeNull()
+    expect(keptFrom({ kept: 'soon' })).toBeNull()
   })
 })

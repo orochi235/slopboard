@@ -11,6 +11,9 @@ export type Stamp = {
   attention?: string
   /** What the badge on a flagged card says. The agent's words, not the wall's. */
   note?: string
+  /** When the wall rescued this, ISO. Wall state rather than provenance, so it
+   *  stays in the sidecar and never reaches the XMP packet. */
+  kept?: string
 }
 
 const NS_SLOP = 'https://slopboard.local/ns/1.0/'

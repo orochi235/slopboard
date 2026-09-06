@@ -8,7 +8,7 @@ import type { WallItem } from '@shared/protocol.ts'
 import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
 import { idFor } from './itemId.ts'
-import { readStamp } from './sidecar.ts'
+import { keptFrom, readStamp } from './sidecar.ts'
 import { parseAttention } from '@shared/attention.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
 import { createLimiter } from './limit.ts'
@@ -78,14 +78,17 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   if (sidecar?.attention && !attention) {
     console.warn(`[ingest] unreadable attention "${sidecar.attention}" on ${basename(sourcePath)}`)
   }
+  const keptAt = keptFrom(sidecar)
   const item: WallItem = {
     id,
     ...(ttlMs === null ? {} : { ttlMs }),
+    ...(keptAt === null ? {} : { keptAt }),
     ...(attention === null ? {} : { attention }),
     // A note without a flag has nothing to hang on, so it is dropped with it.
     ...(attention !== null && sidecar?.note ? { note: sidecar.note } : {}),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,
+    path: sourcePath,
     zone,
     name: caption,
     bornAt,
@@ -98,11 +101,13 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
 
 /**
  * Files present at startup are adopted at their mtime, not "now" — a daemon
- * restart must not resurrect the wall or reset anything's decay.
+ * restart must not resurrect the wall or reset anything's decay. A rescued
+ * file is adopted however old it is; that is what the rescue bought.
  */
 async function adopt(sourcePath: string): Promise<WallItem | null> {
   const { mtimeMs } = await stat(sourcePath)
-  if (Date.now() - mtimeMs > (ttlFromName(basename(sourcePath)) ?? config.ttlMs)) {
+  const rescued = keptFrom(await readStamp(sourcePath)) !== null
+  if (!rescued && Date.now() - mtimeMs > (ttlFromName(basename(sourcePath)) ?? config.ttlMs)) {
     await mkdir(config.trash, { recursive: true })
     await rename(sourcePath, join(config.trash, basename(sourcePath))).catch(() => {})
     return null
