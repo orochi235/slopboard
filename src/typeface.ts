@@ -16,6 +16,7 @@ export const FACES = {
   novaSquare: '"Nova Square", ui-monospace, monospace',
   firaSans: '"Fira Sans Condensed", ui-sans-serif, sans-serif',
   firaCode: '"Fira Code", ui-monospace, monospace',
+  tektur: '"Tektur", ui-monospace, monospace',
 } as const
 
 export type Typeface = keyof typeof FACES

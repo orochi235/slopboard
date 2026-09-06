@@ -33,6 +33,19 @@ export function createZoneGrid() {
       },
     })
 
-    return out.placements
+    if (!cfg.reverseX && !cfg.reverseY) return out.placements
+
+    // Mirrored within the container, which reverses an axis without touching
+    // slot assignment: re-sorting the slots instead would hand every zone a
+    // different cell and shuffle the whole wall.
+    const mirrored = new Map<string, Rect>()
+    for (const [zone, box] of out.placements) {
+      mirrored.set(zone, {
+        ...box,
+        x: cfg.reverseX ? container.w - (box.x + box.w) : box.x,
+        y: cfg.reverseY ? container.h - (box.y + box.h) : box.y,
+      })
+    }
+    return mirrored
   }
 }

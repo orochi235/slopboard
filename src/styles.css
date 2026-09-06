@@ -1,6 +1,12 @@
 
 /* Vendored so the wall keeps its typography with no network. */
 @font-face {
+  font-family: 'Tektur';
+  src: url('./fonts/tektur.woff2') format('woff2');
+  font-weight: 600;
+  font-display: block;
+}
+@font-face {
   font-family: 'Oxanium';
   src: url('./fonts/oxanium.woff2') format('woff2');
   font-weight: 600;

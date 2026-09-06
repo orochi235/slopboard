@@ -86,7 +86,17 @@ export type StackParams = {
      *  than a change to the ingest contract. */
     levels: Record<Level, AttentionLevel>
   }
-  zoneGrid: { gap: number; orientation: 'wide' | 'tall'; cols?: number; rows?: number }
+  zoneGrid: {
+    gap: number
+    orientation: 'wide' | 'tall'
+    cols?: number
+    rows?: number
+    /** Which way the zones run along each axis. Mirroring the placed cells
+     *  rather than re-sorting the slots, so reversing an axis moves the grid
+     *  and never renumbers a zone — a pile keeps the cell it has claimed. */
+    reverseX: boolean
+    reverseY: boolean
+  }
   camera: {
     projection: Projection
     /** Perspective only. */
@@ -253,7 +263,7 @@ export const defaultParams: StackParams = {
       problem: { lift: 0.4, haloWidth: 4, pulseAmp: 0.05, pulseHz: 1.4 },
     },
   },
-  zoneGrid: { gap: 0.02, orientation: 'wide' },
+  zoneGrid: { gap: 0.02, orientation: 'wide', reverseX: false, reverseY: false },
   camera: {
     projection: 'orthographic',
     fovDeg: 35,

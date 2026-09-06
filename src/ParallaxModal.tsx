@@ -11,8 +11,8 @@ const LAYERS: ReadonlyArray<readonly [string, string]> = [
   ['wordmark', '-110'],
   ['plate', '-30'],
   ['body', '+10'],
-  ['crest', '+80'],
-  ['chip', '+130'],
+  ['crest', '+70'],
+  ['chip', '+110'],
 ]
 
 const clamp = (n: number) => (n < -1 ? -1 : n > 1 ? 1 : n)

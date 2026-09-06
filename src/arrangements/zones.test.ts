@@ -46,3 +46,27 @@ describe('createZoneGrid', () => {
     expect(createZoneGrid()([], container, cfg).size).toBe(0)
   })
 })
+
+describe('reversing an axis', () => {
+  const container = { w: 2, h: 1 }
+  const cfg = { gap: 0, orientation: 'wide' as const, reverseX: false, reverseY: false }
+  const place = (over: Partial<typeof cfg>) =>
+    createZoneGrid()(['a', 'b'], container, { ...cfg, ...over })
+
+  it('mirrors x without renumbering, so a zone keeps its pile', () => {
+    const plain = place({})
+    const flipped = place({ reverseX: true })
+    const a = plain.get('a')!
+    expect(flipped.get('a')!.x).toBeCloseTo(container.w - (a.x + a.w))
+    expect(flipped.get('a')!.w).toBeCloseTo(a.w)
+  })
+
+  it('mirrors y the same way', () => {
+    const a = place({}).get('a')!
+    expect(place({ reverseY: true }).get('a')!.y).toBeCloseTo(container.h - (a.y + a.h))
+  })
+
+  it('leaves the placements untouched when neither axis is reversed', () => {
+    expect(place({})).toEqual(place({}))
+  })
+})

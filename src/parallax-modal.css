@@ -131,7 +131,7 @@
   --drift: 3px;
   position: relative;
   pointer-events: auto;
-  padding: 92px 36px 30px;
+  padding: 104px 36px 30px;
   color: var(--ink);
   font: 12px/1.6 'Fira Code', ui-monospace, monospace;
 }
@@ -206,9 +206,9 @@
 }
 
 .pxm__crest {
-  --depth: 80px;
+  --depth: 70px;
   --drift: 12px;
-  inset: 28px auto auto 34px;
+  inset: 46px auto auto 40px;
 }
 
 .pxm__title {
@@ -230,9 +230,9 @@
 }
 
 .pxm__chip {
-  --depth: 130px;
+  --depth: 110px;
   --drift: 20px;
-  inset: 24px 26px auto auto;
+  inset: 40px 44px auto auto;
   display: flex;
   align-items: center;
   gap: 10px;
