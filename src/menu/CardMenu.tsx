@@ -140,7 +140,13 @@ export function CardMenu({
             onPointerEnter={() => setActive(i)}
             onClick={() => onAct(entry.action)}
           >
-            {entry.label}
+            {/* The row is the plane the highlight paints on; the label is
+                lifted clear of it. Depth in reticul8r only runs toward the
+                viewer, so the way to put the highlight behind the text is to
+                bring the text forward. */}
+            <span className="menu__label" data-rz-lift="1">
+              {entry.label}
+            </span>
           </div>
         ))}
        </div>

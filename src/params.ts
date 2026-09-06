@@ -188,8 +188,9 @@ export type StackParams = {
      *  click lands where it was aimed. `tilt` rotates the deck under the
      *  pointer, which reads harder and moves the target while you approach. */
     mode: 'window' | 'tilt'
-    /** Steps of depth per row. Zero ties the rows on one plane, which is
-     *  reticul8r's default and is why an unfanned menu looks flat. */
+    /** Steps of depth per row. Zero — the default here and in reticul8r —
+     *  keeps the rows coplanar, which is what a menu is. Depth in the menu
+     *  comes from the label standing clear of its own highlight instead. */
     fan: number
     /** Z between adjacent planes, px. */
     step: number
@@ -369,7 +370,7 @@ export const defaultParams: StackParams = {
     dragCardSetsStep: true,
     dragDepthPerNotch: 0.0006,
   },
-  menu: { mode: 'tilt', fan: 1, step: 16, swing: 40, tilt: 12 },
+  menu: { mode: 'tilt', fan: 0, step: 16, swing: 40, tilt: 12 },
   typeface: { label: 'oxanium', badge: 'oxanium' },
   overlay: { cardEdges: false, cardEdgeWidth: 1, filterDim: 0.12 },
   zones: {

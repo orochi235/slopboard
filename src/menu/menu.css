@@ -60,10 +60,16 @@
   overflow-wrap: anywhere;
 }
 
+/* Every row on one plane. A menu is a surface you read across, and rows
+   staircased front to back read as a stack of unrelated cards. */
 .menu__item {
   padding: 6px 9px;
   border-radius: 5px;
   cursor: default;
+}
+
+.menu__label {
+  display: block;
 }
 
 .menu__item[data-active] {

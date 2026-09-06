@@ -82,10 +82,16 @@ aimed; `tilt` rotates the deck, which reads harder and moves the target while
 you approach it. The default is tilt, deliberately overdone, so there is
 something to dial back from rather than up to.
 
-**Siblings tie on one plane** unless `fan` says otherwise — reticul8r will not
-staircase rows by document order, on the grounds that four rows that do not
-overlap carry no depth. That default is why an unfanned menu looks flat, and
-`menu.fan` is the knob.
+**The rows are coplanar, and that is the point.** A menu is one surface you
+read across; rows staircased front to back read as a stack of unrelated cards.
+So `fan` stays 0, which is also reticul8r's own default — it will not
+staircase siblings by document order.
+
+The depth that is left is the depth that means something: each row is the
+plane its highlight paints on, and the label is lifted a step clear of it, so
+the selection sits *behind* the words rather than around them. Depth only runs
+toward the viewer, so bringing the label forward is how you put the highlight
+behind it.
 
 The markup is a shell and a deck: `tilt` rotates a deck *inside* the container,
 so the container holds position and perspective and paints nothing, and
