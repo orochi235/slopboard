@@ -21,6 +21,10 @@ export type WallItem = {
   path: string
   /** The badge a flagged item wears. Absent means it wears none. */
   note?: string
+  /** What `bin/slop` saw when it ran: the repository and the short commit.
+   *  Absent for anything dropped in by hand. */
+  repo?: string
+  sha?: string
   w: number
   h: number
 }

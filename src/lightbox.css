@@ -35,6 +35,30 @@
   }
 }
 
+/* The zone, the age, the provenance and the size, above the image for the
+   same reason the caption sits under it: nothing covers the picture. */
+.lightbox__meta {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  max-width: 80vw;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--scrim) 70%, transparent);
+  color: color-mix(in srgb, var(--ink) 72%, transparent);
+  font: 11px/1.4 ui-monospace, monospace;
+  letter-spacing: 0.04em;
+  cursor: default;
+}
+
+/* The zone leads and is the one part worth finding at a glance. */
+.lightbox__metaPart:first-child {
+  color: var(--accent);
+}
+
 /* Under the image rather than over it: a caption that covers the thing it
    names is worse than none. */
 .lightbox__caption {

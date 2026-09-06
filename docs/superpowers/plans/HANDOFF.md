@@ -197,8 +197,6 @@ The user's instruction is to work all of it, not just the head.
 - **Enter should descend a rung**, the inverse of Escape.
 - **View state in the URL hash**, so a reload keeps the view. It already
   survives reloads somehow — find out how before adding a second mechanism.
-- **The lightbox wants the artifact's age above the image.** Its caption sits at
-  the bottom today, and `ago` in `src/age.ts` is already there for it.
 - **`ParamsBody` is a hand-rolled property panel.** `@weasel-js/ui` exports the
   family it reimplements — `PropertyPanel`, `PropertyGroup`, `SliderRow`,
   `NumberRow`, `ColorRow`, `ToggleRow`, `SelectRow` — and the package is now a

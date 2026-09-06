@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useReticule } from 'reticul8r/react'
 import type { WallItem } from '@shared/protocol.ts'
 import { menuFor, type Action, type Target } from '@/menu/items.ts'
@@ -33,6 +33,16 @@ export function CardMenu({
   const [active, setActive] = useState(0)
   const box = useRef<HTMLDivElement>(null)
   const { ref, handle } = useReticule<HTMLDivElement>({ maxDepth: 3, swing: 14 })
+  // One stable function, not an inline arrow: React detaches and reattaches a
+  // ref whose identity changed, `useReticule` sets state on every attach, and
+  // that is an infinite render loop rather than a slow one.
+  const hold = useCallback(
+    (node: HTMLDivElement | null) => {
+      box.current = node
+      ref(node)
+    },
+    [ref],
+  )
 
   useLayoutEffect(() => {
     const el = box.current
@@ -82,10 +92,7 @@ export function CardMenu({
     <div className="menu__scrim" onPointerDown={onClose} onContextMenu={(e) => e.preventDefault()}>
       <div
         className={`menu ${spot ? 'menu--placed' : ''}`}
-        ref={(node) => {
-          box.current = node
-          ref(node)
-        }}
+        ref={hold}
         style={spot ? { left: `${spot.left}px`, top: `${spot.top}px` } : undefined}
         role="menu"
         aria-label={at.target.kind === 'card' ? (item?.name ?? 'Card') : 'Wall'}

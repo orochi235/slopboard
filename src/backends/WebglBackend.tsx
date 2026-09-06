@@ -1281,6 +1281,10 @@ export function WebglBackend(props: Props) {
     [dropFake],
   )
 
+  /** The item the lightbox is showing. From `props.items` rather than the
+   *  fake-flag overlay, so the meta line reports the wall, not the rehearsal. */
+  const lit = card === null ? null : (props.items.find((i) => i.id === card) ?? null)
+
   const [menu, setMenu] = useState<MenuAt | null>(null)
   /** Set by the first expiry this client asks for. The daemon holds one undo,
    *  and the wall cannot see whether it is still loaded — so this only says
@@ -1386,13 +1390,7 @@ export function WebglBackend(props: Props) {
           onClose={() => setMenu(null)}
         />
       )}
-      {card !== null && (
-        <Lightbox
-          id={card}
-          caption={props.items.find((i) => i.id === card)?.name}
-          onClose={() => dispatch({ type: 'out' })}
-        />
-      )}
+      {lit && <Lightbox item={lit} now={now} onClose={() => dispatch({ type: 'out' })} />}
     </>
   )
 }
