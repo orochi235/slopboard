@@ -669,9 +669,7 @@ function Wall({
       if (badge || wearsBadge) {
         const level = flag?.level ?? 'look'
         const fill = levelColors[level]
-        // Only the red plate is dark enough to need white; lime, amber and
-        // orange all read best with black on them.
-        const ink = level === 'problem' ? params.colors.badgeInk : params.colors.badgeInkQuiet
+        const ink = params.colors.badgeInk
         // A badge may run past its own artifact's right edge, as far as the
         // next zone begins — a note is worth more than the tidiness of a plate
         // that stops where the picture does.

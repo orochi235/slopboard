@@ -191,10 +191,9 @@ export type StackParams = {
     attentionSoon: string
     attentionUrgent: string
     attentionProblem: string
-    /** Badge text. The plates run near-neon, so black carries most of them and
-     *  white is kept for the one plate dark enough to need it. */
+    /** Badge text. Black on every plate: they all run near-neon, and even pure
+     *  red measures better against black (5.25:1) than against white (4.00:1). */
     badgeInk: string
-    badgeInkQuiet: string
     zoneIdle: string
     zoneFocus: string
     zoneBackdrop: string
@@ -284,8 +283,7 @@ export const defaultParams: StackParams = {
     attentionSoon: '#ffff00',
     attentionUrgent: '#ff8000',
     attentionProblem: '#ff0000',
-    badgeInk: '#ffffff',
-    badgeInkQuiet: '#000000',
+    badgeInk: '#000000',
     zoneIdle: '#64748b',
     zoneFocus: '#38bdf8',
     zoneBackdrop: '#64748b',
