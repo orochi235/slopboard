@@ -76,63 +76,120 @@ Also landed, and worth knowing before touching the same ground:
 - **A parallax modal on `?`** — seven planes at real translateZ, pointer-driven,
   silent under `prefers-reduced-motion`.
 
+### The sidebar, the band and the badges — shipped
+
+All on `main`, unpushed (`main` has no upstream). `git log --oneline fb029be..HEAD`
+is the list, and each message carries the reasoning that is not in the diff.
+
+**The sidebar** is a translucent column on the right, toggled by `\`, holding
+the flag list, the debug generator and the params controls. It **starts
+closed** — that plus the retired corner panel is why the first look after
+pulling reads as "nothing arrived". The `‹` tab at the right edge is the other
+way in.
+
+**The debug generator** (`fakeFlags` in `src/debug-flags.ts`) throws all four
+levels across eight random artifacts. The fabricated flags are merged over
+`props.items` inside `WebglBackend`, so a fake reaches the badges, `chainAt`
+and `hoverAt` by exactly the route a real one does and nothing downstream
+branches on it. The daemon has no record of one, so the row's × and the
+open-dismisses-it effect clear it locally before firing the POST a real flag
+needs.
+
+**Badges no longer collide.** A plate with a clear spot stays welded to its
+card and draws no line; one that would land on another plate hunts the emptiest
+nearby screen space and runs a leader line home. That ordering is three prices,
+not three rules — `seekPlateCost`, `seekLineCost`, `seekPull` — so all of it is
+a drag. A plate is sprung to its spot and will not leave one unless another
+beats it by `seekHysteresis`; both were needed, because easing alone makes an
+oscillation smooth rather than gone.
+
+**The filter band** across the top: a histogram of when everything landed with
+weasel's two-thumb `RangeSlider` over it, plus named buckets. An excluded
+artifact is **dimmed where it stands**, never removed — the arrangement never
+sees the filter, so nothing reshuffles. The sidebar's flag list reads the same
+range and has no control of its own.
+
+Also landed: an axis gizmo under the minimap, off `params.camera.yawDeg` and
+`pitchDeg`; the stack direction set by dragging a card with the wheel button;
+`ago` in `src/age.ts`; `cameraBasis` in `src/camera/basis.ts`.
+
+### Decisions made in conversation, in nobody's diff
+
+- **The wall's third dimension comes from the camera, not from a modifier.** A
+  drag reaches only the two axes facing the camera; orbiting supplies the
+  third. The axis pointing at you is unreachable by dragging, and the gizmo's
+  stubby `z` at the origin is what says so. This is why there is no modifier
+  key on the step drag.
+- **A label stays coplanar with its card, always.** Moving a plate for
+  legibility moves it *within* the card's plane — the offset is measured flat
+  and turned by the card's rotation. A plate that leaves the plane reads as a
+  sticker in front of the wall. This was got wrong once and is easy to get
+  wrong again.
+- **Scrolling a depressed wheel works on the user's mouse** — confirmed by
+  hand, not assumed. If it ever stops working on different hardware, the agreed
+  fallback is depth on the drag's vertical axis while the wheel button is held.
+  That fallback exists nowhere but here.
+- **`@weasel-js/ui` and `@weasel-js/labkit` are published on npm** (1.4.1), so
+  reusing weasel components is `npm i`, not a file link. Take `./style.css`
+  only. **Never import `@weasel-js/theme`'s tokens.css** — it sets a document
+  font and re-types every label in the scene. Its components are painted
+  entirely by `--wzl-*` custom properties; with those unset a control renders
+  with correct geometry and fully transparent paint, which looks like a
+  component that failed to mount. The bridge for the slider is written out in
+  `src/topbar.css`, scoped to the band.
+- **A stored tuning outranks a changed default, forever.** `mergeStored` lays
+  the stored blob over the defaults, so changing a default in `params.ts` does
+  not reach anyone who has ever touched that control. Say so when handing over
+  a default change, or it reads as the change not working.
+
 ### The whole outstanding list
 
 The user's instruction is to work all of it, not just the head.
 
-**The sidebar, which is one feature in four parts:**
+**Next up, and half-designed already:**
 
-- A floating translucent sidebar for HUD elements the corner chrome cannot hold.
-- In it, a list of every flagged artifact and what its badge says.
-- In it, a debug panel that generates test cases — one button throwing every
-  attention level onto random stacks. **Build this first whatever else happens:**
-  the badge-collision item cannot be judged without producing the overlap on
-  demand.
-- The params panel becomes an item on the sidebar. It is the corner panel and
-  the prefs sheet today, both rendering the same `ParamsBody`, so a third host
-  is a third caller and not a rewrite. Decide whether the corner panel retires —
-  two routes to the same controls was already one more than the wall needed.
+- **The page-wide sort.** One key reorders **both** the zones on the wall and
+  the sidebar's flag list — decided, not open. Keys: severity, recency,
+  project. It reaches into the layout: zone order comes from the insertion
+  order of `byZone` in the stack strategy (`src/arrangements/stack.ts`), fed to
+  `zoneGrid`. Severity ordering imposes a ranking the levels deliberately lack;
+  the user asked for it anyway, so build it and note it once.
+- **More band sections.** Time is the first of several; the band is built to
+  take more blocks. Nothing else is specified yet — ask.
 
-**Then, unblocked by the above:**
+**Then:**
 
-- **Badges collide when flagged artifacts sit near each other in a pile.** The
-  sidebar list decides whether the fix is "fan them all out" or the much cheaper
-  "show the frontmost and let the list carry the rest."
+- **Lift the parallax out of the modal into a function** over a DOM subtree,
+  taking depth from z-order plus document order rather than a hand-written
+  `--depth`. Do this before the context menu, which is its second caller.
+- **A right-click context menu built from those layers**, on a zone, a pile or
+  a card. `chainAt` in `WebglBackend` already returns the path under the
+  pointer — `[zone]`, `[zone, id]`, or `[]` over sky — so targeting is a read,
+  not new raycasting.
 
-- **A right-click context menu built out of the parallax layers**, on a zone, a
-  pile or a card. The modal on `?` is the visual language to reuse — the same
-  perspective and translateZ deck, sized down to a menu. The pick that decides
-  *which* of the three was hit already exists: `chainAt` in `WebglBackend`
-  returns the full path under the pointer, `[zone]` or `[zone, id]`, and returns
-  `[]` over empty sky. So the menu's targeting is a read of that, not new
-  raycasting.
+**Independent of all of the above:**
 
-- **Lift the parallax out of the modal into a function** that takes a DOM
-  subtree and applies the effect from z-order plus natural document order —
-  so the depth comes from where an element already sits rather than from a
-  hand-written `--depth` per layer. The modal and the context menu are then two
-  callers instead of two copies. Worth doing before the context menu, not after.
-
-**Independent of the sidebar:**
-
-- **The client cannot tell the daemon died.** The other half of the hot-reload
-  bug and the one still live. It is receive-only over a socket vite proxies, so
-  the browser end stays open when the upstream goes: the wall reports itself
-  connected and silently misses every arrival and expiry. Stable ids mean this
-  no longer blanks the wall, only freezes it. A boot id in the snapshot that the
-  client re-checks is the shape that was considered, not decided.
-- **The wall costs a core whenever it is open.** No `frameloop` prop, so r3f is
-  on `always` and nothing idles. DESIGN.md used to claim the opposite; that line
-  is corrected. Matters for a display meant to run all day.
+- **The client cannot tell the daemon died.** Receive-only over a socket vite
+  proxies, so the browser end stays open when the upstream goes: the wall
+  reports itself connected and silently misses every arrival and expiry. Stable
+  ids mean this freezes the wall rather than blanking it. A boot id in the
+  snapshot that the client re-checks is the shape considered, not decided.
+- **The wall costs a core whenever it is open**, and a GPU's worth of memory
+  per copy. No `frameloop` prop, so r3f is on `always`. This is not theoretical:
+  parking one driven browser on `about:blank` mid-session took free RAM from
+  ~250MB to ~1.1GB on a machine deep in swap.
 - **Enter should descend a rung**, the inverse of Escape.
 - **View state in the URL hash**, so a reload keeps the view. It already
   survives reloads somehow — find out how before adding a second mechanism.
 - **The lightbox wants the artifact's age above the image.** Its caption sits at
-  the bottom today.
-- **Panel expand/collapse should persist** in localStorage.
-- **Zone sort order** shipped as direction along each axis (`zoneGrid.reverseX`
-  / `reverseY`). If the ask meant the sort *key* — by name, artifact count,
-  recency — that is still unbuilt and does not conflict with what is there.
+  the bottom today, and `ago` in `src/age.ts` is already there for it.
+- **`ParamsBody` is a hand-rolled property panel.** `@weasel-js/ui` exports the
+  family it reimplements — `PropertyPanel`, `PropertyGroup`, `SliderRow`,
+  `NumberRow`, `ColorRow`, `ToggleRow`, `SelectRow` — and the package is now a
+  dependency. Replacing it is a real refactor and the user has not called it.
+- **`sharp` has a high-severity libvips advisory**, pre-existing and unrelated
+  to this work. The fix is a breaking major bump and the daemon uses it for
+  thumbnails.
 - **"also tomorrow"** — an unresolved fragment of a message. Ask before acting.
 
 ### Judgment calls waiting on the wall
@@ -149,6 +206,20 @@ Every number here is a slider, so a bad answer is a drag, not a code change.
 - **Typeface defaults to Oxanium** for both uses, unjudged.
 
 ### Traps this cost real time
+
+- **`LineSegments2.setPositions` leaves a stale instance count.** It keeps the
+  count from whichever frame had the most segments, so a frame with fewer draws
+  past the end of its own buffer — one `GL_INVALID_OPERATION` per frame, silent
+  unless you open the console. Set `geometry.instanceCount = points.length / 6`
+  after every `setPositions`.
+- **Three separate guesses at "why doesn't my browser show the changes" were
+  all wrong.** It was none of: the sidebar starting closed, the DOM backend, a
+  dead vite. Stop guessing and have the tab report itself — URL, whether
+  `.sidebar`/`canvas` exist, which `slopboard.*` keys are in localStorage. The
+  answer is per-profile state and cannot be seen from here.
+- **A drag on the front card of a pile divides by rank zero.** Rank 0 does not
+  move with the step at all, so the gesture did nothing and read as broken. It
+  spreads over one instead, opening the pile out behind the held card.
 
 - **`/img` is served `immutable`.** A plain `fetch` to check whether an id still
   resolves answers **200 from the browser's own cache** and hides everything.
@@ -255,7 +326,13 @@ two thresholds and its cooldown (`nav`), the hatch backdrop's spacing, width
 and angle, and every `sky` knob. All are guesses that have never been judged
 against a moving wall.
 
-**The client and the daemon are owned by different things right now.** A memory
+**The client on 5183 was owned by the session that wrote this handoff and dies
+with it.** If the wall's page does not answer, run `npm run dev:client`; the
+daemon on 8787 is independent and keeps running. Restart vite after any
+`npm install`, and clear `node_modules/.vite` — a dependency added under a
+running vite serves 504 "Outdated Optimize Dep" until it is re-optimized.
+
+**Historical, and still true of the daemon:** A memory
 squeeze killed vite one morning while the daemon rode it out, so the client was
 restarted by hand from a session rather than by the original `npm run dev` —
 `concurrently` is still running its daemon leg alone. Expect the wall's page to
