@@ -197,6 +197,18 @@ The user's instruction is to work all of it, not just the head.
 
 **Asked for and not started:**
 
+- **Debug buttons for the alerts**, beside the fake-flag controls in the
+  sidebar — one per level, firing that level's whole treatment so it can be
+  seen and heard rather than reasoned about. Three of the four effects are
+  the daemon's, so this cannot be a client-side fake the way `fakeFlags` is:
+  it needs a route (`POST /api/debug/alert/:level`) that calls `alert()` with
+  a synthetic item and returns the plan, and a button that shows what came
+  back. Guard it the way the dismiss route is guarded — a wall on a private
+  machine — and put the buttons behind the same debug section, not in the
+  ordinary chrome. Test `raise` last and deliberately: at `problem` with
+  nothing connected it launches a browser window, and doing that by accident
+  while tuning is its own small disaster.
+
 - **A refresh replays the last day.** Reloading the wall makes 118 cards arrive
   one at a time rather than showing the wall already assembled. Ranks are not
   the cause — `createRanks` gives a first-sighted id `prevRank === rank`, so
