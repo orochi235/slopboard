@@ -108,8 +108,8 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(NSMenuItem(title: "daemon not running", action: nil, keyEquivalent: ""))
         }
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(ActionItem(title: "Open the wall") { [weak self] in
-            Act.run(["open", "-na", "Google Chrome", "--args", "--app=http://localhost:5183", "--user-data-dir=/tmp/slopboard"]) { self?.poll() }
+        menu.addItem(ActionItem(title: "Open the wall") {
+            Act.open("http://localhost:5183")
         })
         menu.addItem(NSMenuItem.separator())
         for it1 in self.results.zones.data.zones {

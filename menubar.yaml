@@ -43,16 +43,8 @@ menu:
   - text: "daemon not running"
     when: "!wall.ok"
   - separator
-  # Its own Chrome profile, so the wall is not in the main browser's process
-  # pool and cannot be tab-discarded under memory pressure.
   - text: Open the wall
-    run:
-      - open
-      - -na
-      - Google Chrome
-      - --args
-      - --app=http://localhost:5183
-      - --user-data-dir=/tmp/slopboard
+    open: http://localhost:5183
   - separator
   - each: zones.data.zones
     when: "zones.ok"

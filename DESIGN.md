@@ -60,6 +60,10 @@ doesn't get tab-discarded under memory pressure.
 warning glyph when the daemon is not answering, one row per zone that opens
 that zone's folder, undo, and the inbox and trash.
 
+**Open the wall goes to the default browser**, not to the chromeless profile
+above. The profile is for the monitor the wall lives on and is worth typing
+once; a menu item is for looking at it now.
+
 It cannot start the daemon, and that is a property of perch rather than a gap:
 an action is a subprocess it waits on, and `npm run dev:daemon` never returns.
 Starting the wall wants a LaunchAgent of its own.
