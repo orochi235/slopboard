@@ -46,106 +46,110 @@ is a volume — deeper than the whole wall is tall at 29 cards — and every box
 computed about it is flat, because windease's `Rect` has a z position and no z
 extent. That is why framing goes loose once you turn the camera off head-on.
 
-## Attention flags — shipped, and what is still open
+## Attention flags and the wall's chrome — shipped
 
-Four commits, `30839c9` → `eeaa43e`, all on `main`. An agent flags an artifact
-it wants looked at; the wall says so and lets you jump to it.
+All on `main`; `git log --oneline 27be480..HEAD` is the list. An agent flags an
+artifact it wants looked at, and the wall says so.
 
 `slop --attention <level>[:<hold>] --note "why"`. Levels are `look`, `soon`,
 `urgent`, `problem` — presets, not a scale, because a serious problem and a
 deadline are different kinds of asking. Only `soon` lapses on its own; the rest
-hold until dismissed, and opening the artifact is what dismisses them. DESIGN.md
-carries the design under **Asking to be looked at** and the ingest contract.
+hold until dismissed, and opening the artifact dismisses it. A badge appears
+only where there is a note; no level name is ever substituted. DESIGN.md carries
+the design under **Asking to be looked at** and in the ingest contract.
 
 **Vocabulary changed mid-session: it is an "artifact", not an "image."** The
-wall may hold other types later. Code and docs touched since carry the new word;
-older prose does not.
+wall may hold other types later. Prose touched since carries the new word.
 
-### Judgment calls waiting on the wall
+Also landed, and worth knowing before touching the same ground:
 
-Every number below is a slider, so a bad answer is a drag.
+- **An artifact's id is derived from its source path**, not minted per ingest.
+  A random id meant every daemon restart renamed every artifact and blanked the
+  wall. See the trap below before testing anything about `/img`.
+- **Badges are planes in the artifact's own frame**, not sprites, so they turn
+  with the wall. `attention.badgeSize` is the height of *one line*.
+- **Zone names climb the cell's left edge**, turned a quarter turn, with
+  `zones.labelOffset` and `labelAlign` to place them.
+- **Seven vendored faces**, chosen separately for badges and zone labels
+  (`typeface.badge`, `typeface.label`). No OCR-B — every port has murky
+  provenance and none was worth a binary on a guess.
+- **A parallax modal on `?`** — seven planes at real translateZ, pointer-driven,
+  silent under `prefers-reduced-motion`.
 
-- **Badges lie in their artifact's plane** and may run past its right edge as
-  far as the next zone starts. `badgeSize` is the height of *one line*, so a
-  wrapped note grows taller rather than shrinking its text.
-- **Typeface.** `Oxanium` is the default, with Orbitron, Nova Square, two Firas
-  and the system mono in the dropdown. Vendored as woff2 — no OCR-B, because
-  every port has murky provenance and none was worth a binary on a guess.
-- **Pulse is off** (`attention.pulse` is a master gain at 0). Rate climbs with
-  level underneath it; nobody has watched it move.
-- **Every plate is inked black.** Even pure red measures better against black
-  (5.25:1) than white (4.00:1). One ink for four plates.
-- **`urgent` is `#ff8000`**, the one plate that is not pure-channel — orange
-  cannot be. Magenta would complete the set and separate urgent from problem,
-  which are adjacent hot hues today. Not proposed, just noticed.
-- **Zone names are 3× and climb the left edge.** Their headroom is vertical
-  only, so a long name may crop; the camera has not been checked against one.
+### The whole outstanding list
 
-### Asked for and not built
+The user's instruction is to work all of it, not just the head.
 
-A sidebar is the next chunk, and three of these are one feature:
+**The sidebar, which is one feature in four parts:**
 
-- **A floating translucent sidebar**, holding HUD elements the corner chrome
-  cannot.
-- **In it, a list of every flagged artifact** and what its badge says. This is
-  most of the answer to the item below it — enumerate them in a fixed panel and
-  a badge in the scene no longer has to stay individually legible when several
-  pile up.
-- **In it, a debug panel that generates test cases**, one button throwing every
-  attention level onto random stacks. Build this first whatever else happens:
-  the stacking question below cannot be judged without a way to produce the
-  overlap on demand.
-- **The params panel becomes an item on the sidebar too.** It is the corner
-  panel and the prefs sheet today, both rendering the same `ParamsBody`, so a
-  third host is a third caller of that component and not a rewrite. Decide
-  whether the corner panel then goes away — two ways to reach the same controls
-  was already one more than the wall needed.
-- **Badges collide when flagged artifacts sit near each other in a pile.**
-  Unsolved, and deliberately not solved yet — settle the sidebar list first,
-  because it decides whether the fix is "fan them all out" or the much cheaper
-  "show the frontmost, let the list carry the rest."
+- A floating translucent sidebar for HUD elements the corner chrome cannot hold.
+- In it, a list of every flagged artifact and what its badge says.
+- In it, a debug panel that generates test cases — one button throwing every
+  attention level onto random stacks. **Build this first whatever else happens:**
+  the badge-collision item cannot be judged without producing the overlap on
+  demand.
+- The params panel becomes an item on the sidebar. It is the corner panel and
+  the prefs sheet today, both rendering the same `ParamsBody`, so a third host
+  is a third caller and not a rewrite. Decide whether the corner panel retires —
+  two routes to the same controls was already one more than the wall needed.
 
-Unrelated to the sidebar, in rough priority:
+**Then, unblocked by the above:**
 
-- **Hot reload empties the wall until a hard reload.** Not diagnosed — do not
-  guess at it. The daemon restarts on any `shared/` edit, which is a plausible
-  cause and unproven; the client's reconnect should re-snapshot and apparently
-  does not. This is the one with a user watching it.
+- **Badges collide when flagged artifacts sit near each other in a pile.** The
+  sidebar list decides whether the fix is "fan them all out" or the much cheaper
+  "show the frontmost and let the list carry the rest."
+
+**Independent of the sidebar:**
+
+- **The client cannot tell the daemon died.** The other half of the hot-reload
+  bug and the one still live. It is receive-only over a socket vite proxies, so
+  the browser end stays open when the upstream goes: the wall reports itself
+  connected and silently misses every arrival and expiry. Stable ids mean this
+  no longer blanks the wall, only freezes it. A boot id in the snapshot that the
+  client re-checks is the shape that was considered, not decided.
+- **The wall costs a core whenever it is open.** No `frameloop` prop, so r3f is
+  on `always` and nothing idles. DESIGN.md used to claim the opposite; that line
+  is corrected. Matters for a display meant to run all day.
 - **Enter should descend a rung**, the inverse of Escape.
 - **View state in the URL hash**, so a reload keeps the view. It already
   survives reloads somehow — find out how before adding a second mechanism.
-- **The lightbox wants the artifact's age above the image.** Its caption sits
-  at the bottom today.
+- **The lightbox wants the artifact's age above the image.** Its caption sits at
+  the bottom today.
+- **Panel expand/collapse should persist** in localStorage.
+- **Zone sort order** shipped as direction along each axis (`zoneGrid.reverseX`
+  / `reverseY`). If the ask meant the sort *key* — by name, artifact count,
+  recency — that is still unbuilt and does not conflict with what is there.
 - **"also tomorrow"** — an unresolved fragment of a message. Ask before acting.
 
+### Judgment calls waiting on the wall
+
+Every number here is a slider, so a bad answer is a drag, not a code change.
+
+- **Pulse is off** — `attention.pulse` is a master gain at 0. Rate climbs with
+  level underneath it; nobody has watched it move.
+- **`urgent` is `#ff8000`**, the one plate that is not pure-channel, because
+  orange cannot be. Magenta would complete the set and separate urgent from
+  problem, which are adjacent hot hues today. Noticed, not proposed.
+- **Zone label headroom is vertical only**, so a long name may crop once the
+  label sits outside the cell. Not checked against a long one.
+- **Typeface defaults to Oxanium** for both uses, unjudged.
+
+### Traps this cost real time
+
+- **`/img` is served `immutable`.** A plain `fetch` to check whether an id still
+  resolves answers **200 from the browser's own cache** and hides everything.
+  Every probe needs `cache: 'no-store'`. This produced two wrong conclusions in
+  a row before it was caught.
+- **Editing anything under `shared/` or `server/` restarts the daemon**, because
+  `tsx watch` follows imports. Confirm with the worker pid
+  (`pgrep -f preflight.cjs`), not the supervisor's, which never changes.
+- **The devtools browser is a different profile from the user's.** Its
+  `localStorage` params are not theirs; state read there says nothing about what
+  they see. Chasing that wasted a round of colour "bugs" that were never real.
+- **Every open copy of the wall costs a core**, so leaving a driven browser on
+  the page is not free.
+
 ### One loose thread in the inbox
-
-`2FCBA0D9-…ttl48h.png` sits in `~/slop/inbox/slopboard/` while its sidecar sits
-in `~/slop/trash/`. The artifact is live on the wall with its caption and
-provenance stranded. `trashStamp` moves a sidecar to follow its artifact, so
-only the sidecar moving is a path nothing accounts for. Unexplained.
-
-## Asked for and not built
-
-Three things. The depth question is answered; what it settled is below it.
-
-### How depth read on this wall — answered and built
-
-`distance` is in `params.ts`: presence falls across a rank window to a floor,
-combined with the temporal fade by a rule that is itself a live control
-(`ceiling` compounds the two, `min` takes the dimmer). DESIGN.md under
-**How depth reads** carries the design; the tinted-glass backdrop is in the
-rejected table with the reason.
-
-`172fc14` stands — nothing about `renderOrder` changed. The falloff dims a
-stranger's panel because reaching a neighbour's cell requires depth, so the
-occlusion complaint went with it.
-
-Defaults are `to: 22, floor: 0.12, combine: 'ceiling'`, tuned by eye against the
-live wall in one pass and worth a second opinion — the four renders are on the
-wall, captioned, showing before, the first guess at `to: 60` and the tuned set.
-The mid-ranks of a big pile (`weasel`, `slopboard`) are still fairly bright and
-that may or may not be right.
 
 ### Stats in the bottom-left corner
 
