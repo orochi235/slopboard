@@ -90,6 +90,7 @@ function Wall({
   const { gl, camera } = useThree()
   const cardEdges = params.overlay.cardEdges
   const cardEdgeColor = params.colors.cardEdge
+  const attentionColor = params.colors.attention
   const huedCardEdge = params.zones.huedCardEdge
   // Parsed once per colour rather than per card per frame.
   const huedColors = useMemo(() => {
@@ -456,11 +457,25 @@ function Wall({
       // The rect is the square slot; the image is fit inside it.
       const drawnW = aspect >= 1 ? side : side * aspect
       const drawnH = aspect >= 1 ? side / aspect : side
-      mesh.scale.set(drawnW, drawnH, 1)
+      const emphasis = ch.emphasis ?? 0
+      // Breathing, so a flag is findable on a wall the eye is scanning. Scaled
+      // by emphasis, so an unflagged card is exactly as still as it ever was.
+      const pulse =
+        1 +
+        params.attention.pulseAmp *
+          emphasis *
+          Math.sin((tick / 1000) * 2 * Math.PI * params.attention.pulseHz)
+      mesh.scale.set(drawnW * pulse, drawnH * pulse, 1)
       // A rect's x/y is its top-left, three positions a plane by its centre, and
       // windease's rect space grows y downward where three's world grows it up.
       // All three corrections happen here and nowhere else.
-      mesh.position.set(rect.x + drawnW / 2, -(rect.y + drawnH / 2), rect.z)
+      // The lift rides on top of the rect's z: an item asking to be looked at
+      // stands out in front of its own pile rather than in its rank.
+      mesh.position.set(
+        rect.x + drawnW / 2,
+        -(rect.y + drawnH / 2),
+        rect.z + params.attention.lift * emphasis,
+      )
       mesh.rotation.set(ch.rotX ?? 0, ch.rotY ?? 0, ch.rotZ ?? 0)
 
       const mat = mesh.material as THREE.MeshBasicMaterial
@@ -476,12 +491,20 @@ function Wall({
       // since, and which does not know how far the card has faded.
       const edge = edges.byId.get(id)
       if (edge) {
+        // The halo wins the line where both want it: a flagged card is not
+        // also reporting its slot extent.
+        const halo = emphasis > 0 && params.attention.haloWidth > 0
+        edge.visible = halo || cardEdges
         const zone = zoneFor.get(id)
         const own = huedCardEdge && zone ? huedColors.get(zone) : undefined
-        if (own) edge.material.color.copy(own)
+        if (halo) edge.material.color.set(attentionColor)
+        else if (own) edge.material.color.copy(own)
         else edge.material.color.set(cardEdgeColor)
-        edge.material.linewidth = params.overlay.cardEdgeWidth
-        edge.material.opacity = mat.opacity
+        edge.material.linewidth = halo
+          ? params.attention.haloWidth
+          : params.overlay.cardEdgeWidth
+        // The halo is the one thing the depth falloff must not mute.
+        edge.material.opacity = halo ? Math.max(mat.opacity, emphasis) : mat.opacity
         setResolution(edge.material, gl)
       }
     }
@@ -525,10 +548,12 @@ function Wall({
           }}
         >
           <meshBasicMaterial toneMapped={false} />
-          {cardEdges && <primitive object={edges.for(id)} />}
+          {/* Always mounted, shown per frame: the attention halo reuses this
+              line, so its presence cannot depend on the diagnostic toggle. */}
+          <primitive object={edges.for(id)} />
         </mesh>
       )),
-    [live, geometry, edges, cardEdges],
+    [live, geometry, edges],
   )
 
   return (

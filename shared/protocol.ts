@@ -1,3 +1,5 @@
+import type { Attention } from './attention.ts'
+
 export type WallItem = {
   id: string
   url: string
@@ -9,6 +11,8 @@ export type WallItem = {
   bornAt: number
   /** Overrides the wall's default TTL. Absent means the default applies. */
   ttlMs?: number
+  /** Set when the item asks to be looked at. Absent is the ordinary case. */
+  attention?: Attention
   w: number
   h: number
 }

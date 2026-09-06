@@ -5,6 +5,8 @@
 #   slop --zone Z FILE...
 #   slop --ttl 5m FILE...      how long it lives; bare number is seconds
 #   slop --caption "what it shows" FILE
+#   slop --attention look FILE   asks to be looked at; also `30m`,
+#                                `look:90s`, `until-dismissed`
 #   some-generator | slop     reads stdin, writes a .png
 #   slop --print-zone         prints the zone this repo resolves to, and exits
 #
@@ -18,12 +20,14 @@ set -eu
 zone=""
 ttl=""
 caption=""
+attention=""
 [ -n "${SLOP_ZONE:-}" ] && zone="$SLOP_ZONE"
 while :; do
   case "${1:-}" in
     --zone) zone="$2"; shift 2 ;;
     --ttl) ttl="$2"; shift 2 ;;
     --caption) caption="$2"; shift 2 ;;
+    --attention) attention="$2"; shift 2 ;;
     *) break ;;
   esac
 done
@@ -50,11 +54,12 @@ json_escape() {
 write_sidecar() {
   dest_image=$1
   dest_caption=$2
-  [ -z "$dest_caption" ] && [ -z "$sha" ] && return 0
+  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$attention" ] && return 0
   {
     printf '{"repo":"%s"' "$(json_escape "$repo")"
     [ -n "$sha" ] && printf ',"sha":"%s"' "$(json_escape "$sha")"
     [ -n "$dest_caption" ] && printf ',"caption":"%s"' "$(json_escape "$dest_caption")"
+    [ -n "$attention" ] && printf ',"attention":"%s"' "$(json_escape "$attention")"
     printf '}\n'
   } > "$dest_image.slop.json"
 }

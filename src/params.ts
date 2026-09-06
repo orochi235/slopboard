@@ -49,6 +49,20 @@ export type StackParams = {
      */
     combine: 'ceiling' | 'min'
   }
+  /**
+   * How an item that asks to be looked at gets said. One strength drives all
+   * three cues, so they cannot drift apart, and the wall reads the same
+   * whether a flag is fresh or about to lapse.
+   */
+  attention: {
+    /** World units toward the viewer, in front of the pile's own front rank. */
+    lift: number
+    /** Half the peak-to-peak scale swing. 0 is no pulse. */
+    pulseAmp: number
+    pulseHz: number
+    /** Screen pixels, like the other line widths. 0 draws no halo. */
+    haloWidth: number
+  }
   zoneGrid: { gap: number; orientation: 'wide' | 'tall'; cols?: number; rows?: number }
   camera: {
     projection: Projection
@@ -142,6 +156,8 @@ export type StackParams = {
   colors: {
     /** Drawn into the scene, and turning with it. */
     cardEdge: string
+    /** The halo around an item asking to be looked at. */
+    attention: string
     zoneIdle: string
     zoneFocus: string
     zoneBackdrop: string
@@ -173,6 +189,7 @@ export const defaultParams: StackParams = {
   rankCap: 200,
   fade: { from: 0.88, to: 1 },
   distance: { enabled: true, from: 1, to: 22, floor: 0.12, combine: 'ceiling' },
+  attention: { lift: 0.2, pulseAmp: 0.02, pulseHz: 0.5, haloWidth: 2 },
   zoneGrid: { gap: 0.02, orientation: 'wide' },
   camera: {
     projection: 'orthographic',
@@ -212,6 +229,7 @@ export const defaultParams: StackParams = {
   },
   colors: {
     cardEdge: '#22d3ee',
+    attention: '#fbbf24',
     zoneIdle: '#64748b',
     zoneFocus: '#38bdf8',
     zoneBackdrop: '#64748b',

@@ -46,6 +46,16 @@ describe('toStackItems', () => {
     expect(out!.aspect).toBe(2)
   })
 
+  it('reads a live attention flag as full emphasis, on the daemon clock', () => {
+    const flagged = item({ bornAt: 0, attention: { level: 'look', holdMs: 1000 } })
+    expect(toStackItems([flagged], { now: 500, ttlMs: 9999 })[0]!.emphasis).toBe(1)
+    expect(toStackItems([flagged], { now: 5000, ttlMs: 9999 })[0]!.emphasis).toBe(0)
+  })
+
+  it('leaves an unflagged item with no emphasis at all', () => {
+    expect(toStackItems([item()], { now: 1000, ttlMs: 4000 })[0]!.emphasis).toBe(0)
+  })
+
   it('treats a zero-height item as square rather than dividing by zero', () => {
     const [out] = toStackItems([item({ h: 0 })], { now: 1000, ttlMs: 4000 })
     expect(out!.aspect).toBe(1)

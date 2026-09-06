@@ -4,7 +4,7 @@ import { createZoneGrid } from './zones.ts'
 import { defaultParams, type StackParams } from '@/params.ts'
 import type { Arrangement3D, SlopChannels } from './types.ts'
 
-type StackItem = LayoutItem & { zone: string; age01: number }
+type StackItem = LayoutItem & { zone: string; age01: number; emphasis?: number }
 
 /** Stable per-id noise in [-1, 1]. Cheap, and identical across cache drops. */
 function hashUnit(id: string): number {
@@ -128,7 +128,11 @@ export function createStack(
             })
 
             const byAge = 1 - fade(it.age01, params)
-            const byDepth = distance(depth, params)
+            const emphasis = it.emphasis ?? 0
+            // An item asking to be looked at does not recede: emphasis floors
+            // the depth falloff rather than being applied after it, so being
+            // buried can dim it no further than the flag allows.
+            const byDepth = Math.max(distance(depth, params), emphasis)
 
             channels.set(it.id, {
               z: depth * params.step.z,
@@ -138,6 +142,7 @@ export function createStack(
               rotY: params.rot.y,
               rotZ: noise * params.jitter.rot,
               lod: lodFor(entry.rank, params.lod),
+              emphasis,
             } satisfies SlopChannels)
           }
         }

@@ -7,7 +7,7 @@ import type { StackParams } from '@/params.ts'
  * list of what to keep. Forgetting to drop one costs a reshuffle; forgetting to
  * keep one costs a parameter that silently does nothing.
  */
-const DISPLAY_ONLY = ['camera', 'overlay', 'zones', 'sky', 'colors', 'nav'] as const
+const DISPLAY_ONLY = ['camera', 'overlay', 'zones', 'sky', 'colors', 'nav', 'attention'] as const
 
 /**
  * Identity for the arrangement memo. Rebuilding resets the rank allocators, so

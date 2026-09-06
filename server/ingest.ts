@@ -9,6 +9,7 @@ import type { WallItem } from '@shared/protocol.ts'
 import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
 import { readStamp } from './sidecar.ts'
+import { parseAttention } from '@shared/attention.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
 import { createLimiter } from './limit.ts'
 
@@ -73,9 +74,14 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   await stampOriginal(sourcePath, xmp)
 
   const ttlMs = ttlFromName(basename(sourcePath))
+  const attention = sidecar?.attention ? parseAttention(sidecar.attention) : null
+  if (sidecar?.attention && !attention) {
+    console.warn(`[ingest] unreadable attention "${sidecar.attention}" on ${basename(sourcePath)}`)
+  }
   const item: WallItem = {
     id,
     ...(ttlMs === null ? {} : { ttlMs }),
+    ...(attention === null ? {} : { attention }),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,
     zone,

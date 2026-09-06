@@ -44,6 +44,8 @@ export type SlopChannels = {
   saturation?: number
   blur?: number
   lod?: number
+  /** How loudly the item is asking to be looked at, 0..1. */
+  emphasis?: number
 }
 
 export type SlopStrategy = {

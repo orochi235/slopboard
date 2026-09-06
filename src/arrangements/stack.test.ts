@@ -3,7 +3,12 @@ import { createStack } from '@/arrangements/stack.ts'
 import { defaultParams } from '@/params.ts'
 
 const container = { w: 16 / 9, h: 1 }
-const item = (id: string, zone: string, age01 = 0) => ({ id, zone, age01 })
+const item = (id: string, zone: string, age01 = 0, emphasis = 0) => ({
+  id,
+  zone,
+  age01,
+  emphasis,
+})
 
 const run = (
   stack: ReturnType<typeof createStack>,
@@ -138,6 +143,28 @@ describe('stack', () => {
     const stack = createStack(defaultParams, { distance: () => 0.5 })
     const out = run(stack, [item('a', 'z')], 0)
     expect(out.channels!.get('a')!.opacity).toBeCloseTo(0.5)
+  })
+
+  it('keeps a flagged card present however deep it is buried', () => {
+    const params = { ...defaultParams, distance: { ...defaultParams.distance, from: 0, to: 4 } }
+    const items = [
+      ...Array.from({ length: 30 }, (_, i) => item(`i${i}`, 'z')),
+      item('flagged', 'z', 0, 1),
+    ]
+    const out = run(createStack(params), items, 0)
+    // Last in the bucket, so the deepest rank on the pile — and still full.
+    expect(out.channels!.get('flagged')!.opacity).toBeCloseTo(1)
+    expect(out.channels!.get('i29')!.opacity).toBeCloseTo(params.distance.floor)
+  })
+
+  it('lets a flagged card still die on time, since a flag is not a reprieve', () => {
+    const out = run(createStack(), [item('a', 'z'), item('flagged', 'z', 1, 1)], 0)
+    expect(out.channels!.get('flagged')!.opacity).toBeCloseTo(0)
+  })
+
+  it('reports emphasis on the channel, so the renderer need not re-derive it', () => {
+    const out = run(createStack(), [item('a', 'z', 0, 0.5)], 0)
+    expect(out.channels!.get('a')!.emphasis).toBe(0.5)
   })
 
   it('places nothing for an empty wall', () => {

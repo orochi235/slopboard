@@ -174,6 +174,35 @@ params, so the angle has one home rather than two. Framing itself is stated once
 as a half-height; perspective derives a distance from it, orthographic parks at
 `camera.standoff` and drives the frustum.
 
+### Asking to be looked at
+
+An item can ask for attention, and an agent sets the flag whenever it tells a
+person to go and look at something. That makes it common rather than rare,
+which is the constraint the treatment is designed against: a wall where a third
+of the cards shout is a wall where none of them do.
+
+**One strength, 0..1, drives every cue**, so they cannot drift apart. It is a
+step and not a ramp — the flag is live or it is not — computed on the daemon's
+clock for the same reason `age01` is, so a reload does not restart a hold.
+
+- **It does not recede.** Emphasis floors the `distance` falloff rather than
+  being applied after it, so burying a flagged card can dim it no further than
+  the flag allows. This is the cue that still works an hour later, when the
+  card is at rank 20.
+- **It stands out of its pile**, by a world-space lift in front of its own
+  front rank, applied at the mesh beside the other position corrections.
+- **It wears a halo** in `colors.attention`, reusing the per-card line that
+  `overlay.cardEdges` drives. The halo wins the line where both want it: a
+  flagged card is not also reporting its slot extent.
+- **It breathes.** A scale pulse, amplitude scaled by emphasis, so an unflagged
+  card is exactly as still as it ever was. This costs nothing extra: the canvas
+  has no `frameloop` prop, so r3f is on `always` and the wall already redraws
+  every frame.
+
+**A flag ends by being dismissed or by lapsing, never by the card expiring.**
+A hold of null holds until someone dismisses it; any other hold lapses on its
+own. Either way the card goes on living out its TTL as an ordinary card.
+
 ### How depth reads
 
 Two things say "this card is far back," and they are deliberately different
@@ -283,9 +312,10 @@ against every arrangement.
   own (`sky.spreadDeg`) rather than the camera's fov, because an orthographic
   camera's rays are parallel: borrowing the real projection samples one
   direction and paints the screen flat. So turning the wall turns the sky and
-  zooming does not move it, whichever projection is in use. No animation — the
-  frame loop idles down when nothing moves, and a breathing background would
-  hold it awake for decoration.
+  zooming does not move it, whichever projection is in use. No animation,
+  because a breathing background is decoration competing with the cards. Not
+  for the cost: the canvas sets no `frameloop`, so r3f is on `always` and the
+  wall already redraws every frame whether or not anything moved.
 - **A raw shader writes sRGB, so its colours must not be converted.** three
   takes an authored hex into its linear working space on the way in and its
   built-in materials convert back on the way out; a `ShaderMaterial` writing
@@ -360,6 +390,18 @@ would caption a piped render with a hex string — worse than no caption. So a
 sidecar with no caption means the CLI had nothing to say, and the wall shows
 nothing. A file dropped in by hand has no sidecar, and its name is the only
 thing it says.
+
+**`--attention` is the second thing only the caller knows.** It rides the same
+sidecar as a raw token — `look`, `30m`, `look:90s`, `until-dismissed` — and the
+daemon parses it at ingest into a level and a hold. A token it cannot read is
+warned about and dropped rather than guessed at, so a typo never becomes a flag
+at the default strength, and `shout` does not start working by accident the day
+a second level is added.
+
+The level is a name from the first commit even though only one exists, which is
+what makes a second treatment a row in the params table it drives rather than a
+change to this contract. **A flag is not a reprieve:** it changes how loudly an
+item is drawn and never how long it lives, which is what `--ttl` is for.
 
 **The daemon folds the stamp into the image's own XMP at ingest**, both into the
 cache derivative and into the original — `/orig` serves the original, and it is

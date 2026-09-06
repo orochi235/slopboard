@@ -6,6 +6,9 @@ export type Stamp = {
   /** The repository the render came out of, and the commit it was made at. */
   repo?: string
   sha?: string
+  /** How hard this asks to be looked at, as written: `look`, `30m`,
+   *  `look:90s`, `until-dismissed`. Parsed at ingest, not here. */
+  attention?: string
 }
 
 const NS_SLOP = 'https://slopboard.local/ns/1.0/'
