@@ -99,6 +99,14 @@ The user's instruction is to work all of it, not just the head.
   sidebar list decides whether the fix is "fan them all out" or the much cheaper
   "show the frontmost and let the list carry the rest."
 
+- **A right-click context menu built out of the parallax layers**, on a zone, a
+  pile or a card. The modal on `?` is the visual language to reuse — the same
+  perspective and translateZ deck, sized down to a menu. The pick that decides
+  *which* of the three was hit already exists: `chainAt` in `WebglBackend`
+  returns the full path under the pointer, `[zone]` or `[zone, id]`, and returns
+  `[]` over empty sky. So the menu's targeting is a read of that, not new
+  raycasting.
+
 **Independent of the sidebar:**
 
 - **The client cannot tell the daemon died.** The other half of the hot-reload
