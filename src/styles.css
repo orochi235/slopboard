@@ -118,3 +118,8 @@ body,
 .scene--turning {
   cursor: grabbing;
 }
+
+/* A pile being moved by its own card, rather than the wall being turned. */
+.scene--moving {
+  cursor: move;
+}

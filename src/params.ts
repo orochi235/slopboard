@@ -138,6 +138,13 @@ export type StackParams = {
     /** Dead time after a step. Momentum scrolling keeps delivering for most of
      *  a second, and without this one flick walks the whole hierarchy. */
     cooldownMs: number
+    /** A drag begun on a card moves its pile instead of turning the wall.
+     *  Turning still works from the sky and the gaps between piles. */
+    dragCardSetsStep: boolean
+    /** World units of depth per wheel notch while a card is being dragged. A
+     *  drag can only ever reach the two axes facing the camera, so this is the
+     *  way to the third without orbiting to find it. */
+    dragDepthPerNotch: number
   }
   /** The faces text drawn into the scene wears. One per use rather than one
    *  for the wall: a zone name is a heading read at a distance and a badge is
@@ -290,7 +297,13 @@ export const defaultParams: StackParams = {
     margins: [1.08, 1.12],
     moveMs: 520,
   },
-  nav: { wheelThreshold: 60, pinchThreshold: 8, cooldownMs: 320 },
+  nav: {
+    wheelThreshold: 60,
+    pinchThreshold: 8,
+    cooldownMs: 320,
+    dragCardSetsStep: true,
+    dragDepthPerNotch: 0.0006,
+  },
   typeface: { label: 'oxanium', badge: 'oxanium' },
   overlay: { cardEdges: false, cardEdgeWidth: 1 },
   zones: {

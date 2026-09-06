@@ -33,6 +33,7 @@ import { createGestureRail } from '@/nav/gesture.ts'
 import { directionFor, isForAControl } from '@/nav/keys.ts'
 import { neighbourOf } from '@/nav/neighbour.ts'
 import { zoneAt } from '@/nav/pick.ts'
+import { stepFromDrag } from '@/nav/step-drag.ts'
 import { stepToward } from '@/nav/step.ts'
 import { baseCellsOf, unionOf, withHeadroom, zoneCellsOf } from '@/nav/zone-cells.ts'
 import type { StackParams } from '@/params.ts'
@@ -78,6 +79,9 @@ const BADGE_LIFT = 0.002
 
 /** Movement past this is an orbit; anything less is the click it looks like. */
 const DRAG_SLOP_PX = 4
+
+/** `PointerEvent.button` for the wheel pressed as a button. */
+const MIDDLE_BUTTON = 1
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
@@ -465,8 +469,25 @@ function Wall({
 
   // Held by ref so the listeners below bind once and still see this render's
   // view: rebinding a wheel listener would drop the gesture rail's charge.
-  const act = useRef({ chainAt, navigate, hoverAt })
-  act.current = { chainAt, navigate, hoverAt }
+  /** How many ranks back a card sits in its own pile, or null if the pointer
+   *  is not over one. The divisor that turns a dragged card into a per-rank
+   *  step — and the front card, at rank 0, has nothing to spread over. */
+  const rankAt = (clientX: number, clientY: number): number | null => {
+    const chain = chainAt(clientX, clientY)
+    const zone = chain[0]
+    const id = chain[1]
+    if (!zone || !id) return null
+    const rank = cardsByZone.current.get(zone)?.indexOf(id) ?? -1
+    return rank < 0 ? null : rank
+  }
+
+  /** The rank of the card under a live drag, or null. Read by the wheel. */
+  const movingRank = useRef<number | null>(null)
+  const stepDrag = useRef(params.nav.dragCardSetsStep)
+  stepDrag.current = params.nav.dragCardSetsStep
+
+  const act = useRef({ chainAt, navigate, hoverAt, rankAt })
+  act.current = { chainAt, navigate, hoverAt, rankAt }
 
   // Bound to the canvas, not to a mesh, so the empty space between piles turns
   // the scene. A press that never travels is a click, and picks a rung.
@@ -474,9 +495,30 @@ function Wall({
     const el = gl.domElement
     let active = false
     let last = { x: 0, y: 0 }
+    /** The card being dragged, and where the drag began. Null while the
+     *  gesture is an orbit. Mirrored into a ref so the wheel listener, which
+     *  is bound elsewhere, can tell a depth nudge from a rung of navigation. */
+    let moving: { rank: number; from: { x: number; y: number } } | null = null
+    const setMoving = (next: typeof moving) => {
+      moving = next
+      movingRank.current = next?.rank ?? null
+    }
 
     const onDown = (e: PointerEvent) => {
-      if (e.button !== 0) return
+      // The wheel button moves a pile; the left button turns the wall and
+      // picks. Two buttons rather than a modifier, so neither gesture has to
+      // be held down wrong to find out which one it was.
+      const wheelDown = e.button === MIDDLE_BUTTON
+      if (e.button !== 0 && !wheelDown) return
+      if (wheelDown) {
+        // Suppresses the platform's own middle-click behavior — autoscroll on
+        // Windows, paste on X11 — which would otherwise fire under the drag.
+        e.preventDefault()
+        if (!stepDrag.current) return
+        const rank = act.current.rankAt(e.clientX, e.clientY)
+        if (rank === null) return
+        setMoving({ rank, from: { x: e.clientX, y: e.clientY } })
+      }
       active = true
       dragged.current = false
       last = { x: e.clientX, y: e.clientY }
@@ -496,6 +538,30 @@ function Wall({
       if (!dragged.current && Math.hypot(dx, dy) < DRAG_SLOP_PX) return
       dragged.current = true
       last = { x: e.clientX, y: e.clientY }
+      if (moving) {
+        el.classList.add('scene--moving')
+        // Against the drag's own origin rather than the last frame, so the
+        // pile tracks the hand exactly instead of accumulating rounding.
+        const dxTotal = e.clientX - moving.from.x
+        const dyTotal = e.clientY - moving.from.y
+        moving.from = { x: e.clientX, y: e.clientY }
+        // The camera sees `2 * halfHeight` of world over the canvas's height,
+        // whichever projection it is using.
+        const worldPerPx = (pose.current.halfHeight * 2) / el.clientHeight
+        onParams((p) => ({
+          ...p,
+          step: stepFromDrag({
+            base: p.step,
+            dxPx: dxTotal,
+            dyPx: dyTotal,
+            rank: moving!.rank,
+            worldPerPx,
+            yawDeg: p.camera.yawDeg,
+            pitchDeg: p.camera.pitchDeg,
+          }),
+        }))
+        return
+      }
       el.classList.add('scene--turning')
       onParams((p) => ({
         ...p,
@@ -509,21 +575,33 @@ function Wall({
     }
     const onUp = (e: PointerEvent) => {
       const turned = dragged.current
+      const moved = moving !== null
       active = false
+      setMoving(null)
       el.classList.remove('scene--turning')
+      el.classList.remove('scene--moving')
       const over = act.current.hoverAt(e.clientX, e.clientY)
       hovered.current = over
       el.classList.toggle('scene--pointing', over !== null)
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
-      if (turned || e.button !== 0) return
+      if (turned || moved || e.button !== 0) return
       act.current.navigate(act.current.chainAt(e.clientX, e.clientY))
     }
 
+    // Chrome starts autoscroll from mousedown, not pointerdown, so the
+    // suppression has to be on both.
+    const onAux = (e: MouseEvent) => {
+      if (e.button === MIDDLE_BUTTON) e.preventDefault()
+    }
+    el.addEventListener('mousedown', onAux)
+    el.addEventListener('auxclick', onAux)
     el.addEventListener('pointerdown', onDown)
     el.addEventListener('pointermove', onMove)
     el.addEventListener('pointerup', onUp)
     el.addEventListener('pointercancel', onUp)
     return () => {
+      el.removeEventListener('mousedown', onAux)
+      el.removeEventListener('auxclick', onAux)
       el.removeEventListener('pointerdown', onDown)
       el.removeEventListener('pointermove', onMove)
       el.removeEventListener('pointerup', onUp)
@@ -540,6 +618,20 @@ function Wall({
       // A trackpad pinch is a wheel event with ctrlKey set; left alone it zooms
       // the page instead of the wall.
       e.preventDefault()
+      // Mid-drag the wheel is the third axis, not a rung. A drag reaches only
+      // the two axes facing the camera, and orbiting to find the third is a
+      // detour when the hand is already on the pile.
+      // Scrolling with the wheel button held is the third axis: a drag reaches
+      // only the two facing the camera, and orbiting to find the last one is a
+      // detour when the hand is already on the pile.
+      const rank = movingRank.current
+      if (rank !== null) {
+        const notches = e.deltaY / 100
+        return void onParams((p) => ({
+          ...p,
+          step: { ...p.step, z: p.step.z - (notches * p.nav.dragDepthPerNotch) / Math.max(1, rank) },
+        }))
+      }
       const step = rail.feed({ deltaY: e.deltaY, ctrlKey: e.ctrlKey }, e.timeStamp)
       if (!step) return
       if (step === 'out') dispatch({ type: 'out' })
@@ -547,7 +639,7 @@ function Wall({
     }
     window.addEventListener('wheel', onWheel, { passive: false })
     return () => window.removeEventListener('wheel', onWheel)
-  }, [params.nav, dispatch])
+  }, [params.nav, dispatch, onParams])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -48,6 +48,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'nav.wheelThreshold': [5, 300, 5],
   'nav.pinchThreshold': [1, 60, 1],
   'nav.cooldownMs': [0, 1200, 10],
+  'nav.dragDepthPerNotch': [0, 0.004, 0.0001],
   'overlay.cardEdgeWidth': [0.5, 12, 0.5],
   'zones.outlineWidth': [0.5, 12, 0.5],
   'zones.labelSize': [0.01, 0.6, 0.005],
