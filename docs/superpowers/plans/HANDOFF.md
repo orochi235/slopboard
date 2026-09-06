@@ -107,6 +107,12 @@ The user's instruction is to work all of it, not just the head.
   `[]` over empty sky. So the menu's targeting is a read of that, not new
   raycasting.
 
+- **Lift the parallax out of the modal into a function** that takes a DOM
+  subtree and applies the effect from z-order plus natural document order —
+  so the depth comes from where an element already sits rather than from a
+  hand-written `--depth` per layer. The modal and the context menu are then two
+  callers instead of two copies. Worth doing before the context menu, not after.
+
 **Independent of the sidebar:**
 
 - **The client cannot tell the daemon died.** The other half of the hot-reload
