@@ -50,6 +50,14 @@ app.get('/orig/:id', (req, res) => {
   res.sendFile(path, { dotfiles: 'allow' })
 })
 
+// The only route that writes. A wall on a private machine, so the guard is
+// that dismissing something already visible to the viewer costs nothing.
+app.post('/api/items/:id/dismiss', async (req, res) => {
+  const cleared = await store.dismiss(req.params.id)
+  if (cleared) broadcast({ type: 'dismiss', id: req.params.id })
+  res.json({ ok: true, cleared })
+})
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, items: store.snapshot().length, ttlMs: config.ttlMs })
 })

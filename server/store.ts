@@ -1,7 +1,7 @@
 import { rename, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { config } from './config.ts'
-import { trashStamp } from './sidecar.ts'
+import { clearAttention, trashStamp } from './sidecar.ts'
 import type { WallItem } from '@shared/protocol.ts'
 
 type Entry = { item: WallItem; sourcePath: string; cachePath: string }
@@ -43,6 +43,19 @@ export function startSweeper() {
       if (entry.item.bornAt < now - (entry.item.ttlMs ?? config.ttlMs)) void expire(entry)
     }
   }, 1000)
+}
+
+/**
+ * Clears an item's flag, on the wall and on disk. False when there was no such
+ * item or it was not asking in the first place, so the caller does not
+ * broadcast a change that did not happen.
+ */
+export async function dismiss(id: string): Promise<boolean> {
+  const entry = entries.get(id)
+  if (!entry?.item.attention) return false
+  delete entry.item.attention
+  await clearAttention(entry.sourcePath)
+  return true
 }
 
 export function resolveCache(id: string) {

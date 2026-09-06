@@ -45,6 +45,15 @@ export function useWall(): Wall {
           setItems((prev) => [...prev, msg.item])
         } else if (msg.type === 'expire') {
           setItems((prev) => prev.filter((i) => i.id !== msg.id))
+        } else if (msg.type === 'dismiss') {
+          // The item stays; only its flag goes.
+          setItems((prev) =>
+            prev.map((i) => {
+              if (i.id !== msg.id) return i
+              const { attention: _cleared, ...rest } = i
+              return rest
+            }),
+          )
         }
       }
     }

@@ -578,6 +578,14 @@ export function WebglBackend(props: Props) {
   // camera's tuning surface, and the arrangement is rebuilt only for layout.
   const { fovDeg: fov, projection } = props.params.camera
   const card = cardOf(view)
+
+  // Opening a card is the thing the flag was asking for, so looking at it is
+  // what clears it. Fire-and-forget: the daemon broadcasts the change, and a
+  // dismissal that fails costs a halo that is still accurate.
+  useEffect(() => {
+    if (card === null) return
+    void fetch(`/api/items/${card}/dismiss`, { method: 'POST' }).catch(() => {})
+  }, [card])
   // An orthographic camera sees a slab, not a cone, so `far` has to clear the
   // standoff plus everything the rank cap can put behind the wall.
   const far = props.params.camera.standoff * 2 + 100

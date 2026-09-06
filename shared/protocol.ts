@@ -30,3 +30,5 @@ export type ServerMessage =
   | { type: 'zoneColors'; zoneColors: Record<string, string> }
   | { type: 'arrive'; item: WallItem }
   | { type: 'expire'; id: string }
+  /** The item is still on the wall; it has just stopped asking to be looked at. */
+  | { type: 'dismiss'; id: string }

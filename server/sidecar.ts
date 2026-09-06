@@ -1,4 +1,4 @@
-import { readFile, rename } from 'node:fs/promises'
+import { readFile, rename, writeFile } from 'node:fs/promises'
 import type { Stamp } from './xmp.ts'
 
 /**
@@ -37,6 +37,27 @@ export async function readStamp(imagePath: string): Promise<Stamp | null> {
     return parseStamp(JSON.parse(await readFile(sidecarFor(imagePath), 'utf8')))
   } catch {
     return null
+  }
+}
+
+/**
+ * Drops the attention token from an image's sidecar, so a dismissal survives a
+ * daemon restart — `adopt` re-reads the sidecar off disk, and a flag left there
+ * would come back the moment the daemon bounced.
+ *
+ * A missing sidecar is not an error: an item flagged by hand-editing has
+ * nothing to clear, and the in-memory store has already forgotten the flag.
+ */
+export async function clearAttention(imagePath: string): Promise<void> {
+  const path = sidecarFor(imagePath)
+  try {
+    const blob = JSON.parse(await readFile(path, 'utf8')) as Record<string, unknown>
+    if (!('attention' in blob)) return
+    delete blob.attention
+    await writeFile(path, `${JSON.stringify(blob)}\n`)
+  } catch {
+    // Nothing to clear, or a sidecar this build cannot read. Either way the
+    // dismissal already happened in the store, which is what the wall shows.
   }
 }
 
