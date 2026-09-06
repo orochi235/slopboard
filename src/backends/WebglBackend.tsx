@@ -22,6 +22,7 @@ import { Sky } from '@/backends/Sky.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { toStackItems } from '@/model.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
+import { Axes } from '@/nav/Axes.tsx'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { badgeTexture } from '@/textures/badge.ts'
@@ -745,29 +746,49 @@ function Wall({
         if (wearsBadge && slot !== undefined && base) {
           const { w, h } = held
           held.plate.scale.set(w, h, 1)
-          // Upright on the shelf, not turned with its card: the plate is
-          // signage about the artifact rather than part of it, and inheriting
-          // the card's jitter would tilt every row of the stack differently.
-          held.plate.rotation.set(0, 0, 0)
+          // Coplanar with its card, always. The shelf moves the plate for
+          // legibility, but it moves it *within* the card's own plane: the
+          // offset is measured flat and then turned by the card's rotation, so
+          // the plate reads as a face of the artifact rather than as a sticker
+          // floating in front of the wall.
+          held.plate.rotation.copy(mesh.rotation)
           const shelfY =
             -base.y + params.attention.floatLift + slot * (h + params.attention.floatGap) + h / 2
           // Left edges flush with the zone's, so the shelf reads as a stack of
           // rows belonging to the pile rather than as plates scattered over it.
-          held.plate.position.set(base.x + w / 2, shelfY, rect.z + BADGE_LIFT)
+          const offset = new THREE.Vector3(
+            base.x + w / 2 - mesh.position.x,
+            shelfY - mesh.position.y,
+            BADGE_LIFT,
+          ).applyEuler(mesh.rotation)
+          held.plate.position.copy(mesh.position).add(offset)
           // Down to the top of the card, so the line says which artifact is
           // asking even when the plate has climbed clear of the pile. Read off
           // the mesh rather than the rect: a flagged card stands `tier.lift`
           // forward of its rank, and a line drawn to the rect's own z lands
           // behind the card it is pointing at.
           if (!noLeader.has(id)) {
+            // From the plate's own bottom edge, wherever its card's plane put
+            // it, to the top of the card. Read off the meshes rather than the
+            // rects: a flagged card stands `tier.lift` forward of its rank, and
+            // a line drawn to the rect's own z lands behind the card it points
+            // at.
+            const foot = new THREE.Vector3(
+              params.attention.badgeSize - w / 2,
+              -h / 2,
+              0,
+            ).applyEuler(held.plate.rotation)
+            const head = new THREE.Vector3(0, (drawnH * swell * pulse) / 2, 0).applyEuler(
+              mesh.rotation,
+            )
             const points = leaderPoints.get(level) ?? []
             points.push(
-              base.x + params.attention.badgeSize,
-              shelfY - h / 2,
-              rect.z + BADGE_LIFT,
-              mesh.position.x,
-              mesh.position.y + (drawnH * swell * pulse) / 2,
-              mesh.position.z,
+              held.plate.position.x + foot.x,
+              held.plate.position.y + foot.y,
+              held.plate.position.z + foot.z,
+              mesh.position.x + head.x,
+              mesh.position.y + head.y,
+              mesh.position.z + head.z,
             )
             leaderPoints.set(level, points)
           }
@@ -962,6 +983,9 @@ export function WebglBackend(props: Props) {
         focus={zoneOf(view)}
         onFocus={(zone) => dispatch({ type: 'to', path: [zone] })}
       />
+      <div className="axes">
+        <Axes yawDeg={props.params.camera.yawDeg} pitchDeg={props.params.camera.pitchDeg} />
+      </div>
       <Sidebar
         items={items}
         clockOffset={props.clockOffset}

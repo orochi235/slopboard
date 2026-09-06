@@ -1,0 +1,50 @@
+.axes__svg {
+  width: 100%;
+  height: 76px;
+  overflow: visible;
+}
+
+.axes__axis line {
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.axes__label {
+  font: 10px/1 ui-monospace, monospace;
+  text-anchor: middle;
+}
+
+/* The convention every 3D tool already uses, so the gizmo needs no legend. */
+.axes__axis--x line,
+.axes__axis--x .axes__label {
+  stroke: #f2555a;
+  fill: #f2555a;
+}
+
+.axes__axis--y line,
+.axes__axis--y .axes__label {
+  stroke: #6ee06e;
+  fill: #6ee06e;
+}
+
+.axes__axis--z line,
+.axes__axis--z .axes__label {
+  stroke: #5a9bf2;
+  fill: #5a9bf2;
+}
+
+.axes__origin {
+  fill: var(--muted);
+}
+
+/* Under the minimap, which is the other thing that answers "where am I". */
+.axes {
+  position: fixed;
+  top: 148px;
+  left: 8px;
+  z-index: 50;
+  width: 96px;
+  padding: 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--scrim) 72%, transparent);
+}
