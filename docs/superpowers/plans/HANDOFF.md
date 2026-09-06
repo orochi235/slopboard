@@ -65,11 +65,16 @@ older prose does not.
 
 Every number below is a slider, so a bad answer is a drag.
 
+- **Badges lie in their artifact's plane** and may run past its right edge as
+  far as the next zone starts. `badgeSize` is the height of *one line*, so a
+  wrapped note grows taller rather than shrinking its text.
 - **Typeface.** `Oxanium` is the default, with Orbitron, Nova Square, two Firas
   and the system mono in the dropdown. Vendored as woff2 — no OCR-B, because
   every port has murky provenance and none was worth a binary on a guess.
 - **Pulse is off** (`attention.pulse` is a master gain at 0). Rate climbs with
   level underneath it; nobody has watched it move.
+- **Every plate is inked black.** Even pure red measures better against black
+  (5.25:1) than white (4.00:1). One ink for four plates.
 - **`urgent` is `#ff8000`**, the one plate that is not pure-channel — orange
   cannot be. Magenta would complete the set and separate urgent from problem,
   which are adjacent hot hues today. Not proposed, just noticed.
@@ -77,6 +82,25 @@ Every number below is a slider, so a bad answer is a drag.
   only, so a long name may crop; the camera has not been checked against one.
 
 ### Asked for and not built
+
+A sidebar is the next chunk, and three of these are one feature:
+
+- **A floating translucent sidebar**, holding HUD elements the corner chrome
+  cannot.
+- **In it, a list of every flagged artifact** and what its badge says. This is
+  most of the answer to the item below it — enumerate them in a fixed panel and
+  a badge in the scene no longer has to stay individually legible when several
+  pile up.
+- **In it, a debug panel that generates test cases**, one button throwing every
+  attention level onto random stacks. Build this first whatever else happens:
+  the stacking question below cannot be judged without a way to produce the
+  overlap on demand.
+- **Badges collide when flagged artifacts sit near each other in a pile.**
+  Unsolved, and deliberately not solved yet — settle the sidebar list first,
+  because it decides whether the fix is "fan them all out" or the much cheaper
+  "show the frontmost, let the list carry the rest."
+
+Unrelated to the sidebar, in rough priority:
 
 - **Hot reload empties the wall until a hard reload.** Not diagnosed — do not
   guess at it. The daemon restarts on any `shared/` edit, which is a plausible
