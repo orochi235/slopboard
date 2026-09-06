@@ -19,6 +19,7 @@ import { Lightbox } from '@/Lightbox.tsx'
 import { CardMenu, type MenuAt } from '@/menu/CardMenu.tsx'
 import { targetOf, type Action } from '@/menu/items.ts'
 import { Sidebar } from '@/Sidebar.tsx'
+import { usePersistedFlag } from '@/usePersistedFlag.ts'
 import { TopBar } from '@/TopBar.tsx'
 import { keptBy, type Range } from '@/nav/time-filter.ts'
 import { fakeFlags, type FakeFlag } from '@/debug-flags.ts'
@@ -76,6 +77,9 @@ type WallProps = Props & {
   /** Excluded by the band's filters. Still drawn, still in rank — faded, so
    *  what was cut stays legible against what was kept. */
   dimmed: ReadonlySet<string>
+  /** Fraction of the canvas the sidebar covers. A ref, not a value: the framing
+   *  reads it every frame and the panel opening must not re-render the wall. */
+  sidebarInset: { current: number }
 }
 
 /** The plan view is a diagram, not an animation: republishing it a few times a
@@ -135,6 +139,7 @@ function Wall({
   onPlan,
   onMenu,
   dimmed,
+  sidebarInset,
 }: WallProps) {
   const meshes = useRef(new Map<string, THREE.Mesh>())
   const { gl, camera } = useThree()
@@ -400,6 +405,7 @@ function Wall({
       standoff: params.camera.standoff,
       aspect,
       margin,
+      insetRight: sidebarInset.current,
     })
 
     const held = move.current?.to
@@ -1227,6 +1233,26 @@ function Wall({
 }
 
 export function WebglBackend(props: Props) {
+  const [sidebarOpen, setSidebarOpen] = usePersistedFlag('slopboard.sidebar.open.v1', false)
+  // The fraction of the canvas the panel covers, measured rather than assumed:
+  // its width lives in CSS, and a constant here would drift from it silently.
+  // Read on toggle and on resize, never per frame — it forces a layout.
+  const sidebarInset = useRef(0)
+  useEffect(() => {
+    const measure = () => {
+      const el = document.querySelector('.sidebar')
+      const w = el?.getBoundingClientRect().width ?? 0
+      sidebarInset.current = w > 0 ? w / window.innerWidth : 0
+    }
+    // After the panel has painted, so the element is there to measure.
+    const id = requestAnimationFrame(measure)
+    window.addEventListener('resize', measure)
+    return () => {
+      cancelAnimationFrame(id)
+      window.removeEventListener('resize', measure)
+    }
+  }, [sidebarOpen])
+
   const [view, dispatch] = useReducer(reduceView, WALL)
   const [plan, setPlan] = useState<Plan>({ cells: [], extent: null })
   // Flags the wall never received, merged in below. Held here rather than in
@@ -1359,6 +1385,7 @@ export function WebglBackend(props: Props) {
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
         <Wall
+          sidebarInset={sidebarInset}
           {...props}
           items={items}
           view={view}
@@ -1380,6 +1407,8 @@ export function WebglBackend(props: Props) {
       </div>
       <TopBar items={items} now={now} range={range} onRange={setRange} />
       <Sidebar
+        open={sidebarOpen}
+        setOpen={setSidebarOpen}
         items={items.filter((i) => keptBy(i.bornAt, range))}
         clockOffset={props.clockOffset}
         params={props.params}

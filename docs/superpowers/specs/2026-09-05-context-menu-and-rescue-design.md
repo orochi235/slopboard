@@ -91,7 +91,17 @@ The markup is a shell and a deck: `tilt` rotates a deck *inside* the container,
 so the container holds position and perspective and paints nothing, and
 everything visible lives on `.menu__deck`.
 
-Two traps, both of which make the effect vanish silently rather than break
+**React must not own the `class` attribute on anything reticul8r touches.** It
+writes `rz-plane` onto every plane, and React setting `className` replaces the
+whole attribute rather than editing it, so a re-render strips the class off
+whichever element it re-rendered. That row then has no transform: it stops
+moving and snaps back to its unscaled size, permanently, because nothing
+re-adds the class until the next `refresh()`. Every class in `CardMenu` is
+therefore static and all state — the placement, the active row — rides on
+`data-` attributes. This bites hardest where it looks most innocent, a
+hover highlight.
+
+Two more traps, both of which make the effect vanish silently rather than break
 loudly: `overflow` other than `visible`, `opacity` below 1 and `filter`
 anywhere above a plane flatten it while the computed `transform-style` still
 reads `preserve-3d`. That is why the card's name in the header has no line

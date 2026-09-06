@@ -16,7 +16,7 @@
   visibility: hidden;
 }
 
-.menu--placed {
+.menu[data-placed] {
   visibility: visible;
 }
 
@@ -66,7 +66,7 @@
   cursor: default;
 }
 
-.menu__item--active {
+.menu__item[data-active] {
   background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
@@ -74,7 +74,7 @@
   color: color-mix(in srgb, var(--ink) 62%, transparent);
 }
 
-.menu__item--grave.menu__item--active {
+.menu__item--grave[data-active] {
   background: color-mix(in srgb, #e0523f 30%, transparent);
   color: var(--ink);
 }

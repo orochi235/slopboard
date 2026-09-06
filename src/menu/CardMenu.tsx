@@ -11,10 +11,10 @@ export type MenuAt = { target: Target; x: number; y: number }
 /**
  * The right-click menu, as a DOM overlay over the canvas.
  *
- * `window` mode rather than `tilt`: the menu is anchored to the pointer and is
- * about to be clicked, and a deck that rotates moves every hit target out from
- * under the hand that opened it. Moving the viewpoint leaves the boxes where
- * they are and still parts the layers.
+ * Every class in here is static, and state rides on `data-` attributes:
+ * reticul8r writes `rz-plane` onto these same elements, and React setting
+ * `className` replaces the whole attribute, which would strip it. A row that
+ * loses `rz-plane` stops moving and snaps back to its unscaled size.
  */
 export function CardMenu({
   at,
@@ -112,7 +112,8 @@ export function CardMenu({
           the shell holds the position and the perspective and never turns, and
           the deck is the surface you can see move. */}
       <div
-        className={`menu ${spot ? 'menu--placed' : ''}`}
+        className="menu"
+        data-placed={spot ? '' : undefined}
         ref={hold}
         style={spot ? { left: `${spot.left}px`, top: `${spot.top}px` } : undefined}
         onPointerDown={(e) => e.stopPropagation()}
@@ -132,9 +133,8 @@ export function CardMenu({
         {items.map((entry, i) => (
           <div
             key={entry.action}
-            className={`menu__item ${entry.grave ? 'menu__item--grave' : ''} ${
-              i === active ? 'menu__item--active' : ''
-            }`}
+            className={entry.grave ? 'menu__item menu__item--grave' : 'menu__item'}
+            data-active={i === active ? '' : undefined}
             role="menuitem"
             tabIndex={-1}
             onPointerEnter={() => setActive(i)}

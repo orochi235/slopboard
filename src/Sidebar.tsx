@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { usePersistedFlag } from '@/usePersistedFlag.ts'
 import type { Dispatch, SetStateAction } from 'react'
 import { ParamsBody } from '@/Params.tsx'
 import { ago } from '@/age.ts'
@@ -6,27 +7,6 @@ import { emphasisAt } from '@shared/attention.ts'
 import type { StackParams } from '@/params.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import './sidebar.css'
-
-/** Storage throws rather than returning null in a private window, so the wall
- *  opens with a default rather than not at all. */
-function usePersistedFlag(key: string, initial: boolean) {
-  const [on, setOn] = useState(() => {
-    try {
-      const raw = localStorage.getItem(key)
-      return raw === null ? initial : raw === '1'
-    } catch {
-      return initial
-    }
-  })
-  useEffect(() => {
-    try {
-      localStorage.setItem(key, on ? '1' : '0')
-    } catch {
-      // A refused store costs the panel's memory, not the panel.
-    }
-  }, [key, on])
-  return [on, setOn] as const
-}
 
 function Section({
   name,
@@ -129,6 +109,8 @@ export function Sidebar({
   fakeCount,
   onGenerate,
   onClearFakes,
+  open,
+  setOpen,
 }: {
   items: readonly WallItem[]
   clockOffset: number
@@ -140,8 +122,10 @@ export function Sidebar({
   fakeCount: number
   onGenerate: () => void
   onClearFakes: () => void
+  /** Owned by the wall, which frames around the panel while it is up. */
+  open: boolean
+  setOpen: Dispatch<SetStateAction<boolean>>
 }) {
-  const [open, setOpen] = usePersistedFlag('slopboard.sidebar.open.v1', false)
   // Ticks the ages rather than the wall: the rows read a clock, and the scene
   // has its own frame loop that this must not join.
   const [now, setNow] = useState(() => Date.now() + clockOffset)

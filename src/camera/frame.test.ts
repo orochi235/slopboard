@@ -71,3 +71,46 @@ describe('framePose', () => {
     expect(b.y).toBeCloseTo(a.y, 6)
   })
 })
+
+describe('framing around the sidebar', () => {
+  const view = {
+    projection: 'orthographic' as const,
+    fovDeg: 50,
+    standoff: 2,
+    aspect: 2,
+    margin: 1,
+  }
+  const box = { x: 0, y: 0, w: 4, h: 1 }
+
+  it('shows the same wall in less width, so nothing is cropped', () => {
+    const full = framePose(box, view)
+    const inset = framePose(box, { ...view, insetRight: 0.25 })
+    // Width binds here, so covering a quarter of the canvas has to zoom out by
+    // exactly the reciprocal to keep the whole box on the visible part.
+    expect(inset.halfHeight).toBeCloseTo(full.halfHeight / 0.75, 6)
+  })
+
+  it('centers the wall in the part the sidebar leaves, not the whole canvas', () => {
+    const inset = framePose(box, { ...view, insetRight: 0.25 })
+    // The camera moves right so the content lands left of the canvas center.
+    const shift = inset.halfHeight * view.aspect * 0.25
+    expect(inset.x).toBeCloseTo(box.x + box.w / 2 + shift, 6)
+  })
+
+  it("leaves the right edge of the box clear of the sidebar's inner edge", () => {
+    const inset = framePose(box, { ...view, insetRight: 0.25 })
+    const halfWidth = inset.halfHeight * view.aspect
+    const sidebarInnerEdge = inset.x + halfWidth - 2 * halfWidth * 0.25
+    expect(box.x + box.w).toBeLessThanOrEqual(sidebarInnerEdge + 1e-6)
+  })
+
+  it('is unchanged when the sidebar is closed', () => {
+    expect(framePose(box, { ...view, insetRight: 0 })).toEqual(framePose(box, view))
+  })
+
+  it('refuses an inset wider than the viewport rather than framing to infinity', () => {
+    const silly = framePose(box, { ...view, insetRight: 5 })
+    expect(Number.isFinite(silly.halfHeight)).toBe(true)
+    expect(Number.isFinite(silly.x)).toBe(true)
+  })
+})
