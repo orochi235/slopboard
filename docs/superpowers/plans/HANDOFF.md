@@ -46,6 +46,56 @@ is a volume — deeper than the whole wall is tall at 29 cards — and every box
 computed about it is flat, because windease's `Rect` has a z position and no z
 extent. That is why framing goes loose once you turn the camera off head-on.
 
+## Attention flags — shipped, and what is still open
+
+Four commits, `30839c9` → `eeaa43e`, all on `main`. An agent flags an artifact
+it wants looked at; the wall says so and lets you jump to it.
+
+`slop --attention <level>[:<hold>] --note "why"`. Levels are `look`, `soon`,
+`urgent`, `problem` — presets, not a scale, because a serious problem and a
+deadline are different kinds of asking. Only `soon` lapses on its own; the rest
+hold until dismissed, and opening the artifact is what dismisses them. DESIGN.md
+carries the design under **Asking to be looked at** and the ingest contract.
+
+**Vocabulary changed mid-session: it is an "artifact", not an "image."** The
+wall may hold other types later. Code and docs touched since carry the new word;
+older prose does not.
+
+### Judgment calls waiting on the wall
+
+Every number below is a slider, so a bad answer is a drag.
+
+- **Typeface.** `Oxanium` is the default, with Orbitron, Nova Square, two Firas
+  and the system mono in the dropdown. Vendored as woff2 — no OCR-B, because
+  every port has murky provenance and none was worth a binary on a guess.
+- **Pulse is off** (`attention.pulse` is a master gain at 0). Rate climbs with
+  level underneath it; nobody has watched it move.
+- **`urgent` is `#ff8000`**, the one plate that is not pure-channel — orange
+  cannot be. Magenta would complete the set and separate urgent from problem,
+  which are adjacent hot hues today. Not proposed, just noticed.
+- **Zone names are 3× and climb the left edge.** Their headroom is vertical
+  only, so a long name may crop; the camera has not been checked against one.
+
+### Asked for and not built
+
+- **Hot reload empties the wall until a hard reload.** Not diagnosed — do not
+  guess at it. The daemon restarts on any `shared/` edit, which is a plausible
+  cause and unproven; the client's reconnect should re-snapshot and apparently
+  does not. This is the one with a user watching it.
+- **Enter should descend a rung**, the inverse of Escape.
+- **View state in the URL hash**, so a reload keeps the view. It already
+  survives reloads somehow — find out how before adding a second mechanism.
+- **The lightbox wants the artifact's age above the image.** Its caption sits
+  at the bottom today.
+- **"also tomorrow"** — an unresolved fragment of a message. Ask before acting.
+
+### One loose thread in the inbox
+
+`2FCBA0D9-…ttl48h.png` sits in `~/slop/inbox/slopboard/` while its sidecar sits
+in `~/slop/trash/`. The artifact is live on the wall with its caption and
+provenance stranded. `trashStamp` moves a sidecar to follow its artifact, so
+only the sidecar moving is a path nothing accounts for. Unexplained.
+
 ## Asked for and not built
 
 Three things. The depth question is answered; what it settled is below it.
