@@ -65,6 +65,8 @@ type Props = {
   onParams: Dispatch<SetStateAction<StackParams>>
   /** Published by the daemon: a zone's project color, where it has a `.hued`. */
   zoneColors: Record<string, string>
+  /** An arrival whose level asks to be opened the moment it lands. */
+  announce: WallItem | null
 }
 
 type WallProps = Props & {
@@ -1319,6 +1321,14 @@ export function WebglBackend(props: Props) {
   /** The item the lightbox is showing. From `props.items` rather than the
    *  fake-flag overlay, so the meta line reports the wall, not the rehearsal. */
   const lit = card === null ? null : (props.items.find((i) => i.id === card) ?? null)
+
+  // An arrival loud enough to open itself. It goes through the same dispatch a
+  // click does, so Escape leaves it exactly the way it leaves a card you opened
+  // yourself, and the flag is dismissed by the looking as usual.
+  const announced = props.announce
+  useEffect(() => {
+    if (announced) dispatch({ type: 'to', path: [announced.zone, announced.id] })
+  }, [announced, dispatch])
 
   const [menu, setMenu] = useState<MenuAt | null>(null)
   /** Set by the first expiry this client asks for. The daemon holds one undo,

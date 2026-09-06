@@ -437,6 +437,30 @@ like a zone that intermittently forgets its color. A record whose directory has
 gone, or that is caught half-written, drops that zone's color and never the
 others'.
 
+## Asking for the screen
+
+`--attention` already says how hard an item is asking. What each level *does*
+about it is `ALERTS` in `shared/attention.ts`, a row per level beside
+`DEFAULT_HOLD`: `lightbox`, `sound`, `notify`, `raise`. An agent writes a level
+and gets whatever that level means today, so retuning is an edit here rather
+than a change to the ingest contract or to anything an agent has to relearn.
+
+Only `lightbox` is the wall's. The other three are the **daemon's**, and that
+split is the whole design: a page cannot play a sound it has not been clicked
+for, cannot notify without a permission it may not have been granted, and can
+never raise its own window. The daemon is a local process with a shell, so it
+can do all three — and it can do them when the wall is not even open.
+
+**`raise` starts the wall if nothing is connected.** The daemon knows, because
+the wall is a WebSocket client of its own: `clients.size` is the answer, not a
+guess about processes. Connected means bring the browser forward; nothing
+connected means launch it, with the same chromeless profile a person would
+type. `problem` is the only level that does this — being interrupted is what
+that level is for.
+
+An alert is a detached `spawn` whose failure is swallowed. A missing `afplay`
+costs the sound, never the arrival.
+
 ## Rescue, expiry, and the trash
 
 **Saving is capacity-bounded.** Not yet built — keeping is currently unbounded,

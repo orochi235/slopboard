@@ -32,6 +32,37 @@ export const DEFAULT_HOLD: Record<Level, number | null> = {
   problem: null,
 }
 
+/**
+ * What arriving at each level does beyond landing on the wall.
+ *
+ * A row per level, the same way `DEFAULT_HOLD` is: an agent writes a level and
+ * gets whatever the level means today, so retuning what `urgent` does costs no
+ * change to the ingest contract and nothing an agent has to relearn.
+ *
+ * `lightbox` is the wall's own; the other three are the daemon's, because a
+ * page cannot make noise it has not been clicked for, cannot notify without a
+ * permission it may not have, and can never raise its own window.
+ */
+export type Alerts = {
+  /** Open the artifact full screen the moment it lands. */
+  lightbox: boolean
+  sound: boolean
+  notify: boolean
+  /** Bring the wall to the front — starting it if it is not running. */
+  raise: boolean
+}
+
+export const ALERTS: Record<Level, Alerts> = {
+  look: { lightbox: false, sound: false, notify: false, raise: false },
+  // A deadline that has not passed yet earns a line in Notification Centre and
+  // nothing more: it is not asking to be looked at now.
+  soon: { lightbox: false, sound: true, notify: true, raise: false },
+  urgent: { lightbox: true, sound: true, notify: true, raise: false },
+  // The only level that takes the screen. Something is broken and the render
+  // is the evidence, so being interrupted is the point.
+  problem: { lightbox: true, sound: true, notify: true, raise: true },
+}
+
 const UNTIL_DISMISSED = 'until-dismissed'
 
 const isLevel = (text: string): text is Level => (LEVELS as readonly string[]).includes(text)

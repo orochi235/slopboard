@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ALERTS } from '@shared/attention.ts'
 import type { ServerMessage, WallItem } from '@shared/protocol.ts'
 
 export type Wall = {
@@ -9,6 +10,10 @@ export type Wall = {
   /** Add to Date.now() to get the daemon's clock. Keeps decay server-anchored. */
   clockOffset: number
   connected: boolean
+  /** The last arrival whose level asks to be opened on sight. Held rather than
+   *  fired so a wall that was closed does not open a queue of them at once —
+   *  only the newest is still worth looking at. */
+  announce: WallItem | null
 }
 
 export function useWall(): Wall {
@@ -16,6 +21,7 @@ export function useWall(): Wall {
   const [zoneColors, setZoneColors] = useState<Record<string, string>>({})
   const [ttlMs, setTtlMs] = useState(300_000)
   const [connected, setConnected] = useState(false)
+  const [announce, setAnnounce] = useState<WallItem | null>(null)
   const clockOffset = useRef(0)
 
   useEffect(() => {
@@ -43,6 +49,8 @@ export function useWall(): Wall {
           setZoneColors(msg.zoneColors)
         } else if (msg.type === 'arrive') {
           setItems((prev) => [...prev, msg.item])
+          const level = msg.item.attention?.level
+          if (level && ALERTS[level].lightbox) setAnnounce(msg.item)
         } else if (msg.type === 'expire') {
           setItems((prev) => prev.filter((i) => i.id !== msg.id))
         } else if (msg.type === 'keep') {
@@ -77,5 +85,5 @@ export function useWall(): Wall {
     }
   }, [])
 
-  return { items, zoneColors, ttlMs, clockOffset: clockOffset.current, connected }
+  return { items, zoneColors, ttlMs, clockOffset: clockOffset.current, connected, announce }
 }

@@ -8,6 +8,7 @@ import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { zoneCounts } from './zoneCounts.ts'
+import { alert } from './alert.ts'
 import type { ServerMessage } from '@shared/protocol.ts'
 
 await mkdir(config.inbox, { recursive: true })
@@ -106,6 +107,11 @@ store.startSweeper()
 watchInbox((item) => {
   console.log(`[arrive] ${item.zone}/${item.id.slice(0, 8)} ${item.w}x${item.h}`)
   broadcast({ type: 'arrive', item })
+  // After the broadcast: a wall that is already open should be showing the
+  // artifact by the time anything asks the screen for attention on its behalf.
+  const plan = alert(item, clients.size > 0)
+  if (plan.sound || plan.notify || plan.raise !== 'none')
+    console.log(`[alert] ${item.attention?.level} ${JSON.stringify(plan)}`)
 })
 
 let reportedListenError = false

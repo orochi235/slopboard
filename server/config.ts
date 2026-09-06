@@ -18,4 +18,12 @@ export const config = {
    *  in practice. Overridable so the ceiling can be measured rather than
    *  argued about. */
   ingestAtOnce: Number(process.env.SLOP_INGEST_AT_ONCE ?? 3),
+  /** What an arrival at a level that asks for noise plays. */
+  alertSound: process.env.SLOP_ALERT_SOUND ?? '/System/Library/Sounds/Glass.aiff',
+  /** How the daemon opens the wall when something asks to be seen and nothing
+   *  is connected. Its own profile, so the wall is not in the main browser's
+   *  process pool and cannot be tab-discarded. */
+  wallBrowser: process.env.SLOP_WALL_BROWSER ?? 'Google Chrome',
+  wallUrl: process.env.SLOP_WALL_URL ?? 'http://localhost:5183',
+  wallProfile: process.env.SLOP_WALL_PROFILE ?? '/tmp/slopboard',
 }
