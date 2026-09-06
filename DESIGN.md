@@ -60,7 +60,7 @@ doesn't get tab-discarded under memory pressure.
 warning glyph when the daemon is not answering, one row per zone that opens
 that zone's folder, undo, and the inbox and trash.
 
-**Open the wall goes to the default browser**, not to the chromeless profile
+**Man the wall goes to the default browser**, not to the chromeless profile
 above. The profile is for the monitor the wall lives on and is worth typing
 once; a menu item is for looking at it now.
 

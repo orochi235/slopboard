@@ -43,7 +43,7 @@ menu:
   - text: "daemon not running"
     when: "!wall.ok"
   - separator
-  - text: Open the wall
+  - text: Man the wall
     open: http://localhost:5183
   - separator
   - each: zones.data.zones

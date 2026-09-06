@@ -108,7 +108,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(NSMenuItem(title: "daemon not running", action: nil, keyEquivalent: ""))
         }
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(ActionItem(title: "Open the wall") {
+        menu.addItem(ActionItem(title: "Man the wall") {
             Act.open("http://localhost:5183")
         })
         menu.addItem(NSMenuItem.separator())
