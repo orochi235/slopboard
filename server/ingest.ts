@@ -1,6 +1,6 @@
 import chokidar from 'chokidar'
 import sharp from 'sharp'
-import { mkdir, stat, rename, utimes, writeFile } from 'node:fs/promises'
+import { mkdir, rm, stat, rename, utimes, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, extname } from 'node:path'
 import { config } from './config.ts'
 import * as store from './store.ts'
@@ -11,6 +11,7 @@ import { idFor } from './itemId.ts'
 import { kindOf } from './kind.ts'
 import { keptFrom, readStamp } from './sidecar.ts'
 import { orientedSize } from './sourceSize.ts'
+import { shootPage } from './shoot.ts'
 import { parseAttention } from '@shared/attention.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
 import { createLimiter } from './limit.ts'
@@ -56,9 +57,19 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   // The artifact's own size, read before the resize that produces `info`.
   // `info` describes the cache thumbnail, and `/orig` hands out the original.
   let source: { w: number; h: number } | null = null
+  // A page has no pixels of its own, so it gets some. Everything below this is
+  // the picture pipeline unchanged, which is the point.
+  const shotPath = join(config.cache, `${id}.shot.png`)
+  if (kind === 'page' && !(await shootPage(sourcePath, shotPath))) {
+    // A shot that timed out may have left a half-written file behind.
+    await rm(shotPath, { force: true }).catch(() => {})
+    return null
+  }
+  const pixelPath = kind === 'page' ? shotPath : sourcePath
+
   try {
-    source = orientedSize(await sharp(sourcePath).metadata())
-    info = await sharp(sourcePath)
+    source = orientedSize(await sharp(pixelPath).metadata())
+    info = await sharp(pixelPath)
       .rotate()
       .resize({
         width: config.maxEdge,
@@ -74,6 +85,10 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   } catch (err) {
     console.warn(`[ingest] skipped ${basename(sourcePath)}: ${(err as Error).message}`)
     return null
+  } finally {
+    // The shot only ever fed the webp. Keeping it would double the cache for
+    // every page on the wall.
+    if (kind === 'page') await rm(shotPath, { force: true }).catch(() => {})
   }
 
   await stampOriginal(sourcePath, xmp)
@@ -93,6 +108,8 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     ...(attention !== null && sidecar?.note ? { note: sidecar.note } : {}),
     ...(sidecar?.repo ? { repo: sidecar.repo } : {}),
     ...(sidecar?.sha ? { sha: sidecar.sha } : {}),
+    ...(kind === 'page' ? { kind: 'page' as const } : {}),
+    ...(kind === 'page' && sidecar?.sandbox ? { sandbox: sidecar.sandbox } : {}),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,
     path: sourcePath,

@@ -11,6 +11,9 @@ export type Stamp = {
   attention?: string
   /** What the badge on a flagged card says. The agent's words, not the wall's. */
   note?: string
+  /** Not written into the XMP: an HTML file is never stamped, since
+   *  `stampOriginal` returns early for anything but a PNG. */
+  sandbox?: string
   /** When the wall rescued this, ISO. Wall state rather than provenance, so it
    *  stays in the sidecar and never reaches the XMP packet. */
   kept?: string

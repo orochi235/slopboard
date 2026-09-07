@@ -25,9 +25,16 @@ export type WallItem = {
    *  Absent for anything dropped in by hand. */
   repo?: string
   sha?: string
-  /** The artifact's own pixels, which is what `/orig` serves and what the
-   *  lightbox reports. Not the cache thumbnail's: that is capped at
-   *  `maxEdge`, and the two agree only for something already smaller. */
+  /** Absent for a picture, which is the ordinary case. `page` means `/orig`
+   *  serves an HTML file the lightbox runs, and `url` is a shot of it. */
+  kind?: 'page'
+  /** What the pusher said the page may do, verbatim into the iframe's
+   *  `sandbox` attribute. Absent means the wall's own default applies. */
+  sandbox?: string
+  /** The pixels behind the card. For a picture that is its own size, which is
+   *  what `/orig` serves — not the cache thumbnail's, which is capped at
+   *  `maxEdge`. For a page it is the shot's viewport, since the document has
+   *  no size of its own; the two kinds differ here and nowhere else. */
   w: number
   h: number
 }
