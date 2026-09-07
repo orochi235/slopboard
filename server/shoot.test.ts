@@ -1,0 +1,40 @@
+import { describe, expect, it } from 'vitest'
+import { shotArgv } from './shoot.ts'
+
+const argv = shotArgv({
+  browser: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  pagePath: '/slop/inbox/z/page.html',
+  outPath: '/tmp/shot.png',
+  profileDir: '/tmp/slop-shot-abc',
+  width: 1280,
+  height: 800,
+})
+
+describe('shotArgv', () => {
+  it('leads with the browser and ends with the page as a file URL', () => {
+    expect(argv[0]).toMatch(/Google Chrome$/)
+    expect(argv[argv.length - 1]).toBe('file:///slop/inbox/z/page.html')
+  })
+
+  it('asks for a headless shot at the given size', () => {
+    expect(argv).toContain('--headless=new')
+    expect(argv).toContain('--screenshot=/tmp/shot.png')
+    expect(argv).toContain('--window-size=1280,800')
+  })
+
+  it('gives every shot its own profile, so two never fight over one lock', () => {
+    expect(argv).toContain('--user-data-dir=/tmp/slop-shot-abc')
+  })
+
+  it('escapes a path that would otherwise break the file URL', () => {
+    const spaced = shotArgv({
+      browser: '/c',
+      pagePath: '/slop/inbox/my zone/a b.html',
+      outPath: '/tmp/s.png',
+      profileDir: '/tmp/p',
+      width: 10,
+      height: 10,
+    })
+    expect(spaced[spaced.length - 1]).toBe('file:///slop/inbox/my%20zone/a%20b.html')
+  })
+})

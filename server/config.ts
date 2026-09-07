@@ -26,4 +26,17 @@ export const config = {
   wallBrowser: process.env.SLOP_WALL_BROWSER ?? 'Google Chrome',
   wallUrl: process.env.SLOP_WALL_URL ?? 'http://localhost:5183',
   wallProfile: process.env.SLOP_WALL_PROFILE ?? '/tmp/slopboard',
+  /** How a page is turned into a picture. Chrome rather than a driver: it is
+   *  already installed, already spawned for the alerts, and a headless driver
+   *  is a 150MB dependency for one screenshot. */
+  shotBrowser:
+    process.env.SLOP_SHOT_BROWSER ??
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  /** The viewport a page is shot in. `--screenshot` captures the viewport and
+   *  not the document, so a short page leaves empty card. */
+  shotWidth: Number(process.env.SLOP_SHOT_WIDTH ?? 1280),
+  shotHeight: Number(process.env.SLOP_SHOT_HEIGHT ?? 800),
+  /** Chrome does not exit after writing the shot, so the daemon kills it. This
+   *  is how long the page gets to finish painting first. */
+  shotTimeoutMs: Number(process.env.SLOP_SHOT_TIMEOUT_MS ?? 15_000),
 }
