@@ -45,6 +45,7 @@ import { baseCellsOf, unionOf, withHeadroom, zoneCellsOf } from '@/nav/zone-cell
 import type { StackParams } from '@/params.ts'
 import { createTextureManager } from '@/textures/manager.ts'
 import { loadBitmap } from '@/textures/source.ts'
+import { createReveal } from '@/textures/reveal.ts'
 import {
   cardOf,
   depthOf,
@@ -123,6 +124,9 @@ const SEEK_DIRS = [
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
+/** A textured card takes no tint; the map is the color. */
+const WHITE = new THREE.Color(0xffffff)
+
 /** The framing slack for a rung, the last entry serving every rung past it. */
 const marginFor = (margins: readonly number[], depth: number) =>
   margins[Math.min(depth, margins.length - 1)] ?? 1
@@ -177,6 +181,7 @@ function Wall({
     }
     return out
   }, [items])
+  const blank = useMemo(() => new THREE.Color(params.colors.cardBlank), [params.colors.cardBlank])
   const huedCardEdge = params.zones.huedCardEdge
   // Parsed once per color rather than per card per frame.
   const huedColors = useMemo(() => {
@@ -376,6 +381,8 @@ function Wall({
 
   const [live, setLive] = useState<string[]>([])
   const liveRef = useRef<string[]>([])
+  const reveal = useRef(createReveal())
+  const revealed = useRef(0)
   const planAt = useRef(0)
   const dragged = useRef(false)
   const [zoneNames, setZoneNames] = useState<string[]>([])
@@ -753,6 +760,26 @@ function Wall({
 
     bases.current = baseCellsOf(result.placements as Map<string, Rect>, zoneFor)
 
+    if (revealed.current < 1) {
+      // The front of every pile draws at the top tier, so counting that tier is
+      // counting the fronts without threading rank down here.
+      const frontEdge = params.lod.tiers[0]?.edge ?? 0
+      let fronts = 0
+      let ready = 0
+      for (const [id, edge] of wantLod) {
+        if (edge !== frontEdge) continue
+        fronts++
+        if (textures.textureFor(id)) ready++
+      }
+      revealed.current = reveal.current({
+        now: Date.now(),
+        fronts,
+        ready,
+        holdMs: params.lod.revealHoldMs,
+        fadeMs: params.lod.revealFadeMs,
+      })
+    }
+
     const tick = performance.now()
     if (tick - planAt.current > PLAN_MS) {
       planAt.current = tick
@@ -987,7 +1014,11 @@ function Wall({
         mat.map = tex
         mat.needsUpdate = true
       }
-      const cut = dimmed.has(id) ? params.overlay.filterDim : 1
+      // three's default is white, which is the brightest thing on the wall. A
+      // card waiting for its decode has to read as a slot, not as a picture.
+      const tint = tex ? WHITE : blank
+      if (!mat.color.equals(tint)) mat.color.copy(tint)
+      const cut = (dimmed.has(id) ? params.overlay.filterDim : 1) * revealed.current
       mat.opacity = (ch.opacity ?? 1) * cut
       mat.transparent = true
 

@@ -277,6 +277,10 @@ export type StackParams = {
   colors: {
     /** Drawn into the scene, and turning with it. */
     cardEdge: string
+    /** A card whose texture has not landed yet. Sat near the sky on purpose:
+     *  three's default is white, and a wall of white quads turning into
+     *  pictures reads as the artifacts arriving one at a time. */
+    cardBlank: string
     /** One per attention level, run near-neon: a badge competes with whatever
      *  the artifact itself is showing, and a muted plate loses. `look` sits
      *  outside the traffic-light ramp on purpose — it is not a severity, so it
@@ -315,6 +319,12 @@ export type StackParams = {
      *  The tiers spend less on a card the deeper it sits, 512 down to an
      *  untextured quad; this is where the wall stops paying for one. */
     rankCap: number
+    /** The wall stays dark on load until the front of every pile has its
+     *  picture, then fades in assembled. The hold is a ceiling, not a wait:
+     *  a card that never decodes must not keep the wall off. Zero shows every
+     *  card the moment it is placed. */
+    revealHoldMs: number
+    revealFadeMs: number
   }
 }
 
@@ -466,6 +476,7 @@ export const defaultParams: StackParams = {
   },
   colors: {
     cardEdge: '#22d3ee',
+    cardBlank: '#0b1020',
     attentionLook: '#00ff00',
     attentionSoon: '#ffff00',
     attentionUrgent: '#ff8000',
@@ -505,5 +516,7 @@ export const defaultParams: StackParams = {
     ],
     budgetBytes: 268435456,
     rankCap: 88,
+    revealHoldMs: 1200,
+    revealFadeMs: 250,
   },
 }
