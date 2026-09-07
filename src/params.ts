@@ -177,7 +177,7 @@ export type StackParams = {
     dragDepthPerNotch: number
   }
   /**
-   * The right-click menu's parallax, handed straight to reticul8r. Here rather
+   * The right-click menu's parallax, handed straight to delamin8r. Here rather
    * than in the component because the only way to judge it is to open the menu
    * and move the pointer, which is a drag rather than an edit.
    */
@@ -186,7 +186,7 @@ export type StackParams = {
      *  click lands where it was aimed. `tilt` rotates the deck under the
      *  pointer, which reads harder and moves the target while you approach. */
     mode: 'window' | 'tilt'
-    /** Steps of depth per row. Zero — the default here and in reticul8r —
+    /** Steps of depth per row. Zero — the default here and in delamin8r —
      *  keeps the rows coplanar, which is what a menu is. Depth in the menu
      *  comes from the label standing clear of its own highlight instead. */
     fan: number

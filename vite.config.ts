@@ -17,8 +17,8 @@ export default defineConfig({
       windease: fileURLToPath(new URL('../windease/src/index.ts', import.meta.url)),
       // Source for the same reason windease is: co-designed with this repo,
       // and its `main` points at a dist an edit does not reach.
-      'reticul8r/react': fileURLToPath(new URL('../reticul8r/src/react.ts', import.meta.url)),
-      reticul8r: fileURLToPath(new URL('../reticul8r/src/index.ts', import.meta.url)),
+      'delamin8r/react': fileURLToPath(new URL('../delamin8r/src/react.ts', import.meta.url)),
+      delamin8r: fileURLToPath(new URL('../delamin8r/src/index.ts', import.meta.url)),
     },
   },
   server: {

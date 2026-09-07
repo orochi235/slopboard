@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
-import { useReticule } from 'reticul8r/react'
+import { useDelaminate } from 'delamin8r/react'
 import type { WallItem } from '@shared/protocol.ts'
 import { menuFor, type Action, type Target } from '@/menu/items.ts'
 import type { StackParams } from '@/params.ts'
@@ -13,9 +13,9 @@ export type MenuAt = { target: Target; x: number; y: number }
  * The right-click menu, as a DOM overlay over the canvas.
  *
  * Every class in here is static, and state rides on `data-` attributes:
- * reticul8r writes `rz-plane` onto these same elements, and React setting
+ * delamin8r writes `dl-plane` onto these same elements, and React setting
  * `className` replaces the whole attribute, which would strip it. A row that
- * loses `rz-plane` stops moving and snaps back to its unscaled size.
+ * loses `dl-plane` stops moving and snaps back to its unscaled size.
  */
 /** Stops a pointer event where it lands: nothing under the scrim sees it, and
  *  the browser starts no selection or autoscroll from it. */
@@ -49,7 +49,7 @@ export function CardMenu({
   const [spot, setSpot] = useState<{ left: number; top: number } | null>(null)
   const [active, setActive] = useState(0)
   const box = useRef<HTMLDivElement>(null)
-  const { ref, handle } = useReticule<HTMLDivElement>({
+  const { ref, handle } = useDelaminate<HTMLDivElement>({
     mode: look.mode,
     fan: look.fan,
     step: look.step,
@@ -58,7 +58,7 @@ export function CardMenu({
     maxDepth: 4,
   })
   // One stable function, not an inline arrow: React detaches and reattaches a
-  // ref whose identity changed, `useReticule` sets state on every attach, and
+  // ref whose identity changed, `useDelaminate` sets state on every attach, and
   // that is an infinite render loop rather than a slow one.
   const hold = useCallback(
     (node: HTMLDivElement | null) => {
@@ -81,13 +81,13 @@ export function CardMenu({
   // unplaced, and moving it with `left`/`top` fires neither a resize nor a
   // scroll, so nothing re-measures on its own.
   //
-  //  - `refresh` re-reads the rows, which reticul8r sizes to cancel
+  //  - `refresh` re-reads the rows, which delamin8r sizes to cancel
   //    perspective magnification.
   //  - `setDriver` restarts the pointer driver, whose cached stage rect is
   //    otherwise the unplaced one near the viewport corner. Every pointer
   //    position then measures a deflection far outside the stage and clamps,
   //    so the menu sits at full tilt and never answers the mouse. `refresh`
-  //    does not reach it. The re-measure belongs in reticul8r, on whatever
+  //    does not reach it. The re-measure belongs in delamin8r, on whatever
   //    notices the stage has moved; until then it is asked for from here.
   //  - Focus waits for the same moment because a `visibility: hidden` element
   //    cannot take it, and the shell is hidden until it is placed.
@@ -180,10 +180,10 @@ export function CardMenu({
             onClick={() => onAct(entry.action)}
           >
             {/* The row is the plane the highlight paints on; the label is
-                lifted clear of it. Depth in reticul8r only runs toward the
+                lifted clear of it. Depth in delamin8r only runs toward the
                 viewer, so the way to put the highlight behind the text is to
                 bring the text forward. */}
-            <span className="menu__label" data-rz-lift="1">
+            <span className="menu__label" data-dl-lift="1">
               {entry.label}
             </span>
           </div>

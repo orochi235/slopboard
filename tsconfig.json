@@ -16,8 +16,8 @@
       "@/*": ["./src/*"],
       "@shared/*": ["./shared/*"],
       "windease": ["../windease/src/index.ts"],
-      "reticul8r": ["../reticul8r/src/index.ts"],
-      "reticul8r/react": ["../reticul8r/src/react.ts"]
+      "delamin8r": ["../delamin8r/src/index.ts"],
+      "delamin8r/react": ["../delamin8r/src/react.ts"]
     },
     "baseUrl": "."
   },
