@@ -399,10 +399,12 @@ function Wall({
   // actually moved, so a steady wall is not re-eased every frame.
   const retarget = (depth: number, zone: string | null) => {
     const aspect = window.innerWidth / window.innerHeight
-    // The union of what is drawn, not the nominal container: a pile's deep
-    // ranks step past its cell, so framing the container crops them.
-    const wall = unionOf([...cells.current.values()]) ?? { x: 0, y: 0, z: 0, w: aspect, h: 1 }
-    const framed = !zone ? wall : (cells.current.get(zone) ?? wall)
+    // The front card of each pile, not the union of everything it draws. A
+    // pile's deep ranks step past its cell and are allowed to run off the
+    // screen behind it: framing them pulls the camera back until the fronts —
+    // the only rank anyone reads — are small.
+    const wall = unionOf([...bases.current.values()]) ?? { x: 0, y: 0, z: 0, w: aspect, h: 1 }
+    const framed = !zone ? wall : (bases.current.get(zone) ?? wall)
     // A label hangs above its cell, so framing the cells alone crops it.
     const headroom =
       (params.zones.labels ? params.zones.labelSize * 1.6 : 0) + params.attention.badgeSize
