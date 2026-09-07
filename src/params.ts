@@ -36,8 +36,6 @@ export type StackParams = {
   jitter: { rot: number; pos: number }
   /** How long a rank change takes to animate. */
   shoveMs: number
-  /** Ranks past this are not placed at all. */
-  rankCap: number
   /** age01 window over which an item fades out. */
   fade: { from: number; to: number }
   /**
@@ -313,6 +311,10 @@ export type StackParams = {
     tiers: LodTier[]
     /** Texture byte budget. A backstop, not the thing shaping the design. */
     budgetBytes: number
+    /** Ranks past this are not placed at all — the tier ladder's last rung.
+     *  The tiers spend less on a card the deeper it sits, 512 down to an
+     *  untextured quad; this is where the wall stops paying for one. */
+    rankCap: number
   }
 }
 
@@ -336,7 +338,6 @@ export const defaultParams: StackParams = {
     pos: 0,
   },
   shoveMs: 420,
-  rankCap: 88,
   fade: {
     from: 1,
     to: 0.67,
@@ -503,5 +504,6 @@ export const defaultParams: StackParams = {
       },
     ],
     budgetBytes: 268435456,
+    rankCap: 88,
   },
 }

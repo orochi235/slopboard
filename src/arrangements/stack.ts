@@ -109,7 +109,7 @@ export function createStack(
           for (const it of bucket) {
             const entry = held.get(it.id)
             if (!entry) continue
-            if (entry.rank >= params.rankCap) {
+            if (entry.rank >= params.lod.rankCap) {
               unplaced.push(it.id)
               continue
             }

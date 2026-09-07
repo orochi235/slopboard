@@ -12,9 +12,9 @@ describe('groupControls', () => {
   })
 
   it('collects the top-level scalars under one group rather than one each', () => {
-    const groups = groupControls([slider('side'), slider('camera.fovDeg'), slider('rankCap')])
+    const groups = groupControls([slider('side'), slider('camera.fovDeg'), slider('shoveMs')])
     const wall = groups.find((g) => g.name === 'wall')!
-    expect(wall.controls.map((c) => c.path)).toEqual(['side', 'rankCap'])
+    expect(wall.controls.map((c) => c.path)).toEqual(['side', 'shoveMs'])
   })
 
   it('puts the top-level group first, since it is what a wall is tuned by', () => {

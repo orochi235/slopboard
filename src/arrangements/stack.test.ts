@@ -72,7 +72,7 @@ describe('stack', () => {
   })
 
   it('assigns an LOD tier by rank and reports the deep tail as unplaced past the cap', () => {
-    const params = { ...defaultParams, rankCap: 3 }
+    const params = { ...defaultParams, lod: { ...defaultParams.lod, rankCap: 3 } }
     const items = Array.from({ length: 6 }, (_, i) => item(`i${i}`, 'z'))
     const out = run(createStack(params), items, 0)
     expect(out.placements.size).toBe(3)

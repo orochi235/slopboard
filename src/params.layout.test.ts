@@ -23,7 +23,7 @@ describe('layoutKeyOf', () => {
     expect(keyWith('side', 0.4)).not.toBe(base)
     expect(keyWith('step.z', -0.1)).not.toBe(base)
     expect(keyWith('fade.from', 0.2)).not.toBe(base)
-    expect(keyWith('rankCap', 50)).not.toBe(base)
+    expect(keyWith('lod.rankCap', 50)).not.toBe(base)
     expect(keyWith('zoneGrid.gap', 0.1)).not.toBe(base)
   })
 })
