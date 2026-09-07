@@ -3,7 +3,7 @@ import { usePersistedFlag } from '@/usePersistedFlag.ts'
 import type { Dispatch, SetStateAction } from 'react'
 import { ParamsBody } from '@/Params.tsx'
 import { ago } from '@/age.ts'
-import { emphasisAt } from '@shared/attention.ts'
+import { ALERTS, emphasisAt, LEVELS, type Level } from '@shared/attention.ts'
 import type { StackParams } from '@/params.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import './sidebar.css'
@@ -91,6 +91,70 @@ function Flags({
         </li>
       ))}
     </ul>
+  )
+}
+
+type Plan = { sound: boolean; notify: boolean; raise: 'none' | 'front' | 'start' }
+
+/** What a plan did, in the words of the things that happened. */
+const readPlan = (level: Level, plan: Plan, opened: boolean): string => {
+  const did = [
+    plan.sound ? 'sound' : null,
+    plan.notify ? 'notification' : null,
+    plan.raise === 'front' ? 'window forward' : plan.raise === 'start' ? 'window started' : null,
+    opened ? 'lightbox' : null,
+  ].filter(Boolean)
+  return did.length === 0 ? `${level}: nothing beyond the badge` : `${level}: ${did.join(' · ')}`
+}
+
+/**
+ * One button per level, firing that level's whole treatment.
+ *
+ * Three of the four effects are the daemon's, so unlike `fakeFlags` this
+ * cannot be faked in the page: the route runs the same `alert` an arrival
+ * runs. The fourth, the lightbox, is the wall's own, so it opens here — on a
+ * real artifact, because a lightbox over an item that resolves to no file
+ * shows the level's treatment as a broken image.
+ */
+function AlertButtons({
+  items,
+  onOpen,
+}: {
+  items: readonly WallItem[]
+  onOpen: (item: WallItem) => void
+}) {
+  const [said, setSaid] = useState<string | null>(null)
+
+  const fire = async (level: Level) => {
+    setSaid(`${level}…`)
+    const shown = ALERTS[level].lightbox ? items[Math.floor(Math.random() * items.length)] : undefined
+    try {
+      const res = await fetch(`/api/debug/alert/${level}`, { method: 'POST' })
+      const body = (await res.json()) as { ok: boolean; plan?: Plan }
+      if (!body.ok || !body.plan) return setSaid(`${level}: the daemon refused it`)
+      if (shown) onOpen(shown)
+      setSaid(readPlan(level, body.plan, !!shown))
+    } catch {
+      setSaid(`${level}: no daemon`)
+    }
+  }
+
+  return (
+    <>
+      <div className="sidebar__buttons">
+        {LEVELS.map((level) => (
+          <button
+            key={level}
+            type="button"
+            className={`params__button sidebar__alert sidebar__alert--${level}`}
+            onClick={() => void fire(level)}
+          >
+            {level}
+          </button>
+        ))}
+      </div>
+      <p className="sidebar__empty">{said ?? 'fires the real treatment — the daemon runs it'}</p>
+    </>
   )
 }
 
@@ -191,6 +255,7 @@ export function Sidebar({
         <p className="sidebar__empty">
           fabricated in this tab only — the daemon never sees them
         </p>
+        <AlertButtons items={items} onOpen={onOpen} />
       </Section>
 
       <Section name="params" storageKey="slopboard.sidebar.params.v1">

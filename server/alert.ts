@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { ALERTS, type Alerts, type Level } from '@shared/attention.ts'
+import { ALERTS, DEFAULT_HOLD, type Alerts, type Level } from '@shared/attention.ts'
 import { config } from './config.ts'
 import type { WallItem } from '@shared/protocol.ts'
 
@@ -22,6 +22,31 @@ export function planFor(level: Level | null, wallOpen: boolean): Plan {
     sound: alerts.sound,
     notify: alerts.notify,
     raise: !alerts.raise ? 'none' : wallOpen ? 'front' : 'start',
+  }
+}
+
+/**
+ * A flagged arrival that never happened, for the sidebar's alert buttons. The
+ * whole treatment is worth hearing rather than reasoning about, and three of
+ * the four effects are the daemon's, so they cannot be faked in the page the
+ * way `fakeFlags` fakes a badge.
+ *
+ * It is never broadcast, so nothing lands on the wall and the ids resolve to
+ * no file. `alert` reads only the four fields below.
+ */
+export function debugItem(level: Level): WallItem {
+  return {
+    id: `debug-${level}`,
+    url: '',
+    origUrl: '',
+    zone: 'debug',
+    name: `debug ${level}`,
+    bornAt: Date.now(),
+    attention: { level, holdMs: DEFAULT_HOLD[level] },
+    note: 'debug alert — nothing is actually wrong',
+    path: '',
+    w: 0,
+    h: 0,
   }
 }
 

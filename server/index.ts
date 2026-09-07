@@ -8,7 +8,8 @@ import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { zoneCounts } from './zoneCounts.ts'
-import { alert } from './alert.ts'
+import { alert, debugItem } from './alert.ts'
+import { LEVELS, type Level } from '@shared/attention.ts'
 import type { ServerMessage } from '@shared/protocol.ts'
 
 await mkdir(config.inbox, { recursive: true })
@@ -79,6 +80,21 @@ app.post('/api/undo', async (_req, res) => {
   const item = await store.undoExpiry()
   if (item) broadcast({ type: 'arrive', item })
   res.json({ ok: item !== null })
+})
+
+// Fires a level's whole treatment against an arrival that never happened, so
+// the sound, the notification and the raise can be heard rather than reasoned
+// about. Guarded like the dismiss route — a wall on a private machine — and by
+// one thing more: the button that calls this is in the wall, so `clients.size`
+// is never zero here and `raise` can only bring the window forward, never
+// launch one.
+app.post('/api/debug/alert/:level', (req, res) => {
+  const level = req.params.level
+  if (!(LEVELS as readonly string[]).includes(level))
+    return void res.status(400).json({ ok: false, levels: LEVELS })
+  const plan = alert(debugItem(level as Level), clients.size > 0)
+  console.log(`[alert] debug ${level} ${JSON.stringify(plan)}`)
+  res.json({ ok: true, level, plan })
 })
 
 app.get('/api/health', (_req, res) => {

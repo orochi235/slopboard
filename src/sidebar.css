@@ -164,6 +164,26 @@
   padding-top: 4px;
 }
 
+/* The level's own colour on the left edge rather than the whole button: these
+   sit beside the fake-flag controls, and four solid neon plates in a debug
+   panel read as the wall itself asking for something. */
+.sidebar__alert {
+  border-left: 3px solid transparent;
+}
+
+.sidebar__alert--look {
+  border-left-color: var(--attention-look);
+}
+.sidebar__alert--soon {
+  border-left-color: var(--attention-soon);
+}
+.sidebar__alert--urgent {
+  border-left-color: var(--attention-urgent);
+}
+.sidebar__alert--problem {
+  border-left-color: var(--attention-problem);
+}
+
 .sidebar__buttons .params__button:disabled {
   opacity: 0.4;
   cursor: default;

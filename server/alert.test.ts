@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { planFor } from './alert.ts'
+import { ALERTS, LEVELS } from '@shared/attention.ts'
+import { debugItem, planFor } from './alert.ts'
 
 describe('planFor', () => {
   it('does nothing for an arrival that is not asking', () => {
@@ -18,5 +19,23 @@ describe('planFor', () => {
 
   it('only brings it forward when it is already running', () => {
     expect(planFor('problem', true).raise).toBe('front')
+  })
+})
+
+describe('debugItem', () => {
+  it('carries the level, so the plan it fires is the level’s own', () => {
+    for (const level of LEVELS) {
+      expect(debugItem(level).attention?.level).toBe(level)
+      expect(planFor(debugItem(level).attention?.level ?? null, true)).toEqual({
+        sound: ALERTS[level].sound,
+        notify: ALERTS[level].notify,
+        raise: ALERTS[level].raise ? 'front' : 'none',
+      })
+    }
+  })
+
+  it('wears a note nobody mistakes for a real one', () => {
+    expect(debugItem('problem').note).toMatch(/debug/)
+    expect(debugItem('problem').zone).toBe('debug')
   })
 })
