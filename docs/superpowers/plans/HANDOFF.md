@@ -195,7 +195,18 @@ The user's instruction is to work all of it, not just the head.
 - **Kept cards do not move to a band of their own.** The decay freeze is all
   that marks one today. The reserved band is arrangement work.
 
-**Done since this list was written** (2026-09-06, `8c245a2..82dd78d`):
+**Done since this list was written** (2026-09-06, `8c245a2..94c587d`):
+
+- **A zone can be taken from its backdrop.** Right-click a zone's backdrop or
+  label for "Expire the zone (n)"; it arms on the first click and reads "Really
+  — expire n" before the second. Not a `confirm()` — a browser modal blocks the
+  page's event loop. `undoExpiry` now holds the batch an expiry took rather than
+  one artifact, so a zone goes and comes back in one Cmd-Z; a single card is a
+  batch of one, so nothing about the old behaviour moved.
+- **The wall is framed clear of the filter band.** `framePose` gained
+  `insetTop` beside the `insetRight` the sidebar already used — the band is an
+  overlay on the canvas, so the top row of zones used to sit behind it at every
+  zoom.
 
 - **A refresh no longer replays the last day.** The decode-order theory in the
   old entry was wrong and is recorded as wrong in `8c245a2` — all the image
