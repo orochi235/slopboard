@@ -8,13 +8,12 @@ import type { WallItem } from '@shared/protocol.ts'
 import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
 import { idFor } from './itemId.ts'
+import { kindOf } from './kind.ts'
 import { keptFrom, readStamp } from './sidecar.ts'
 import { orientedSize } from './sourceSize.ts'
 import { parseAttention } from '@shared/attention.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
 import { createLimiter } from './limit.ts'
-
-const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.tiff'])
 
 /**
  * The stamp into the file the wall hands out, which is the original — `/orig`
@@ -40,7 +39,8 @@ export async function stampOriginal(sourcePath: string, xmp: string): Promise<vo
 }
 
 async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | null> {
-  if (!IMAGE_EXT.has(extname(sourcePath).toLowerCase())) return null
+  const kind = kindOf(sourcePath)
+  if (kind === null) return null
   if (store.has(sourcePath)) return null
 
   const id = idFor(sourcePath)
