@@ -2,22 +2,48 @@
   position: fixed;
   inset: 0;
   z-index: 100;
+  background: color-mix(in srgb, var(--scrim) 86%, transparent);
+}
+
+/* The window, and the frame the pan is held inside. It covers the scrim rather
+   than sitting in the middle of it, because a pan that starts on the picture
+   must be allowed to carry the pointer out over the backdrop and keep going. */
+.lightbox__port {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--scrim) 86%, transparent);
+  overflow: hidden;
   cursor: zoom-out;
+}
+
+.lightbox__port:focus {
+  outline: none;
+}
+
+.lightbox__port[data-zoomed] {
+  cursor: grab;
+}
+
+.lightbox__port[data-zoomed]:active {
+  cursor: grabbing;
 }
 
 /* A frame the artifact itself cannot contain, so a screenshot of the wall is
    never mistaken for the wall: an accent keyline and a glow that bleeds beyond
    the image's own edge. Whatever is inside the picture stops at the picture. */
 .lightbox__img {
-  max-width: 94vw;
-  max-height: 94vh;
+  /* Its own pixels, scaled by the view. `max-width` cannot express a zoom, and
+     leaving it on would silently cap one. */
+  width: var(--lb-w);
+  height: var(--lb-h);
+  max-width: none;
+  transform: translate(var(--lb-x), var(--lb-y)) scale(var(--lb-scale));
   cursor: default;
   opacity: 0;
   transition: opacity 180ms ease-out;
   outline: 2px solid var(--accent);
+  /* Scaled with the image, so the keyline does not thicken as you zoom out. */
   outline-offset: 6px;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--scrim) 60%, transparent),
@@ -29,16 +55,33 @@
   opacity: 1;
 }
 
+/* Past twice its own pixels there is no more detail to interpolate toward, so
+   showing the pixels is more honest than smearing them. */
+.lightbox__img[data-sharp] {
+  image-rendering: pixelated;
+}
+
+/* Only a discrete zoom eases — a key or a double-click. A wheel or a drag has
+   a hand behind it and must not lag one. */
+.lightbox__port[data-eased] .lightbox__img {
+  transition:
+    opacity 180ms ease-out,
+    transform 140ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .lightbox__img {
+  .lightbox__img,
+  .lightbox__port[data-eased] .lightbox__img {
     transition: none;
   }
 }
 
 /* The zone, the age, the provenance and the size, above the image for the
-   same reason the caption sits under it: nothing covers the picture. */
+   same reason the caption sits under it: nothing covers the picture. Both sit
+   over the viewport, which fills the window. */
 .lightbox__meta {
   position: fixed;
+  z-index: 1;
   top: 18px;
   left: 50%;
   transform: translateX(-50%);
@@ -59,10 +102,17 @@
   color: var(--accent);
 }
 
+/* Present only while the view is off its fitted size, so the line answers
+   "am I at 1:1" without carrying a 100% that means nothing at rest. */
+.lightbox__zoom {
+  color: var(--accent);
+}
+
 /* Under the image rather than over it: a caption that covers the thing it
    names is worse than none. */
 .lightbox__caption {
   position: fixed;
+  z-index: 1;
   bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
