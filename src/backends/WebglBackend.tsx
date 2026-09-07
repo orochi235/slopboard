@@ -724,9 +724,11 @@ function Wall({
         if (direction !== 'left' && direction !== 'right') return
         const pile = cardsByZone.current.get(zone) ?? []
         const from = pile.indexOf(card)
-        // Left is toward the front of the pile, which is its newest card. The
-        // ends clamp: a pile is a stack, not a carousel.
-        const next = pile[direction === 'left' ? from - 1 : from + 1]
+        // A pile steps back and to the left as it deepens — `step.x` is
+        // negative — so left goes deeper into it and right comes forward
+        // toward the newest card, each arrow moving the way the cards lie.
+        // The ends clamp: a pile is a stack, not a carousel.
+        const next = pile[direction === 'left' ? from + 1 : from - 1]
         if (from !== -1 && next) dispatch({ type: 'to', path: [zone, next] })
         return
       }
