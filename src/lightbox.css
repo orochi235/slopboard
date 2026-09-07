@@ -12,7 +12,10 @@
   position: absolute;
   inset: 0;
   display: grid;
-  place-items: center;
+  /* `place-content`, not `place-items`: the image's box is its own pixel size,
+     so once it is larger than the window the track grows with it and centering
+     the item inside that track no longer moves it. */
+  place-content: center;
   overflow: hidden;
   cursor: zoom-out;
 }
