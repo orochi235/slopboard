@@ -211,15 +211,19 @@ The user's instruction is to work all of it, not just the head.
   unreachable from the button — it lives in the wall, so `clients.size` is
   never zero at that route.
 
-**Asked for and designed, but NOT BUILT:**
+- **The wall holds HTML pages, not only images.** Built from
+  [`2026-09-06-html-artifacts.md`](2026-09-06-html-artifacts.md), which is
+  ticked through. Headless Chrome shoots a page once at ingest and the shot
+  goes through the picture pipeline, so nothing in the renderer branches on the
+  kind; `/orig` serves the source, so the lightbox runs the page live in an
+  iframe. `--sandbox` rides the sidecar and is the pusher's declaration.
+  `DESIGN.md`'s ingest contract is the reference.
 
-- **Artifacts that are not images.**
-  [`2026-09-06-html-artifacts.md`](2026-09-06-html-artifacts.md) is a full
-  task-by-task plan and **no task in it has been started.** Do not read it as a
-  description of the wall. Three decisions in it came from the owner and are
-  settled: the card is a screenshot of the page, opening one runs it live in an
-  iframe, and the sandbox is declared by whoever pushed the artifact rather than
-  by the wall. Carry this entry until the plan lands.
+  **Not verified: paging from a page to an image with the lightbox open.** The
+  arrows page within a zone by recency and every artifact at the front of that
+  pile was a page, so the swap was never reached by hand. It is safe by
+  construction — `Lightbox` dispatches between two component types, so React
+  unmounts one and mounts the other — but nobody has watched it happen.
 
 **Independent of all of the above:**
 

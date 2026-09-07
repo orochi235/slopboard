@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **NOTHING IN THIS PLAN IS BUILT.** Written 2026-09-06; no task below has been
-> started. The wall holds images only. Anyone reading this for "what slopboard
-> does today" should stop here.
+> **BUILT AND ON `main`**, 2026-09-06, `f0f0e4a..0da09de`. Every task below is
+> ticked. `DESIGN.md`'s ingest contract is the reference for what a page
+> artifact is; this file is the record of how it got there.
 
 **Goal:** Put a self-contained HTML page on the wall — a card you can see from
 across the room, and a page that actually runs when you open it.
@@ -94,7 +94,7 @@ branch in the lightbox never disagree.
 - Create: `server/kind.ts`
 - Create: `server/kind.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // server/kind.test.ts
@@ -122,12 +122,12 @@ describe('kindOf', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run server/kind.test.ts`
 Expected: FAIL, "Failed to load ./kind.ts"
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```ts
 // server/kind.ts
@@ -153,12 +153,12 @@ export function kindOf(path: string): Kind | null {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run server/kind.test.ts`
 Expected: PASS, 3 tests
 
-- [ ] **Step 5: Point ingest at it, so there is one gate rather than two**
+- [x] **Step 5: Point ingest at it, so there is one gate rather than two**
 
 In `server/ingest.ts`, delete the `IMAGE_EXT` constant at line 17 and replace
 the first line of `ingest`:
@@ -177,14 +177,14 @@ import { kindOf } from './kind.ts'
 
 `extname` is still used by `stampOriginal`; leave that import alone.
 
-- [ ] **Step 6: Run the server tests**
+- [x] **Step 6: Run the server tests**
 
 Run: `npx vitest run server`
 Expected: PASS. An `.html` in the inbox now reaches sharp and is skipped with
 `[ingest] skipped …` on the console — that is correct for this task, and Task 3
 is what makes it land.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add server/kind.ts server/kind.test.ts server/ingest.ts
@@ -203,7 +203,7 @@ can be that has to poll a filesystem.
 - Create: `server/shoot.test.ts`
 - Modify: `server/config.ts`
 
-- [ ] **Step 1: Add the config the shot reads**
+- [x] **Step 1: Add the config the shot reads**
 
 In `server/config.ts`, inside the exported `config` object, after `wallProfile`:
 
@@ -223,7 +223,7 @@ In `server/config.ts`, inside the exported `config` object, after `wallProfile`:
   shotTimeoutMs: Number(process.env.SLOP_SHOT_TIMEOUT_MS ?? 15_000),
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```ts
 // server/shoot.test.ts
@@ -269,12 +269,12 @@ describe('shotArgv', () => {
 })
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `npx vitest run server/shoot.test.ts`
 Expected: FAIL, "Failed to load ./shoot.ts"
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 ```ts
 // server/shoot.ts
@@ -369,12 +369,12 @@ export async function shootPage(pagePath: string, outPath: string): Promise<bool
 }
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `npx vitest run server/shoot.test.ts`
 Expected: PASS, 4 tests
 
-- [ ] **Step 6: Shoot one by hand, because no test can**
+- [x] **Step 6: Shoot one by hand, because no test can**
 
 ```bash
 cat > /tmp/probe.html <<'HTML'
@@ -393,7 +393,7 @@ too short for this Chrome and the number is the thing to change.
 
 Confirm no Chrome is left behind: `pgrep -fl slop-shot` should print nothing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add server/shoot.ts server/shoot.test.ts server/config.ts
@@ -412,7 +412,7 @@ in Task 5 without a new route.
 - Modify: `server/ingest.ts`
 - Modify: `shared/protocol.ts`
 
-- [ ] **Step 1: Add the kind to the item**
+- [x] **Step 1: Add the kind to the item**
 
 In `shared/protocol.ts`, inside `WallItem`, after `sha?: string`:
 
@@ -425,7 +425,7 @@ In `shared/protocol.ts`, inside `WallItem`, after `sha?: string`:
   sandbox?: string
 ```
 
-- [ ] **Step 2: Shoot before the pipeline**
+- [x] **Step 2: Shoot before the pipeline**
 
 In `server/ingest.ts`, replace the `try` block that produces `info` with this.
 The two new lines are the shot and the `pixelPath` it feeds:
@@ -474,7 +474,7 @@ import { shootPage } from './shoot.ts'
 
 and add `rm` to the existing `node:fs/promises` import.
 
-- [ ] **Step 3: Carry the kind and the sandbox onto the item**
+- [x] **Step 3: Carry the kind and the sandbox onto the item**
 
 In the `const item: WallItem = {` literal, beside the other conditional spreads:
 
@@ -483,7 +483,7 @@ In the `const item: WallItem = {` literal, beside the other conditional spreads:
     ...(kind === 'page' && sidecar?.sandbox ? { sandbox: sidecar.sandbox } : {}),
 ```
 
-- [ ] **Step 4: Let the sidecar carry a sandbox**
+- [x] **Step 4: Let the sidecar carry a sandbox**
 
 In `server/sidecar.ts`, add `'sandbox'` to the key list in `parseStamp`:
 
@@ -495,12 +495,12 @@ In `server/xmp.ts`, add `sandbox?: string` to the `Stamp` type so the key is
 carried rather than dropped. It is not written into the XMP — an HTML file is
 never stamped, since `stampOriginal` returns early for anything but a PNG.
 
-- [ ] **Step 5: Run the server tests**
+- [x] **Step 5: Run the server tests**
 
 Run: `npx vitest run server`
 Expected: PASS.
 
-- [ ] **Step 6: Land one on the real wall**
+- [x] **Step 6: Land one on the real wall**
 
 ```bash
 cp /tmp/probe.html ~/slop/inbox/slopboard/probe.html
@@ -510,7 +510,7 @@ Expected: the daemon logs `[arrive] slopboard/… 1280x800`, and a card of the
 probe page appears in the `slopboard` zone. Confirm `~/slop/.cache` holds a
 `.webp` for it and **no** `.shot.png`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add server/ingest.ts server/sidecar.ts server/xmp.ts shared/protocol.ts
@@ -527,7 +527,7 @@ git commit -m "hold a self-contained page as an artifact"
 - Create: `src/lightbox-sandbox.ts`
 - Create: `src/lightbox-sandbox.test.ts`
 
-- [ ] **Step 1: Write the failing test for the sandbox rule**
+- [x] **Step 1: Write the failing test for the sandbox rule**
 
 ```ts
 // src/lightbox-sandbox.test.ts
@@ -554,12 +554,12 @@ describe('sandboxFor', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lightbox-sandbox.test.ts`
 Expected: FAIL, "Failed to load @/lightbox-sandbox.ts"
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```ts
 // src/lightbox-sandbox.ts
@@ -583,12 +583,12 @@ export function sandboxFor(asked: string | undefined): string | null {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lightbox-sandbox.test.ts`
 Expected: PASS, 4 tests
 
-- [ ] **Step 5: Branch the lightbox on the kind**
+- [x] **Step 5: Branch the lightbox on the kind**
 
 In `src/Lightbox.tsx`, immediately after the `const zoomed = …` line, return a
 separate tree for a page. It is a separate tree rather than a swapped element
@@ -625,7 +625,7 @@ Add the import:
 import { sandboxFor } from '@/lightbox-sandbox.ts'
 ```
 
-- [ ] **Step 6: Give the frame a box**
+- [x] **Step 6: Give the frame a box**
 
 In `src/lightbox.css`, beside `.lightbox__port`:
 
@@ -642,14 +642,14 @@ In `src/lightbox.css`, beside `.lightbox__port`:
 }
 ```
 
-- [ ] **Step 7: Open the probe page on the wall**
+- [x] **Step 7: Open the probe page on the wall**
 
 Run `npm run dev`, click the probe card. Expected: the page renders inside the
 frame and reads "probe — JS ran", so scripts are running under the default
 sandbox. Escape closes it; the arrows still page the pile, because they belong
 to the wall's own listener and not the lightbox.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/Lightbox.tsx src/lightbox.css src/lightbox-sandbox.ts src/lightbox-sandbox.test.ts
@@ -663,7 +663,7 @@ git commit -m "run a page in the lightbox instead of drawing it"
 **Files:**
 - Modify: `bin/slop`
 
-- [ ] **Step 1: Take the flag**
+- [x] **Step 1: Take the flag**
 
 In the option loop, beside `--note`:
 
@@ -677,7 +677,7 @@ Declare it with the others near the top:
 sandbox=""
 ```
 
-- [ ] **Step 2: Write it into the sidecar**
+- [x] **Step 2: Write it into the sidecar**
 
 In `write_sidecar`, add to the guard so a bare `--sandbox` still writes a file:
 
@@ -691,7 +691,7 @@ and to the body, after the `note` line:
     [ -n "$sandbox" ] && printf ',"sandbox":"%s"' "$(json_escape "$sandbox")"
 ```
 
-- [ ] **Step 3: Say so in the usage block**
+- [x] **Step 3: Say so in the usage block**
 
 In the comment header at the top of the file, after the `--note` line:
 
@@ -703,7 +703,7 @@ In the comment header at the top of the file, after the `--note` line:
 #                                what it is told.
 ```
 
-- [ ] **Step 4: Push a page and check the sidecar**
+- [x] **Step 4: Push a page and check the sidecar**
 
 ```bash
 bin/slop --sandbox "allow-scripts allow-forms" --caption "the probe page" /tmp/probe.html
@@ -714,7 +714,7 @@ Expected: JSON carrying `"caption"`, `"sandbox"` and the repo, and a card on the
 wall whose lightbox frame carries that sandbox — check it in devtools on the
 `<iframe>`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add bin/slop
@@ -730,7 +730,7 @@ No test judges this and none should try.
 **Files:**
 - Modify: `DESIGN.md`
 
-- [ ] **Step 1: Look at a wall with pages on it**
+- [x] **Step 1: Look at a wall with pages on it**
 
 Push three or four real HTML artifacts of different shapes — a long report, a
 short dashboard, something that animates. Answer:
@@ -741,7 +741,7 @@ short dashboard, something that animates. Answer:
 - How much of a typical card is empty background, given the viewport capture?
 - Does anything animate badly — a page whose first paint is a spinner?
 
-- [ ] **Step 2: Record the ingest contract**
+- [x] **Step 2: Record the ingest contract**
 
 Extend `DESIGN.md`'s ingest contract section with what a page is: the extensions
 accepted, that the card is a viewport shot and not the document, that `/orig`
@@ -749,7 +749,7 @@ serves the source HTML, and that the sandbox is the pusher's declaration. Say
 that a page's `w`/`h` are the shot's, not the document's — it is the one field
 whose meaning differs between the two kinds.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add DESIGN.md
