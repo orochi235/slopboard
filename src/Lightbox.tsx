@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
 import { metaOf } from '@/lightbox-meta.ts'
+import { sandboxFor } from '@/lightbox-sandbox.ts'
 import {
   fitView,
   isZoomed,
@@ -29,7 +30,7 @@ const DRAG_SLOP_PX = 4
  * the pan is held inside — but that means it also covers the scrim, so closing
  * on a click outside the picture is its job rather than the backdrop's.
  */
-export function Lightbox({
+function ImageLightbox({
   item,
   now,
   onClose,
@@ -236,4 +237,84 @@ export function Lightbox({
       {item.name && <figcaption className="lightbox__caption">{item.name}</figcaption>}
     </div>
   )
+}
+
+/**
+ * A page runs rather than being drawn: the same `/orig` an image lightbox
+ * loads into an `<img>` is an HTML file here, so the frame shows the artifact
+ * itself, live.
+ *
+ * None of the image path's pan, zoom, drag or resize state means anything for
+ * a frame that scrolls itself, which is why this is a separate component and
+ * not a branch inside one — a branch above those hooks would change the hook
+ * count when the arrows page from an image to a page on the same element.
+ */
+function PageLightbox({
+  item,
+  now,
+  onClose,
+}: {
+  item: WallItem
+  now: number
+  onClose: () => void
+}) {
+  const sandbox = sandboxFor(item.sandbox)
+  const root = useRef<HTMLDivElement>(null)
+
+  // The wall navigates on a `window` wheel listener. A wheel inside a
+  // same-origin frame never leaves it, but one over the margin around the
+  // frame would, and the wall would step out a rung under the page.
+  useEffect(() => {
+    const el = root.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => e.stopPropagation()
+    el.addEventListener('wheel', onWheel)
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  return (
+    <div
+      className="lightbox"
+      ref={root}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Page"
+      // The way out that does not need a keystroke. Escape and the arrows are
+      // the wall's, over `window`, and a keydown inside the frame never
+      // reaches it — so once the pointer is in the page, this margin is the
+      // only thing that still closes.
+      onClick={(e) => {
+        if (e.target === root.current) onClose()
+      }}
+    >
+      <iframe
+        className="lightbox__page"
+        src={`/orig/${item.id}`}
+        title={item.name || 'page'}
+        {...(sandbox === null ? {} : { sandbox })}
+      />
+
+      <div className="lightbox__meta">
+        {metaOf(item, now).map((part) => (
+          <span className="lightbox__metaPart" key={part}>
+            {part}
+          </span>
+        ))}
+      </div>
+      {item.name && <figcaption className="lightbox__caption">{item.name}</figcaption>}
+    </div>
+  )
+}
+
+/**
+ * A DOM overlay either way, not a GL quad: full resolution costs the texture
+ * budget nothing here, and right-click-save, copy and drag-to-Finder keep
+ * working for a picture.
+ *
+ * Two components rather than one with a branch, so that paging a pile from an
+ * image to a page unmounts one and mounts the other — which is also what stops
+ * an iframe surviving a move to the next artifact.
+ */
+export function Lightbox(props: { item: WallItem; now: number; onClose: () => void }) {
+  return props.item.kind === 'page' ? <PageLightbox {...props} /> : <ImageLightbox {...props} />
 }

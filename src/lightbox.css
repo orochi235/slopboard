@@ -127,3 +127,15 @@
   font: 12px/1.4 ui-monospace, monospace;
   cursor: default;
 }
+
+/* Inset rather than full-bleed: the meta line above and the caption below are
+   the wall's, and a page that filled the window would cover both — along with
+   the margin that is the only way out once focus is inside the frame. */
+.lightbox__page {
+  position: absolute;
+  inset: 48px 24px;
+  width: calc(100% - 48px);
+  height: calc(100% - 96px);
+  border: 0;
+  background: var(--bg);
+}

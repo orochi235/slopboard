@@ -380,6 +380,38 @@ sidecar with no caption means the CLI had nothing to say, and the wall shows
 nothing. A file dropped in by hand has no sidecar, and its name is the only
 thing it says.
 
+**An artifact is a picture or a page.** `.png .jpg .jpeg .webp .gif .avif
+.tiff` are pictures; `.html` and `.htm` are pages. Anything else is skipped
+silently, which is also what keeps the sidecar sitting beside every artifact
+from being ingested as one.
+
+A page has no pixels, so the daemon gives it some: headless Chrome shoots it
+once at ingest, and the shot goes through the picture pipeline unchanged. That
+is the whole reason for the screenshot — the card, the LOD tiers, the texture
+budget and the aspect never learn a page exists, so nothing in the renderer
+branches on the kind. **A page's `w`/`h` are the shot's viewport, not the
+document's**, which is the one field whose meaning differs between the two
+kinds. `--screenshot` captures the viewport and not the page, so a short page
+leaves a card that is mostly background; `SLOP_SHOT_WIDTH`/`HEIGHT` is where
+that is traded.
+
+The shot is a picture of the page as it was when it landed and is never
+retaken. `/orig` keeps serving the source file, so opening a page runs it live
+in an iframe rather than showing the shot larger — which is why an HTML
+artifact is worth holding at all.
+
+**Whoever pushes a page says what it may do.** `--sandbox` rides the sidecar
+and is applied verbatim to the iframe's `sandbox` attribute; `none` removes the
+attribute entirely. A page that says nothing gets `allow-scripts`: it runs, but
+it is not same-origin, so it cannot read the wall's stored tuning. The wall
+applies what it was told and does not second-guess it, because the pusher is
+the only party that knows what the page needs.
+
+**Escape and the arrows belong to the wall, over `window`**, and a keydown
+inside a frame never reaches them. So a page lightbox closes on a click in the
+margin around its frame — that margin is the only way out once the pointer is
+inside the page, and it is why the frame is inset rather than full-bleed.
+
 **`--attention` is the second thing only the caller knows.** It rides the same
 sidecar as a raw token — `look`, `30m`, `look:90s`, `until-dismissed` — and the
 daemon parses it at ingest into a level and a hold. A token it cannot read is
