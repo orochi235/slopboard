@@ -69,15 +69,27 @@ export function CardMenu({
     setSpot(
       placeMenu(at, { w: r.width, h: r.height }, { w: window.innerWidth, h: window.innerHeight }),
     )
-    el.querySelector<HTMLElement>('.menu__deck')?.focus()
   }, [at])
 
-  // reticul8r measures every row to cancel perspective magnification, and the
-  // ref attaches while the menu is still at the pointer's top-left waiting to
-  // be placed. Re-read once it has moved, or the first thing that recomputes
-  // does it against the real rect and every row changes size at once.
+  // Everything that had to measure the menu did it while the shell was still
+  // unplaced, and moving it with `left`/`top` fires neither a resize nor a
+  // scroll, so nothing re-measures on its own.
+  //
+  //  - `refresh` re-reads the rows, which reticul8r sizes to cancel
+  //    perspective magnification.
+  //  - `setDriver` restarts the pointer driver, whose cached stage rect is
+  //    otherwise the unplaced one near the viewport corner. Every pointer
+  //    position then measures a deflection far outside the stage and clamps,
+  //    so the menu sits at full tilt and never answers the mouse. `refresh`
+  //    does not reach it. The re-measure belongs in reticul8r, on whatever
+  //    notices the stage has moved; until then it is asked for from here.
+  //  - Focus waits for the same moment because a `visibility: hidden` element
+  //    cannot take it, and the shell is hidden until it is placed.
   useLayoutEffect(() => {
-    if (spot) handle?.refresh()
+    if (!spot) return
+    handle?.refresh()
+    handle?.setDriver('auto')
+    box.current?.querySelector<HTMLElement>('.menu__deck')?.focus()
   }, [handle, spot])
 
   // The wall's own keys are bound to the window, so the menu takes what it
