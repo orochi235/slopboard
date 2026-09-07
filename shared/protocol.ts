@@ -25,6 +25,9 @@ export type WallItem = {
    *  Absent for anything dropped in by hand. */
   repo?: string
   sha?: string
+  /** The artifact's own pixels, which is what `/orig` serves and what the
+   *  lightbox reports. Not the cache thumbnail's: that is capped at
+   *  `maxEdge`, and the two agree only for something already smaller. */
   w: number
   h: number
 }

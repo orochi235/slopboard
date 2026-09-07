@@ -9,6 +9,7 @@ import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
 import { idFor } from './itemId.ts'
 import { keptFrom, readStamp } from './sidecar.ts'
+import { orientedSize } from './sourceSize.ts'
 import { parseAttention } from '@shared/attention.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
 import { createLimiter } from './limit.ts'
@@ -52,7 +53,11 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   const xmp = buildXmp({ ...sidecar, zone, caption } satisfies Stamp)
 
   let info: sharp.OutputInfo
+  // The artifact's own size, read before the resize that produces `info`.
+  // `info` describes the cache thumbnail, and `/orig` hands out the original.
+  let source: { w: number; h: number } | null = null
   try {
+    source = orientedSize(await sharp(sourcePath).metadata())
     info = await sharp(sourcePath)
       .rotate()
       .resize({
@@ -94,8 +99,11 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     zone,
     name: caption,
     bornAt,
-    w: info.width,
-    h: info.height,
+    // The picture's size, not the thumbnail's — the meta line reports this
+    // over an `/orig` that was never resized. Falls back to the cache's own
+    // dimensions for a file sharp could measure only after decoding it.
+    w: source?.w ?? info.width,
+    h: source?.h ?? info.height,
   }
   store.add({ item, sourcePath, cachePath })
   return item
