@@ -195,38 +195,31 @@ The user's instruction is to work all of it, not just the head.
 - **Kept cards do not move to a band of their own.** The decay freeze is all
   that marks one today. The reserved band is arrangement work.
 
-**Asked for and not started:**
+**Done since this list was written** (2026-09-06, `8c245a2..82dd78d`):
 
-- **Debug buttons for the alerts**, beside the fake-flag controls in the
-  sidebar — one per level, firing that level's whole treatment so it can be
-  seen and heard rather than reasoned about. Three of the four effects are
-  the daemon's, so this cannot be a client-side fake the way `fakeFlags` is:
-  it needs a route (`POST /api/debug/alert/:level`) that calls `alert()` with
-  a synthetic item and returns the plan, and a button that shows what came
-  back. Guard it the way the dismiss route is guarded — a wall on a private
-  machine — and put the buttons behind the same debug section, not in the
-  ordinary chrome. Test `raise` last and deliberately: at `problem` with
-  nothing connected it launches a browser window, and doing that by accident
-  while tuning is its own small disaster.
+- **A refresh no longer replays the last day.** The decode-order theory in the
+  old entry was wrong and is recorded as wrong in `8c245a2` — all the image
+  requests go out inside 20ms and land in chance order against the snapshot,
+  so there was no queue to reorder. The fault was that the card quad's
+  `<meshBasicMaterial>` took three's default white, so ~130 white rectangles
+  turned into pictures over ~400ms. An untextured card now takes
+  `colors.cardBlank`, and the wall holds dark until the front of every pile has
+  decoded (`lod.revealHoldMs`, `lod.revealFadeMs`), then fades in assembled.
+- **Alert debug buttons** are in the sidebar's debug section, one per level.
+  They are not a client-side fake: `POST /api/debug/alert/:level` runs the same
+  `alert` an arrival runs. The `raise` arm that launches a browser is
+  unreachable from the button — it lives in the wall, so `clients.size` is
+  never zero at that route.
 
-- **A refresh replays the last day.** Reloading the wall makes 118 cards arrive
-  one at a time rather than showing the wall already assembled. Ranks are not
-  the cause — `createRanks` gives a first-sighted id `prevRank === rank`, so
-  nothing shoves. Suspect the texture path: every card decodes its own webp and
-  becomes visible when its own decode lands, in snapshot order, which reads as
-  the day replaying. Confirm that before designing anything. Two shapes worth
-  weighing: hold the wall until the fronts of the piles are in and then show it
-  assembled, or decode in screen order rather than snapshot order so the thing
-  you are looking at is never last.
-- **Artifacts that are not images.** Self-contained HTML bundles first, and
-  "similar" — the ask is a plan, not an implementation. Note what it collides
-  with before designing: ingest is `sharp`-shaped end to end (decode, resize,
-  webp, XMP stamp), a card is a textured quad whose aspect comes from the
-  image, and the lightbox is an `<img>`. An HTML artifact has no intrinsic
-  size, cannot be a texture without rendering it first, and would want an
-  iframe in the lightbox with everything that implies. The zone/TTL/attention
-  half of the design does not care what the file is; the render half cares
-  about nothing else.
+**Asked for and designed, but NOT BUILT:**
+
+- **Artifacts that are not images.**
+  [`2026-09-06-html-artifacts.md`](2026-09-06-html-artifacts.md) is a full
+  task-by-task plan and **no task in it has been started.** Do not read it as a
+  description of the wall. Three decisions in it came from the owner and are
+  settled: the card is a screenshot of the page, opening one runs it live in an
+  iframe, and the sandbox is declared by whoever pushed the artifact rather than
+  by the wall. Carry this entry until the plan lands.
 
 **Independent of all of the above:**
 
