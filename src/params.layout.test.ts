@@ -17,6 +17,10 @@ describe('layoutKeyOf', () => {
     expect(keyWith('sky.intensity', 0.9)).toBe(base)
     expect(keyWith('colors.accent', '#ff0088')).toBe(base)
     expect(keyWith('nav.wheelThreshold', 120)).toBe(base)
+    // Inside `lod`, which the arrangement otherwise reads.
+    expect(keyWith('lod.revealHoldMs', 2000)).toBe(base)
+    expect(keyWith('lod.revealFadeMs', 500)).toBe(base)
+    expect(keyWith('lod.budgetBytes', 1024)).toBe(base)
   })
 
   it('changes for anything the arrangement reads, or the change never lands', () => {
