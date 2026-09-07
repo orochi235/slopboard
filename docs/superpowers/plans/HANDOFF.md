@@ -230,12 +230,6 @@ The user's instruction is to work all of it, not just the head.
   iframe. `--sandbox` rides the sidecar and is the pusher's declaration.
   `DESIGN.md`'s ingest contract is the reference.
 
-  **Not verified: paging from a page to an image with the lightbox open.** The
-  arrows page within a zone by recency and every artifact at the front of that
-  pile was a page, so the swap was never reached by hand. It is safe by
-  construction — `Lightbox` dispatches between two component types, so React
-  unmounts one and mounts the other — but nobody has watched it happen.
-
 **Independent of all of the above:**
 
 - **The client cannot tell the daemon died.** Receive-only over a socket vite
