@@ -33,6 +33,8 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'jitter.pos': [0, 0.1, 0.001],
   shoveMs: [0, 3000, 10],
   'lod.rankCap': [1, 400, 1],
+  'lod.revealHoldMs': [0, 4000, 50],
+  'lod.revealFadeMs': [0, 1500, 25],
   'fade.from': [0, 1, 0.01],
   'fade.to': [0, 1, 0.01],
   'distance.from': [0, 200, 1],
