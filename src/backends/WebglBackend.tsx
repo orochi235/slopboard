@@ -83,6 +83,7 @@ type WallProps = Props & {
   /** Fraction of the canvas the sidebar covers. A ref, not a value: the framing
    *  reads it every frame and the panel opening must not re-render the wall. */
   sidebarInset: { current: number }
+  topInset: { current: number }
 }
 
 /** The plan view is a diagram, not an animation: republishing it a few times a
@@ -146,6 +147,7 @@ function Wall({
   onMenu,
   dimmed,
   sidebarInset,
+  topInset,
 }: WallProps) {
   const meshes = useRef(new Map<string, THREE.Mesh>())
   const { gl, camera } = useThree()
@@ -417,6 +419,7 @@ function Wall({
       aspect,
       margin,
       insetRight: sidebarInset.current,
+      insetTop: topInset.current,
     })
 
     const held = move.current?.to
@@ -1275,11 +1278,15 @@ export function WebglBackend(props: Props) {
   // its width lives in CSS, and a constant here would drift from it silently.
   // Read on toggle and on resize, never per frame — it forces a layout.
   const sidebarInset = useRef(0)
+  const topInset = useRef(0)
   useEffect(() => {
     const measure = () => {
       const el = document.querySelector('.sidebar')
       const w = el?.getBoundingClientRect().width ?? 0
       sidebarInset.current = w > 0 ? w / window.innerWidth : 0
+      const band = document.querySelector('.topbar')
+      const h = band?.getBoundingClientRect().height ?? 0
+      topInset.current = h > 0 ? h / window.innerHeight : 0
     }
     // After the panel has painted, so the element is there to measure.
     const id = requestAnimationFrame(measure)
@@ -1431,6 +1438,7 @@ export function WebglBackend(props: Props) {
       >
         <Wall
           sidebarInset={sidebarInset}
+          topInset={topInset}
           {...props}
           items={items}
           view={view}

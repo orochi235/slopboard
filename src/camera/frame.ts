@@ -31,6 +31,14 @@ export type FrameView = {
    * behind it at every zoom level.
    */
   insetRight?: number
+  /**
+   * How much of the viewport's height is covered by chrome across the top, as
+   * a fraction of 0..1. The filter band is an overlay on the canvas rather
+   * than a strip above it, so without this the wall is framed to a height that
+   * includes the part the band is sitting on, and the top row of zones is
+   * behind it at every zoom level.
+   */
+  insetTop?: number
 }
 
 /**
@@ -45,15 +53,21 @@ export function framePose(box: Pick<Rect, 'x' | 'y' | 'w' | 'h'>, view: FrameVie
   // Capped rather than trusted: chrome wider than the viewport would divide the
   // usable aspect by zero and park the camera at infinity.
   const insetRight = Math.min(Math.max(view.insetRight ?? 0, 0), 0.9)
+  const insetTop = Math.min(Math.max(view.insetTop ?? 0, 0), 0.9)
   const usableAspect = view.aspect * (1 - insetRight)
-  const halfHeight = Math.max(box.h / 2, box.w / usableAspect / 2) * view.margin
+  const halfHeight =
+    Math.max(box.h / (1 - insetTop) / 2, box.w / usableAspect / 2) * view.margin
   const halfFov = (view.fovDeg * Math.PI) / 360
   // The uncovered part of the canvas is left of its center, so the camera moves
   // right by half the covered width to put the box in the middle of it.
   const shift = halfHeight * view.aspect * insetRight
+  // The same, downward. Rect space grows y downward and the camera negates it,
+  // so moving the camera *up* — a smaller y — is what drops the box clear of
+  // the band.
+  const shiftDown = halfHeight * insetTop
   return {
     x: box.x + box.w / 2 + shift,
-    y: box.y + box.h / 2,
+    y: box.y + box.h / 2 - shiftDown,
     distance: view.projection === 'orthographic' ? view.standoff : halfHeight / Math.tan(halfFov),
     halfHeight,
   }

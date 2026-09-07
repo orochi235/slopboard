@@ -114,3 +114,39 @@ describe('framing around the sidebar', () => {
     expect(Number.isFinite(silly.x)).toBe(true)
   })
 })
+
+describe('framePose with chrome across the top', () => {
+  const withTop = (insetTop: number): FrameView => ({ ...persp(1, 1), insetTop })
+
+  it('frames nothing differently when there is no band', () => {
+    const bare = framePose({ x: 0, y: 0, w: 1, h: 1 }, persp(1, 1))
+    const zero = framePose({ x: 0, y: 0, w: 1, h: 1 }, withTop(0))
+    expect(zero).toEqual(bare)
+  })
+
+  it('shows more world, so the box still fits under the band', () => {
+    // A quarter of the height covered means the box has to fit in three
+    // quarters of what the camera shows.
+    const pose = framePose({ x: 0, y: 0, w: 1, h: 1 }, withTop(0.25))
+    expect(pose.halfHeight).toBeCloseTo(0.5 / 0.75, 6)
+  })
+
+  it('drops the box clear of the band rather than centring it on the canvas', () => {
+    const pose = framePose({ x: 0, y: 0, w: 1, h: 1 }, withTop(0.25))
+    // Rect y grows downward and the camera negates it, so a smaller y is up.
+    expect(pose.y).toBeCloseTo(0.5 - pose.halfHeight * 0.25, 6)
+    expect(pose.y).toBeLessThan(0.5)
+  })
+
+  it('leaves width binding when the box is wide, but still lowers it', () => {
+    const wide = framePose({ x: 0, y: 0, w: 4, h: 1 }, withTop(0.25))
+    expect(wide.halfHeight).toBeCloseTo(2, 6)
+    expect(wide.y).toBeCloseTo(0.5 - 2 * 0.25, 6)
+  })
+
+  it('caps a band that claims the whole canvas rather than parking at infinity', () => {
+    const absurd = framePose({ x: 0, y: 0, w: 1, h: 1 }, withTop(1))
+    expect(Number.isFinite(absurd.halfHeight)).toBe(true)
+    expect(Number.isFinite(absurd.y)).toBe(true)
+  })
+})
