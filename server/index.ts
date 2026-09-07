@@ -77,9 +77,19 @@ app.post('/api/items/:id/expire', async (req, res) => {
 })
 
 app.post('/api/undo', async (_req, res) => {
-  const item = await store.undoExpiry()
-  if (item) broadcast({ type: 'arrive', item })
-  res.json({ ok: item !== null })
+  const items = await store.undoExpiry()
+  for (const item of items) broadcast({ type: 'arrive', item })
+  res.json({ ok: items.length > 0, restored: items.length })
+})
+
+// A whole zone, in one step. Guarded like the other writes — a wall on a
+// private machine — and by the menu asking first, which is where the thinking
+// happens: this is the one gesture that can take thirty artifacts at once.
+app.post('/api/zones/:zone/expire', async (req, res) => {
+  const ids = await store.expireZone(req.params.zone)
+  for (const id of ids) broadcast({ type: 'expire', id })
+  if (ids.length > 0) console.log(`[expire] zone ${req.params.zone} (${ids.length})`)
+  res.json({ ok: ids.length > 0, expired: ids.length })
 })
 
 // Fires a level's whole treatment against an arrival that never happened, so

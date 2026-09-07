@@ -1388,11 +1388,29 @@ export function WebglBackend(props: Props) {
     void fetch('/api/undo', { method: 'POST' }).catch(() => {})
   }, [])
 
+  /** The menu row clicked once and waiting to be meant. Cleared with the menu,
+   *  so arming never survives the gesture that armed it. */
+  const [armed, setArmed] = useState<Action | null>(null)
+  const menuZone = menuTarget?.kind === 'zone' ? menuTarget.zone : null
+  const zoneCount = menuZone === null ? 0 : items.filter((i) => i.zone === menuZone).length
+
   const act = useCallback(
     (action: Action) => {
+      const target = menu?.target
+      // Two clicks, not a `confirm()`: a browser modal blocks the page's event
+      // loop, and this is the one action that can take a whole zone.
+      if (action === 'expireZone' && target?.kind === 'zone') {
+        if (armed !== 'expireZone') return setArmed('expireZone')
+        setArmed(null)
+        setMenu(null)
+        setExpired(true)
+        return void fetch(`/api/zones/${encodeURIComponent(target.zone)}/expire`, {
+          method: 'POST',
+        }).catch(() => {})
+      }
+      setArmed(null)
       setMenu(null)
       if (action === 'undo') return undo()
-      const target = menu?.target
       if (target?.kind !== 'card') return
       const id = target.id
       if (action === 'open') return void dispatch({ type: 'to', path: [target.zone, id] })
@@ -1408,7 +1426,7 @@ export function WebglBackend(props: Props) {
         return void fetch(`/api/items/${id}/expire`, { method: 'POST' }).catch(() => {})
       }
     },
-    [menu, menuItem, dispatch, dismiss, undo],
+    [menu, menuItem, dispatch, dismiss, undo, armed],
   )
 
   // Cmd-Z is what a hand reaches for, and the wall has nothing else to undo.
@@ -1477,9 +1495,14 @@ export function WebglBackend(props: Props) {
           at={menu}
           item={menuItem}
           canUndo={expired}
+          zoneCount={zoneCount}
+          armed={armed}
           look={props.params.menu}
           onAct={act}
-          onClose={() => setMenu(null)}
+          onClose={() => {
+            setArmed(null)
+            setMenu(null)
+          }}
         />
       )}
       {lit && <Lightbox item={lit} now={now} onClose={() => dispatch({ type: 'out' })} />}

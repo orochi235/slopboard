@@ -78,16 +78,66 @@ describe('expireNow and undoExpiry', () => {
     expect(store.snapshot().map((i: WallItem) => i.id)).toEqual(['a1'])
     // Restored at its old bornAt it would be past its TTL already and the
     // sweeper would take it again within the second.
-    expect(back?.bornAt).toBeGreaterThan(1000)
+    expect(back[0]?.bornAt).toBeGreaterThan(1000)
   })
 
-  it('holds one undo, and nothing to undo is null rather than an error', async () => {
+  it('holds one undo, and nothing to undo is empty rather than an error', async () => {
     const store = await freshStore(root)
-    expect(await store.undoExpiry()).toBeNull()
+    expect(await store.undoExpiry()).toEqual([])
 
     store.add({ item: itemAt(source), sourcePath: source, cachePath: join(root, 'a.webp') })
     await store.expireNow('a1')
-    expect(await store.undoExpiry()).not.toBeNull()
-    expect(await store.undoExpiry()).toBeNull()
+    expect(await store.undoExpiry()).toHaveLength(1)
+    expect(await store.undoExpiry()).toEqual([])
+  })
+})
+
+describe('expireZone', () => {
+  /** One file per id, so expiry has something real to move to the trash. */
+  const seed = async (
+    store: Awaited<ReturnType<typeof freshStore>>,
+    of: readonly { id: string; zone: string }[],
+  ) => {
+    for (const { id, zone } of of) {
+      const dir = join(root, 'inbox', zone)
+      await mkdir(dir, { recursive: true })
+      const path = join(dir, `${id}.png`)
+      await writeFile(path, 'png')
+      store.add({
+        item: itemAt(path, { id, zone }),
+        sourcePath: path,
+        cachePath: join(root, `${id}.webp`),
+      })
+    }
+  }
+
+  it('takes every artifact in the zone and leaves its neighbours alone', async () => {
+    const store = await freshStore(root)
+    await seed(store, [
+      { id: 'a1', zone: 'alpha' },
+      { id: 'a2', zone: 'alpha' },
+      { id: 'b1', zone: 'beta' },
+    ])
+    const gone = await store.expireZone('alpha')
+    expect(gone.sort()).toEqual(['a1', 'a2'])
+    expect(store.snapshot().map((i: WallItem) => i.id)).toEqual(['b1'])
+  })
+
+  it('is one undo step however many it took', async () => {
+    const store = await freshStore(root)
+    await seed(store, [
+      { id: 'a1', zone: 'alpha' },
+      { id: 'a2', zone: 'alpha' },
+    ])
+    await store.expireZone('alpha')
+    expect(store.snapshot()).toHaveLength(0)
+    const back = await store.undoExpiry()
+    expect(back.map((i: WallItem) => i.id).sort()).toEqual(['a1', 'a2'])
+    expect(await store.undoExpiry()).toEqual([])
+  })
+
+  it('says nothing went when the zone is not there', async () => {
+    const store = await freshStore(root)
+    expect(await store.expireZone('nowhere')).toEqual([])
   })
 })

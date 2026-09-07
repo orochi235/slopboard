@@ -28,6 +28,8 @@ export function CardMenu({
   at,
   item,
   canUndo,
+  zoneCount,
+  armed,
   look,
   onAct,
   onClose,
@@ -35,11 +37,15 @@ export function CardMenu({
   at: MenuAt
   item?: WallItem
   canUndo: boolean
+  /** How many artifacts the picked zone holds. */
+  zoneCount?: number
+  /** The row clicked once and waiting to be meant. */
+  armed?: Action | null
   look: StackParams['menu']
   onAct: (action: Action) => void
   onClose: () => void
 }) {
-  const items = menuFor(at.target, { item, canUndo })
+  const items = menuFor(at.target, { item, canUndo, zoneCount, armed })
   const [spot, setSpot] = useState<{ left: number; top: number } | null>(null)
   const [active, setActive] = useState(0)
   const box = useRef<HTMLDivElement>(null)

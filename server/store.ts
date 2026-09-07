@@ -26,19 +26,22 @@ export function onExpire(fn: (id: string) => void) {
   listeners.add(fn)
 }
 
-/** The last thing expiry took, and where it put it. One deep: undo is for
- *  watching something go and wanting it back, not for browsing the trash. */
-let lastExpired: { entry: Entry; dest: string } | null = null
+type Gone = { entry: Entry; dest: string }
+
+/** What the last expiry took, and where it put it. One step deep, however many
+ *  artifacts that step took: undo is for watching something go and wanting it
+ *  back, not for browsing the trash. A whole zone goes and comes back as one. */
+let lastExpired: Gone[] | null = null
 
 /** Expiry moves the source file to the trash; the wall never unlinks. */
-async function expire(entry: Entry) {
+async function expire(entry: Entry): Promise<Gone> {
   entries.delete(entry.item.id)
   const dest = join(config.trash, `${entry.item.id}-${entry.item.zone}`)
   await mkdir(config.trash, { recursive: true })
   await rename(entry.sourcePath, dest).catch(() => {})
   await trashStamp(entry.sourcePath, dest)
-  lastExpired = { entry, dest }
   for (const fn of listeners) fn(entry.item.id)
+  return { entry, dest }
 }
 
 export function startSweeper() {
@@ -46,7 +49,10 @@ export function startSweeper() {
     const now = Date.now()
     for (const entry of entries.values()) {
       if (entry.item.keptAt) continue
-      if (entry.item.bornAt < now - (entry.item.ttlMs ?? config.ttlMs)) void expire(entry)
+      if (entry.item.bornAt < now - (entry.item.ttlMs ?? config.ttlMs))
+        void expire(entry).then((gone) => {
+          lastExpired = [gone]
+        })
     }
   }, 1000)
 }
@@ -56,8 +62,26 @@ export function startSweeper() {
 export async function expireNow(id: string): Promise<boolean> {
   const entry = entries.get(id)
   if (!entry) return false
-  await expire(entry)
+  lastExpired = [await expire(entry)]
   return true
+}
+
+/**
+ * Everything in a zone, as one undo step. The ids come back so the caller can
+ * announce each death on the same `expire` message a natural one sends — a
+ * client cannot tell a zone being cleared from thirty TTLs running out at once,
+ * and needs no second path for it.
+ *
+ * A kept artifact is not swept, but it is taken here: rescuing something says
+ * the wall must not drop it on its own, not that it cannot be dismissed.
+ */
+export async function expireZone(zone: string): Promise<string[]> {
+  const doomed = [...entries.values()].filter((e) => e.item.zone === zone)
+  if (doomed.length === 0) return []
+  const gone: Gone[] = []
+  for (const entry of doomed) gone.push(await expire(entry))
+  lastExpired = gone
+  return gone.map((g) => g.entry.item.id)
 }
 
 /**
@@ -81,19 +105,26 @@ export async function keep(id: string, on: boolean): Promise<number | null | fal
  * its TTL already and the sweeper would take it again within the second, which
  * looks exactly like undo not working.
  */
-export async function undoExpiry(): Promise<WallItem | null> {
+export async function undoExpiry(): Promise<WallItem[]> {
   const last = lastExpired
-  if (!last) return null
+  if (!last) return []
   lastExpired = null
-  try {
-    await rename(last.dest, last.entry.sourcePath)
-  } catch {
-    return null
+  const back: WallItem[] = []
+  for (const gone of last) {
+    try {
+      await rename(gone.dest, gone.entry.sourcePath)
+    } catch {
+      // One file that will not come back must not strand the rest of its zone.
+      continue
+    }
+    await trashStamp(gone.dest, gone.entry.sourcePath)
+    // Its old bornAt is already past its TTL, so it would be swept again on the
+    // next tick.
+    const item = { ...gone.entry.item, bornAt: Date.now() }
+    entries.set(item.id, { ...gone.entry, item })
+    back.push(item)
   }
-  await trashStamp(last.dest, last.entry.sourcePath)
-  const item = { ...last.entry.item, bornAt: Date.now() }
-  entries.set(item.id, { ...last.entry, item })
-  return item
+  return back
 }
 
 /**
