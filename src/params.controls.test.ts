@@ -13,6 +13,23 @@ describe('controlFor', () => {
     })
   })
 
+  it('shows a depth stored negative as a positive magnitude, so right is deeper', () => {
+    expect(controlFor('step.z', -0.023)).toEqual({
+      kind: 'slider',
+      path: 'step.z',
+      min: 0,
+      max: 0.2,
+      step: 0.001,
+      invert: true,
+    })
+  })
+
+  it('rejects an inverted value by its shown magnitude, not its stored sign', () => {
+    // +0.5 is out of a 0..0.2 range once inverted, and so is -0.5.
+    expect(controlFor('step.z', -0.5).kind).toBe('number')
+    expect(controlFor('step.z', 0.5).kind).toBe('number')
+  })
+
   it('gives an enum its own values rather than a range', () => {
     const c = controlFor('camera.projection', 'orthographic')
     expect(c).toEqual({

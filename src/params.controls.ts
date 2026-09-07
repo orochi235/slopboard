@@ -3,18 +3,27 @@ import { TYPEFACES } from '@/typeface.ts'
 import type { StackParams } from '@/params.ts'
 
 export type Control =
-  | { kind: 'slider'; path: string; min: number; max: number; step: number }
+  | { kind: 'slider'; path: string; min: number; max: number; step: number; invert?: true }
   | { kind: 'choice'; path: string; options: readonly (number | string)[] }
   | { kind: 'color'; path: string }
   | { kind: 'number'; path: string }
   | { kind: 'toggle'; path: string }
+
+/**
+ * Values stored negative and read as a magnitude. `step.z` is the only one: the
+ * other two step axes are directions and take either sign, but rank steps away
+ * from the camera or nowhere, so a signed range spends half its travel on
+ * nothing and puts "deeper" to the left. The slider shows the depth; the sign
+ * stays in the model, where a drag and the wheel nudge both already speak it.
+ */
+const INVERTED = new Set(['step.z'])
 
 /** Ranges wide enough to find the answer in and narrow enough that a drag lands
  *  on one. A path with no entry gets a typed number instead of a guessed range. */
 const SLIDERS: Record<string, readonly [number, number, number]> = {
   'step.x': [-0.1, 0.1, 0.001],
   'step.y': [-0.1, 0.1, 0.001],
-  'step.z': [-0.2, 0, 0.001],
+  'step.z': [0, 0.2, 0.001],
   side: [0.02, 1, 0.005],
   'origin.x': [0, 1, 0.01],
   'origin.y': [0, 1, 0.01],
@@ -129,10 +138,14 @@ export function controlFor(path: string, value: number | string | boolean): Cont
   const range = SLIDERS[path] ?? SLIDERS[familyOf(path)] ?? BY_SUFFIX[leaf]
   if (!range) return { kind: 'number', path }
   const [min, max, step] = range
+  const invert = INVERTED.has(path)
   // A value the range cannot express would be silently clamped by the input,
   // which is how a sentinel gets destroyed by a drag that never happened.
-  if (value < min || value > max) return { kind: 'number', path }
-  return { kind: 'slider', path, min, max, step }
+  const shown = invert ? -value : value
+  if (shown < min || shown > max) return { kind: 'number', path }
+  return invert
+    ? { kind: 'slider', path, min, max, step, invert }
+    : { kind: 'slider', path, min, max, step }
 }
 
 export function controlsOf(params: StackParams): Control[] {

@@ -135,10 +135,14 @@ export function ParamsBody({
                     min={control.min}
                     max={control.max}
                     step={control.step}
-                    value={value as number}
-                    onChange={(e) => set(Number(e.target.value))}
+                    value={control.invert ? -(value as number) : (value as number)}
+                    onChange={(e) =>
+                      set(control.invert ? -Number(e.target.value) : Number(e.target.value))
+                    }
                   />
-                  <span className="params__value">{show(value as number)}</span>
+                  <span className="params__value">
+                    {show(control.invert ? -(value as number) : (value as number))}
+                  </span>
                 </>
               )}
               {control.kind === 'choice' && (
