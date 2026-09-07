@@ -26,6 +26,11 @@ export default defineConfig({
     // and whichever starts first takes 5173. strictPort then fails loudly
     // instead of drifting to a port nobody thinks to open.
     port: Number(process.env.SLOP_CLIENT_PORT ?? 5183),
+    // Both address families. Left unset, node binds whatever the resolver
+    // returns for `localhost` first — here `::1` — and the IPv4 loopback then
+    // refuses, so the port is plainly listening and the page will not load.
+    // `::` is the only value that answers on both: `0.0.0.0` is IPv4 only.
+    host: '::',
     strictPort: true,
     proxy: { '/img': proxy, '/orig': proxy, '/api': proxy, '/ws': proxy },
   },
