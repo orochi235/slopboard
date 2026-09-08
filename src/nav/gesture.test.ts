@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createGestureRail } from '@/nav/gesture.ts'
 
-const OPTS = { wheelThreshold: 60, pinchThreshold: 8, quietMs: 150 }
+const OPTS = { wheelThreshold: 60, pinchThreshold: 8, quietMs: 90, floorMs: 320 }
 const wheel = (deltaY: number) => ({ deltaY, ctrlKey: false })
 const pinch = (deltaY: number) => ({ deltaY, ctrlKey: true })
 
@@ -89,6 +89,35 @@ describe('createGestureRail', () => {
     let fired = 0
     for (let i = 0; i < 120; i++) if (rail.feed(wheel(-12), i * 16)) fired++
     expect(fired).toBe(1)
+  })
+
+  it('paces a fast roll of deliberate notches', () => {
+    // Every notch is its own gesture, so the gate passes all of them and the
+    // floor is the only thing between a brisk roll and the bottom of the wall.
+    const rail = createGestureRail(OPTS)
+    let fired = 0
+    for (let i = 0; i < 12; i++) if (rail.feed(wheel(-120), i * 150)) fired++
+    expect(fired).toBe(4)
+  })
+
+  it('takes the rung on the first event past the floor, not a fresh charge', () => {
+    const rail = createGestureRail(OPTS)
+    expect(rail.feed(wheel(-70), 0)).toBe('in')
+    // Earned again at 200ms but refused by the floor. Within the one stream the
+    // charge is held, so the rung lands as the floor lapses rather than the
+    // hand having to pay for it twice.
+    expect(rail.feed(wheel(-70), 200)).toBeNull()
+    expect(rail.feed(wheel(-10), 250)).toBeNull()
+    expect(rail.feed(wheel(-10), 330)).toBe('in')
+  })
+
+  it('does not hold a pinch to one rung, having no momentum to outrun', () => {
+    // Two fingers on the glass are still moving and still mean it; only the
+    // floor paces a spread.
+    const rail = createGestureRail(OPTS)
+    let fired = 0
+    for (let i = 0; i < 125; i++) if (rail.feed(pinch(-3), i * 16)) fired++
+    expect(fired).toBeGreaterThan(1)
   })
 
   it('gives a hard flick one rung and no more', () => {

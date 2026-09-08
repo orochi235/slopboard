@@ -32,15 +32,37 @@ will run.
 
 ## The rail
 
-`createGestureRail` tracks the last event's time and a spent flag. Three rules
-replace `cooldownMs`:
+`createGestureRail` tracks the last event's time and a spent flag:
 
 - An event more than `quietMs` after the previous one starts a new gesture:
   clear the flag, zero the charge.
-- While spent, zero the charge and return null.
+- While spent, return null.
 - Firing a rung sets the flag.
 
-`nav.cooldownMs` becomes `nav.quietMs`, starting at 150, and keeps its slider.
+## The floor
+
+The gate alone caps gestures, not rate, and a mouse wheel's every notch is its
+own gesture. So there is a second bound: `floorMs` between one rung and the
+next, whatever arrives. The gate stops a tail; the floor stops a brisk roll
+reaching the bottom of the wall before the eye follows.
+
+Both bounds are needed, and the floor has to be the larger. Set equal, a roll
+whose notches fall a hair either side of `quietMs` gets one rung for the whole
+roll on one side and one per notch on the other — measured at 150/150, twelve
+notches gave 1 rung at 100ms apart and 12 at 150ms apart. At 90/320 the same
+rolls give 3 and 4.
+
+A refused rung keeps its charge, so within one stream the rung lands as the
+floor lapses rather than the hand paying for it twice.
+
+**A pinch skips the gate.** Two fingers on the glass carry no momentum, so
+there is no tail to separate and holding a spread to a single rung is wrong;
+the floor paces it alone.
+
+`nav.cooldownMs` becomes `nav.quietMs` at 90, beside a new `nav.floorMs` at
+320. Both have sliders. `quietMs` has to stay above a frame — under about
+16ms every event reads as a fresh gesture and zeroes the charge, so a trackpad
+stream can never reach the threshold and the wall stops moving at all.
 
 ## The lightbox
 

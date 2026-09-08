@@ -14,6 +14,9 @@ export type RailOptions = {
   pinchThreshold: number
   /** A gap this long ends a gesture and unlocks the rail. */
   quietMs: number
+  /** The least time between rungs. The gate stops a flick's tail; this stops a
+   *  fast roll of deliberate notches outrunning the camera. */
+  floorMs: number
 }
 
 /**
@@ -27,16 +30,20 @@ export function createGestureRail(opts: RailOptions) {
   let towards: Step | null = null
   let pinching = false
   let spent = false
+  let firedAt = Number.NEGATIVE_INFINITY
   const gate = createQuietGate(opts.quietMs)
 
   return {
     feed(sample: WheelSample, now: number): Step | null {
       if (sample.deltaY === 0) return null
+      // A pinch carries no momentum — the fingers are on the glass and still
+      // mean it — so the gesture lock is wrong for one. The floor paces it.
+      const tailed = !sample.ctrlKey
       if (gate.feed(now)) {
         spent = false
         charge = 0
       }
-      if (spent) return null
+      if (spent && tailed) return null
 
       // Scrolling away and spreading two fingers both mean inward, which is the
       // direction every map on this machine already agrees on.
@@ -48,9 +55,13 @@ export function createGestureRail(opts: RailOptions) {
       charge += Math.abs(sample.deltaY)
       const threshold = pinching ? opts.pinchThreshold : opts.wheelThreshold
       if (charge < threshold) return null
+      // Held rather than spent: a stream that has earned a rung takes it the
+      // moment the floor lapses, rather than paying for it twice.
+      if (now - firedAt < opts.floorMs) return null
 
       charge = 0
-      spent = true
+      spent = tailed
+      firedAt = now
       return direction
     },
   }
