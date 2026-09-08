@@ -3,8 +3,11 @@
 # The wall's menu bar widget. `perch install` from this directory builds it and
 # hands it to launchd; `perch run` puts it in the foreground to look at.
 #
-# It reports and it opens things. It deliberately cannot start the daemon: an
-# action is a subprocess perch waits on, and `npm run dev:daemon` never returns.
+# It reports, it opens things, and it runs the wall. An action is a subprocess
+# perch waits on, so it cannot hold a server open — `wall` hands the lifetime to
+# launchd and returns, which is why these items are `run` and not a dev script.
+# `wall` is on PATH because `wall install` links it into ~/.local/bin, which is
+# already in the PATH this agent runs with.
 
 app:
   name: slopboard
@@ -60,5 +63,14 @@ menu:
   - text: Open the trash
     when: "wall.ok"
     open: "{{wall.data.trash}}"
+  - separator
+  - text: Cycle the wall
+    run: [wall, cycle]
+  - text: Start the wall
+    when: "!wall.ok"
+    run: [wall, up]
+  - text: Stop the wall
+    when: "wall.ok"
+    run: [wall, down]
   - separator
   - {text: Quit, quit: true}

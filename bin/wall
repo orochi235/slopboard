@@ -1,0 +1,95 @@
+#!/bin/sh
+# Run the wall as a pair of launchd agents, so it outlives the terminal.
+#
+#   wall install    write both agents and load them
+#   wall up         start them
+#   wall down       stop them
+#   wall cycle      restart them, which is also how server edits take
+#   wall stat       what launchd thinks, and whether the daemon answers
+#
+# Two agents, not one: the daemon holds the artifacts on 8787 and the client
+# serves the page on 5183, and either can be restarted without the other.
+#
+# The launchd daemon runs `tsx` without `watch` — a wall is not a dev server,
+# and a file save should not drop what is on screen. `wall cycle` is how a
+# server edit reaches it, which is the same button the menu bar offers.
+set -eu
+
+repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+state="$HOME/.local/state/slopboard"
+agents="$HOME/Library/LaunchAgents"
+domain="gui/$(id -u)"
+base=tech.michaelbaker.slopboard
+
+# launchd starts with almost no PATH, and `.bin/tsx` and `.bin/vite` are both
+# node shebangs. Whichever node runs this is the one they get.
+nodedir=$(dirname -- "$(command -v node)")
+
+plist() { # label, program, log
+  cat > "$agents/$1.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>$1</string>
+	<key>ProgramArguments</key>
+	<array>
+$2
+	</array>
+	<key>WorkingDirectory</key>
+	<string>$repo</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>$nodedir:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>$state/$3.log</string>
+	<key>StandardErrorPath</key>
+	<string>$state/$3.log</string>
+</dict>
+</plist>
+PLIST
+}
+
+each() { for label in "$base.daemon" "$base.client"; do "$1" "$label"; done; }
+boot()   { launchctl bootstrap "$domain" "$agents/$1.plist" 2>/dev/null || true; }
+unboot() { launchctl bootout "$domain/$1" 2>/dev/null || true; }
+kick()   { launchctl kickstart -k "$domain/$1" >/dev/null 2>&1 || true; }
+
+case "${1:-stat}" in
+  install)
+    mkdir -p "$state" "$agents"
+    # A stray dev server holding 8787 makes the daemon attach and exit, and
+    # KeepAlive turns that into a restart loop rather than an error.
+    pkill -f "$repo/node_modules/.bin/tsx" 2>/dev/null || true
+    pkill -f "$repo/node_modules/.bin/vite" 2>/dev/null || true
+    plist "$base.daemon" "		<string>$repo/node_modules/.bin/tsx</string>
+		<string>server/index.ts</string>" daemon
+    plist "$base.client" "		<string>$repo/node_modules/.bin/vite</string>" client
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$repo/bin/wall" "$HOME/.local/bin/wall"
+    each unboot
+    each boot
+    echo "installed: $base.daemon, $base.client"
+    ;;
+  up)    each boot ;;
+  down)  each unboot ;;
+  cycle) each kick ;;
+  stat)
+    for label in "$base.daemon" "$base.client"; do
+      printf '%-40s %s\n' "$label" \
+        "$(launchctl print "$domain/$label" 2>/dev/null | awk '/^\tstate = /{print $3; exit}' || echo 'not loaded')"
+    done
+    printf '%-40s %s\n' 'daemon answers' \
+      "$(curl -s -m 2 -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/api/health || echo no)"
+    printf '%-40s %s\n' 'client answers' \
+      "$(curl -s -m 2 -o /dev/null -w '%{http_code}' http://127.0.0.1:5183/ || echo no)"
+    ;;
+  *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac
