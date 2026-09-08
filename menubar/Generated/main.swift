@@ -136,6 +136,20 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
             })
         }
         menu.addItem(NSMenuItem.separator())
+        menu.addItem(ActionItem(title: "Cycle the wall") { [weak self] in
+            Act.run(["wall", "cycle"]) { self?.poll() }
+        })
+        if !(self.results.wall.ok) {
+            menu.addItem(ActionItem(title: "Start the wall") { [weak self] in
+                Act.run(["wall", "up"]) { self?.poll() }
+            })
+        }
+        if self.results.wall.ok {
+            menu.addItem(ActionItem(title: "Stop the wall") { [weak self] in
+                Act.run(["wall", "down"]) { self?.poll() }
+            })
+        }
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(ActionItem(title: "Quit") {
             NSApp.terminate(nil)
         })
