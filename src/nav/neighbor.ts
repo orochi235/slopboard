@@ -51,6 +51,12 @@ export function neighborOf(
       across = Math.abs(dx)
     }
 
+    // A cell has to lie within 45 degrees of the direction to be in it at all.
+    // Cells are the union of a pile's drawn cards, so rows miss each other by a
+    // card's worth of depth — and a hair of drift, priced against having nowhere
+    // to go, is what sends an arrow diagonally out of its own row.
+    if (across > along) continue
+
     const score = along + CROSS_PENALTY * across
     if (!best || score < best.score) best = { id, score }
   }
