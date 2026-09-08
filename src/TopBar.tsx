@@ -5,6 +5,7 @@ import { RangeSlider } from '@weasel-js/ui'
 import '@weasel-js/ui/style.css'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
+import { SORTS, type SortKey } from '@/nav/sort.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import './topbar.css'
 
@@ -20,12 +21,16 @@ export function TopBar({
   now,
   range,
   onRange,
+  sort,
+  onSort,
 }: {
   items: readonly WallItem[]
   /** The daemon's clock, so the axis agrees with every age on the wall. */
   now: number
   range: Range | null
   onRange: (next: Range | null) => void
+  sort: SortKey
+  onSort: (next: SortKey) => void
 }) {
   const bornAts = useMemo(() => items.map((i) => i.bornAt), [items])
   const span = useMemo(() => spanOf(bornAts, now), [bornAts, now])
@@ -109,6 +114,27 @@ export function TopBar({
               </button>
             )
           })}
+        </div>
+      </section>
+
+      {/* One key, both places: the zones on the wall and the flag list in the
+          sidebar. */}
+      <section className="topbar__block topbar__block--tight">
+        <div className="topbar__head">
+          <h2 className="topbar__name">sort</h2>
+        </div>
+        <div className="topbar__buckets">
+          {SORTS.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              className={`topbar__bucket ${sort === option.key ? 'topbar__bucket--on' : ''}`}
+              aria-pressed={sort === option.key}
+              onClick={() => onSort(option.key)}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
       </section>
     </header>

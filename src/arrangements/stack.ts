@@ -78,6 +78,9 @@ export function createStack(
       name: 'slop-stack',
       layout({ items, container, options }): LayoutResult {
         const now = typeof options.now === 'number' ? options.now : Date.now()
+        // The wall's sort key, as the only thing about it the strategy needs to
+        // know: the order itself is the order the items arrive in.
+        const zoneOrder = options.zones === 'given' ? 'given' : 'held'
         const all = items as StackItem[]
 
         const byZone = new Map<string, StackItem[]>()
@@ -88,7 +91,7 @@ export function createStack(
         }
         for (const bucket of byZone.values()) bucket.sort((a, b) => a.age01 - b.age01)
 
-        const cells = zoneGrid([...byZone.keys()], container, params.zoneGrid)
+        const cells = zoneGrid([...byZone.keys()], container, params.zoneGrid, zoneOrder)
 
         const placements = new Map<string, Rect>()
         const channels = new Map<string, Record<string, number>>()

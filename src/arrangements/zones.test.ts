@@ -42,6 +42,21 @@ describe('createZoneGrid', () => {
     expect(second.get('b')).toEqual(first.get('b'))
   })
 
+  it('fills cells in the order handed in when the sort asks for it', () => {
+    const gridOf = createZoneGrid()
+    const held = gridOf(['a', 'b'], container, cfg)
+    const given = gridOf(['b', 'a'], container, cfg, 'given')
+    expect(given.get('b')).toEqual(held.get('a'))
+    expect(given.get('a')).toEqual(held.get('b'))
+  })
+
+  it('does not let a given order disturb the cells it holds', () => {
+    const gridOf = createZoneGrid()
+    const before = gridOf(['a', 'b'], container, cfg)
+    gridOf(['b', 'a'], container, cfg, 'given')
+    expect(gridOf(['a', 'b'], container, cfg)).toEqual(before)
+  })
+
   it('returns nothing for an empty wall', () => {
     expect(createZoneGrid()([], container, cfg).size).toBe(0)
   })

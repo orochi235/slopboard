@@ -26,6 +26,7 @@ import { fakeFlags, type FakeFlag } from '@/debug-flags.ts'
 import { Sky } from '@/backends/Sky.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { toStackItems } from '@/model.ts'
+import { DEFAULT_SORT, inZoneOrder, zoneOrder, type SortKey } from '@/nav/sort.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
 import { Axes } from '@/nav/Axes.tsx'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
@@ -71,6 +72,9 @@ type Props = {
 }
 
 type WallProps = Props & {
+  /** The band's sort key. Reaches the layout as the order of the items, since
+   *  zone order is the insertion order of the strategy's own `byZone`. */
+  sort: SortKey
   view: ViewState
   dispatch: Dispatch<ViewAction>
   onPlan: (plan: Plan) => void
@@ -138,6 +142,7 @@ function Wall({
   arrangement,
   ttlMs,
   clockOffset,
+  sort,
   params,
   onParams,
   zoneColors,
@@ -369,8 +374,8 @@ function Wall({
   /** The flagged artifact under the pointer, badge included. */
   const hovered = useRef<string | null>(null)
 
-  const latest = useRef({ items, ttlMs, clockOffset })
-  latest.current = { items, ttlMs, clockOffset }
+  const latest = useRef({ items, ttlMs, clockOffset, sort })
+  latest.current = { items, ttlMs, clockOffset, sort }
 
   const cells = useRef<Map<string, Rect>>(new Map())
   /** Each pile's front card. The zone chrome is drawn on this rather than on
@@ -746,7 +751,10 @@ function Wall({
   useFrame((_state, delta) => {
     const current = latest.current
     const now = Date.now() + current.clockOffset
-    const model = toStackItems(current.items, { now, ttlMs: current.ttlMs })
+    const model = inZoneOrder(
+      toStackItems(current.items, { now, ttlMs: current.ttlMs }),
+      zoneOrder(current.items, current.sort, now),
+    )
     const aspects = new Map(model.map((m) => [m.id, m.aspect]))
     const zoneFor = new Map(model.map((m) => [m.id, m.zone]))
     zoneById.current = zoneFor
@@ -755,7 +763,10 @@ function Wall({
       items: model,
       container: { w: window.innerWidth / window.innerHeight, h: 1 },
       state: undefined,
-      options: { now },
+      // `project` keeps the held cells the wall has always had, so the
+      // default order is the one nobody asked to change. The other two keys
+      // are a reordering by definition, and take the cells the sort implies.
+      options: { now, zones: current.sort === 'project' ? 'held' : 'given' },
     })
 
     const channels = (result.channels ?? new Map()) as Map<string, SlopChannels>
@@ -1303,6 +1314,10 @@ export function WebglBackend(props: Props) {
   // App so that a fake reaches the scene by exactly the route a real one does.
   const [fakes, setFakes] = useState<Record<string, FakeFlag>>({})
   const [range, setRange] = useState<Range | null>(null)
+  // Not persisted: severity and recency move a zone's cell as artifacts land,
+  // and a wall that came back from a reload already reordered would read as
+  // the arrangement having changed under it.
+  const [sort, setSort] = useState<SortKey>(DEFAULT_SORT)
   // The daemon's clock, ticking, so the band's axis ends at the same `now`
   // every age on the wall is measured against.
   const [now, setNow] = useState(() => Date.now() + props.clockOffset)
@@ -1459,6 +1474,7 @@ export function WebglBackend(props: Props) {
           topInset={topInset}
           {...props}
           items={items}
+          sort={sort}
           view={view}
           dispatch={dispatch}
           onPlan={setPlan}
@@ -1476,12 +1492,20 @@ export function WebglBackend(props: Props) {
       <div className="axes">
         <Axes yawDeg={props.params.camera.yawDeg} pitchDeg={props.params.camera.pitchDeg} />
       </div>
-      <TopBar items={items} now={now} range={range} onRange={setRange} />
+      <TopBar
+        items={items}
+        now={now}
+        range={range}
+        onRange={setRange}
+        sort={sort}
+        onSort={setSort}
+      />
       <Sidebar
         open={sidebarOpen}
         setOpen={setSidebarOpen}
         items={items.filter((i) => keptBy(i.bornAt, range))}
         clockOffset={props.clockOffset}
+        sort={sort}
         params={props.params}
         onParams={props.onParams}
         onOpen={(item) => dispatch({ type: 'to', path: [item.zone, item.id] })}

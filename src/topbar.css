@@ -143,3 +143,10 @@
   --wzl-motion-fast: 120ms;
   --wzl-font-ui: inherit;
 }
+
+/* A block that is only its controls — the sort keys need no room to draw in. */
+.topbar__block--tight {
+  min-width: 0;
+  max-width: none;
+  flex: 0 0 auto;
+}

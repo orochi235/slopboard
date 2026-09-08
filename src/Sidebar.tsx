@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { ParamsBody } from '@/Params.tsx'
 import { ago } from '@/age.ts'
 import { ALERTS, emphasisAt, LEVELS, type Level } from '@shared/attention.ts'
+import { sortFlags, type SortKey } from '@/nav/sort.ts'
 import type { StackParams } from '@/params.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import './sidebar.css'
@@ -37,15 +38,23 @@ function Section({
 function Flags({
   items,
   now,
+  sort,
   onOpen,
   onDismiss,
 }: {
   items: readonly WallItem[]
   now: number
+  /** The band's key, read and never set here: the list and the wall agree
+   *  about what is at the top because neither owns the order. */
+  sort: SortKey
   onOpen: (item: WallItem) => void
   onDismiss: (id: string) => void
 }) {
-  const flagged = items.filter((i) => i.attention)
+  const flagged = sortFlags(
+    items.filter((i) => i.attention),
+    sort,
+    now,
+  )
   if (flagged.length === 0) return <p className="sidebar__empty">nothing is asking</p>
 
   return (
@@ -166,6 +175,7 @@ function AlertButtons({
 export function Sidebar({
   items,
   clockOffset,
+  sort,
   params,
   onParams,
   onOpen,
@@ -178,6 +188,7 @@ export function Sidebar({
 }: {
   items: readonly WallItem[]
   clockOffset: number
+  sort: SortKey
   params: StackParams
   onParams: Dispatch<SetStateAction<StackParams>>
   onOpen: (item: WallItem) => void
@@ -235,7 +246,7 @@ export function Sidebar({
       </header>
 
       <Section name="flags" storageKey="slopboard.sidebar.flags.v1">
-        <Flags items={items} now={now} onOpen={onOpen} onDismiss={onDismiss} />
+        <Flags items={items} now={now} sort={sort} onOpen={onOpen} onDismiss={onDismiss} />
       </Section>
 
       <Section name="debug" storageKey="slopboard.sidebar.debug.v1">

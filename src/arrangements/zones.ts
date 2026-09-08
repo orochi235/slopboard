@@ -4,9 +4,13 @@ import { createSlots } from './slots.ts'
 import type { StackParams } from '@/params.ts'
 
 /**
- * One cell per zone, tiled by windease. Cells are addressed by slot index
- * rather than by sorted zone name: a zone that arrives when an agent first
- * writes to a new repo must not move every pile already on the wall.
+ * One cell per zone, tiled by windease.
+ *
+ * Held: cells are addressed by slot index rather than by sorted zone name, so
+ * a zone that arrives when an agent first writes to a new repo does not move
+ * every pile already on the wall. Given: cells are filled in the order handed
+ * in, which is what a sort key over the zones needs and costs exactly that
+ * guarantee — the wall reshuffles whenever the order changes.
  */
 export function createZoneGrid() {
   const slots = createSlots()
@@ -15,14 +19,18 @@ export function createZoneGrid() {
     zones: string[],
     container: WeSize,
     cfg: StackParams['zoneGrid'],
+    order: 'held' | 'given' = 'held',
   ): Map<string, Rect> => {
     if (zones.length === 0) return new Map()
 
-    const held = slots([...zones].sort())
-    const byIndex = [...held.entries()].sort((a, b) => a[1] - b[1])
+    let ordered = zones
+    if (order === 'held') {
+      const held = slots([...zones].sort())
+      ordered = [...held.entries()].sort((a, b) => a[1] - b[1]).map(([zone]) => zone)
+    }
 
     const out = gridStrategy.layout({
-      items: byIndex.map(([zone]) => ({ id: zone })),
+      items: ordered.map((zone) => ({ id: zone })),
       container,
       state: undefined,
       options: {
