@@ -187,16 +187,10 @@ Also landed: an axis gizmo under the minimap, off `params.camera.yawDeg` and
 
 The user's instruction is to work all of it, not just the head.
 
-**Next up, and half-designed already:**
+**Next up:**
 
-- **The page-wide sort.** One key reorders **both** the zones on the wall and
-  the sidebar's flag list — decided, not open. Keys: severity, recency,
-  project. It reaches into the layout: zone order comes from the insertion
-  order of `byZone` in the stack strategy (`src/arrangements/stack.ts`), fed to
-  `zoneGrid`. Severity ordering imposes a ranking the levels deliberately lack;
-  the user asked for it anyway, so build it and note it once.
-- **More band sections.** Time is the first of several; the band is built to
-  take more blocks. Nothing else is specified yet — ask.
+- **More band sections.** Time and sort are the first two; the band is built to
+  take more blocks. Nothing else is specified yet.
 
 **Then:**
 
@@ -210,6 +204,14 @@ The user's instruction is to work all of it, not just the head.
   `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.
 - **Kept cards do not move to a band of their own.** The decay freeze is all
   that marks one today. The reserved band is arrangement work.
+
+**The page-wide sort is built** (`3fe3d64`). Three keys in the band, and the
+sidebar's flag list reads the same one. The design note that sent it there was
+wrong: zone order is *not* the insertion order of `byZone` — `createZoneGrid`
+sorts the names it is handed and holds a slot per zone, so it discarded the
+caller's order entirely. It takes that as a mode now, `project` keeping the
+held cells and the other two keys filling cells in the sort's order. See
+`DESIGN.md` under **Ordering the zones**.
 
 **Done since this list was written** (2026-09-06, `8c245a2..94c587d`):
 

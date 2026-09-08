@@ -126,6 +126,25 @@ having from them is a 3D arrangement someone writes fresh.
 | `spiral` | Enter at the perimeter, spiral inward, vanish at the center. | Centripetal reading, and whether a convergence point is restful or maddening. |
 | `stack` ✅ | One diagonal pile per zone, tiled to a grid. Depth is rank: an arrival shoves the pile back. Only the top of each pile is legible. | Whether the wall is better as "which repos are producing" plus a zoom, rather than N readable images. |
 
+### Ordering the zones
+
+One key in the band orders the zones on the wall and the flag list in the
+sidebar together — `project`, `severity`, `recency` — so the two can never
+disagree about what is at the top.
+
+The key reaches the layout as the order of the items, since a zone's cell comes
+from where its name falls in the list the grid is handed. **`project` keeps the
+held cells**: `createZoneGrid` assigns a slot per zone and holds it, so a new
+zone appearing does not move every pile already on the wall. The other two keys
+give that up by definition — a wall ordered by severity or by arrival
+reshuffles as artifacts land — and take cells in the order the sort implies
+instead.
+
+Severity is a ranking the levels deliberately lack. `LEVELS` is a set of
+treatments and not a scale, so the ranking lives in `src/nav/sort.ts` and
+nowhere the ingest contract can reach it; a lapsed flag ranks below a live one
+of any level.
+
 ### The stack's camera
 
 `stack` is the only 3D arrangement, so the camera belongs to its design rather
