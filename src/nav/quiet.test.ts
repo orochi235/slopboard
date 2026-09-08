@@ -27,6 +27,12 @@ describe('createQuietGate', () => {
     for (let t = 140; t <= 1400; t += 140) expect(gate.feed(t)).toBe(false)
   })
 
+  it('calls an event landing exactly on the gap a fresh gesture', () => {
+    const gate = createQuietGate(150)
+    gate.feed(0)
+    expect(gate.feed(150)).toBe(true)
+  })
+
   it('starts disarmed when handed a start time, for a mid-gesture mount', () => {
     const gate = createQuietGate(150, 1000)
     expect(gate.feed(1020)).toBe(false)

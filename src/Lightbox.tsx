@@ -65,6 +65,7 @@ function ImageLightbox({
     setLoaded(false)
     setImage({ w: 0, h: 0 })
     setView({ scale: 1, x: 0, y: 0 })
+    armed.current = false
   }, [item.id])
 
   // The wheel is the lightbox's while the lightbox holds focus, and the wall's
@@ -76,14 +77,13 @@ function ImageLightbox({
     const el = port.current
     if (!el) return
     // `timeStamp` on a wheel event and `performance.now()` share the document's
-    // time origin, so the mount time is a gap the tail cannot open.
+    // time origin, so this effect's own start is a gap the tail cannot open.
     const gate = createQuietGate(quietMs, performance.now())
     const onWheel = (e: WheelEvent) => {
       if (!el.contains(document.activeElement)) return
       e.preventDefault()
-      // Swallowed even while disarmed: left to propagate, the tail reaches the
-      // wall's window listener and steps a rung back out from under the image
-      // that just opened.
+      // Swallowed even while disarmed, or the tail reaches the wall's window
+      // listener and steps a rung back out from under the image that opened.
       e.stopPropagation()
       if (gate.feed(e.timeStamp)) armed.current = true
       if (!armed.current) return

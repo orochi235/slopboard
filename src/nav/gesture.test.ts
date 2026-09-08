@@ -81,6 +81,16 @@ describe('createGestureRail', () => {
     expect(rail.feed(wheel(-70), 10)).toBe('in')
   })
 
+  it('still gathers a trackpad stream at the lowest quietMs the slider offers', () => {
+    // Under about a frame every event reads as a fresh gesture, which zeroes the
+    // charge before a stream of small deltas can ever reach the threshold — so
+    // the slider's floor is a navigable wall, not the most responsive one.
+    const rail = createGestureRail({ ...OPTS, quietMs: 40 })
+    let fired = 0
+    for (let i = 0; i < 120; i++) if (rail.feed(wheel(-12), i * 16)) fired++
+    expect(fired).toBe(1)
+  })
+
   it('gives a hard flick one rung and no more', () => {
     const rail = createGestureRail(OPTS)
     let fired = 0

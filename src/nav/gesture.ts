@@ -36,12 +36,7 @@ export function createGestureRail(opts: RailOptions) {
         spent = false
         charge = 0
       }
-      // Zeroed rather than merely ignored: a tail allowed to bank would fire
-      // the instant the gesture ended, from a throw the hand had finished.
-      if (spent) {
-        charge = 0
-        return null
-      }
+      if (spent) return null
 
       // Scrolling away and spreading two fingers both mean inward, which is the
       // direction every map on this machine already agrees on.

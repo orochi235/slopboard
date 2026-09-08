@@ -267,8 +267,7 @@ screen, which is what the arrows and the plan view are for.
 **A pinch is a wheel event with `ctrlKey` set.** macOS reports a trackpad pinch
 nowhere else, so the two are one handler at two scales — pinch deltas run an
 order of magnitude smaller, which is why `nav` carries a threshold for each.
-Without `preventDefault` the page zooms instead of the wall, and without the
-cooldown one flick of momentum walks the whole hierarchy.
+Without `preventDefault` the page zooms instead of the wall.
 
 **A pile is picked by hit-testing its cell, not by a plane in the scene.** An
 invisible plane per cell has to sit behind the deepest card `rankCap` allows or

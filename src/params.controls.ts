@@ -70,7 +70,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'camera.moveMs': [0, 3000, 10],
   'nav.wheelThreshold': [5, 300, 5],
   'nav.pinchThreshold': [1, 60, 1],
-  'nav.quietMs': [0, 600, 10],
+  'nav.quietMs': [40, 600, 10],
   'nav.dragDepthPerNotch': [0, 0.004, 0.0001],
   'overlay.cardEdgeWidth': [0.5, 12, 0.5],
   'overlay.filterDim': [0, 1, 0.01],
