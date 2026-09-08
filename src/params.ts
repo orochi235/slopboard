@@ -165,9 +165,9 @@ export type StackParams = {
     wheelThreshold: number
     /** The same for a pinch, whose deltas run an order of magnitude smaller. */
     pinchThreshold: number
-    /** Dead time after a step. Momentum scrolling keeps delivering for most of
-     *  a second, and without this one flick walks the whole hierarchy. */
-    cooldownMs: number
+    /** A silence this long ends a wheel gesture. One gesture is worth one rung,
+     *  so a flick's tail cannot walk the hierarchy behind the hand. */
+    quietMs: number
     /** A drag begun on a card moves its pile instead of turning the wall.
      *  Turning still works from the sky and the gaps between piles. */
     dragCardSetsStep: boolean
@@ -427,7 +427,7 @@ export const defaultParams: StackParams = {
   nav: {
     wheelThreshold: 60,
     pinchThreshold: 8,
-    cooldownMs: 320,
+    quietMs: 150,
     dragCardSetsStep: true,
     dragDepthPerNotch: 0.0006,
   },

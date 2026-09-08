@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createGestureRail } from '@/nav/gesture.ts'
 
-const OPTS = { wheelThreshold: 60, pinchThreshold: 8, cooldownMs: 300 }
+const OPTS = { wheelThreshold: 60, pinchThreshold: 8, quietMs: 150 }
 const wheel = (deltaY: number) => ({ deltaY, ctrlKey: false })
 const pinch = (deltaY: number) => ({ deltaY, ctrlKey: true })
 
@@ -62,14 +62,14 @@ describe('createGestureRail', () => {
     expect(rail.feed(wheel(-70), 200)).toBeNull()
   })
 
-  it('banks nothing during the cooldown, so the tail does not fire the moment it lapses', () => {
+  it('banks nothing behind a spent gesture, however long the tail runs', () => {
     const rail = createGestureRail(OPTS)
     rail.feed(wheel(-70), 0)
     for (let t = 20; t < 300; t += 20) rail.feed(wheel(-70), t)
     expect(rail.feed(wheel(-20), 320)).toBeNull()
   })
 
-  it('fires again for a deliberate second gesture after the cooldown', () => {
+  it('fires again for a deliberate second gesture after the stream goes quiet', () => {
     const rail = createGestureRail(OPTS)
     rail.feed(wheel(-70), 0)
     expect(rail.feed(wheel(-70), 400)).toBe('in')
@@ -79,5 +79,29 @@ describe('createGestureRail', () => {
     const rail = createGestureRail(OPTS)
     expect(rail.feed(wheel(0), 0)).toBeNull()
     expect(rail.feed(wheel(-70), 10)).toBe('in')
+  })
+
+  it('gives a hard flick one rung and no more', () => {
+    const rail = createGestureRail(OPTS)
+    let fired = 0
+    // 50 frames of a decaying throw, which under a time-based cooldown was
+    // worth a rung every time the dead time lapsed.
+    for (let i = 0; i < 50; i++) if (rail.feed(wheel(-120), i * 16)) fired++
+    expect(fired).toBe(1)
+  })
+
+  it('does not let a spent gesture buy a step by reversing', () => {
+    const rail = createGestureRail(OPTS)
+    expect(rail.feed(wheel(-70), 0)).toBe('in')
+    expect(rail.feed(wheel(90), 16)).toBeNull()
+    expect(rail.feed(wheel(90), 32)).toBeNull()
+  })
+
+  it('gives the next flick its own rung once the hand stops', () => {
+    const rail = createGestureRail(OPTS)
+    let fired = 0
+    for (let i = 0; i < 20; i++) if (rail.feed(wheel(-120), i * 16)) fired++
+    for (let i = 0; i < 20; i++) if (rail.feed(wheel(-120), 1000 + i * 16)) fired++
+    expect(fired).toBe(2)
   })
 })

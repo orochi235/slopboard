@@ -1,3 +1,5 @@
+import { createQuietGate } from '@/nav/quiet.ts'
+
 /** Which way a gesture walks the hierarchy. */
 export type Step = 'in' | 'out'
 
@@ -10,29 +12,33 @@ export type RailOptions = {
   wheelThreshold: number
   /** The same for a pinch, whose deltas run an order of magnitude smaller. */
   pinchThreshold: number
-  /** Dead time after a step. Momentum scrolling keeps delivering for most of a
-   *  second, and without this one flick walks the whole hierarchy. */
-  cooldownMs: number
+  /** A gap this long ends a gesture and unlocks the rail. */
+  quietMs: number
 }
 
 /**
- * Turns a stream of wheel samples into discrete rungs. The charge is unsigned
- * and thrown away whenever the direction or the input device changes, so a
- * reversal starts a gesture rather than paying off the last one, and a pinch
- * never inherits a scroll's charge.
+ * Turns a stream of wheel samples into discrete rungs, at most one per
+ * gesture. The charge is unsigned and thrown away whenever the direction or
+ * the input device changes, so a reversal starts a gesture rather than paying
+ * off the last one, and a pinch never inherits a scroll's charge.
  */
 export function createGestureRail(opts: RailOptions) {
   let charge = 0
   let towards: Step | null = null
   let pinching = false
-  let firedAt = Number.NEGATIVE_INFINITY
+  let spent = false
+  const gate = createQuietGate(opts.quietMs)
 
   return {
     feed(sample: WheelSample, now: number): Step | null {
       if (sample.deltaY === 0) return null
-      // Zeroed rather than merely ignored: a tail allowed to bank would fire the
-      // instant the cooldown lapsed, from a gesture the hand had already finished.
-      if (now - firedAt < opts.cooldownMs) {
+      if (gate.feed(now)) {
+        spent = false
+        charge = 0
+      }
+      // Zeroed rather than merely ignored: a tail allowed to bank would fire
+      // the instant the gesture ended, from a throw the hand had finished.
+      if (spent) {
         charge = 0
         return null
       }
@@ -49,7 +55,7 @@ export function createGestureRail(opts: RailOptions) {
       if (charge < threshold) return null
 
       charge = 0
-      firedAt = now
+      spent = true
       return direction
     },
   }
