@@ -194,16 +194,16 @@ The user's instruction is to work all of it, not just the head.
 
 **Then:**
 
-- **The `?` modal still places its seven planes by hand.** The library that
-  replaces that hand-work exists — `delamin8r` at `~/src/delamin8r`, which the
-  context menu already uses — so the modal is now the odd one out rather than
-  the reference. Wrapping it is a deletion, not a port.
 - **The keep set has no cap.** `DESIGN.md` bounds it at twelve so that keeping
   costs something; the menu ships without the bound on purpose, because nothing
   had ever been kept when it was written. Revisit after living with it, and see
   `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.
 - **Kept cards do not move to a band of their own.** The decay freeze is all
   that marks one today. The reserved band is arrangement work.
+
+**The `?` modal is delaminated** (`c01b811`). It declares a `data-dl-lift` per
+layer and nothing else; the rows listing the layers read their Z back off
+`handle.planes`, so the card cannot describe a stack it is no longer in.
 
 **The page-wide sort is built** (`3fe3d64`). Three keys in the band, and the
 sidebar's flag list reads the same one. The design note that sent it there was
