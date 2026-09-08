@@ -264,6 +264,17 @@ never arrives somewhere the eye did not watch it travel. Reachable mostly at the
 wall: once a pile has focus the framing leaves little of its neighbours on
 screen, which is what the arrows and the plan view are for.
 
+**A gesture is separated from its momentum by a gap, not a dead time.** A
+momentum tail keeps delivering for most of a second, so any cooldown lapses
+while the same flick is still arriving and buys a second rung. `nav.quietMs` is
+the silence that ends a gesture. But a gate on gestures is not a gate on rate —
+every notch of a mouse wheel is its own gesture, and brisk notches walked the
+wall as fast as a flick — so `nav.floorMs` sets the least time between rungs,
+and **it has to exceed `quietMs`** or the response goes bimodal across that
+boundary. A pinch skips the gate: fingers on the glass carry no momentum, so
+there is no tail to separate. The lightbox reads the same gate, which is how the
+flick that opened it is stopped from zooming the image it landed on.
+
 **A pinch is a wheel event with `ctrlKey` set.** macOS reports a trackpad pinch
 nowhere else, so the two are one handler at two scales — pinch deltas run an
 order of magnitude smaller, which is why `nav` carries a threshold for each.

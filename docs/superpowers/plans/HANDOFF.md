@@ -88,8 +88,8 @@ Also landed, and worth knowing before touching the same ground:
 
 ### The sidebar, the band and the badges — shipped
 
-All on `main`, unpushed (`main` has no upstream). `git log --oneline fb029be..HEAD`
-is the list, and each message carries the reasoning that is not in the diff.
+All on `main`. `git log --oneline fb029be..HEAD` is the list, and each message
+carries the reasoning that is not in the diff.
 
 **The sidebar** is a translucent column on the right, toggled by `\`, holding
 the flag list, the debug generator and the params controls. It **starts
@@ -148,6 +148,80 @@ Also landed: an axis gizmo under the minimap, off `params.camera.yawDeg` and
 `pitchDeg`; the stack direction set by dragging a card with the wheel button;
 `ago` in `src/age.ts`; `cameraBasis` in `src/camera/basis.ts`.
 
+### The sort, the modal and the pages — shipped
+
+All on `main`, 2026-09-06.
+
+**The `?` modal is delaminated** (`c01b811`). It declares a `data-dl-lift` per
+layer and nothing else; the rows listing the layers read their Z back off
+`handle.planes`, so the card cannot describe a stack it is no longer in.
+
+**The page-wide sort is built** (`3fe3d64`). Three keys in the band, and the
+sidebar's flag list reads the same one. The design note that sent it there was
+wrong: zone order is *not* the insertion order of `byZone` — `createZoneGrid`
+sorts the names it is handed and holds a slot per zone, so it discarded the
+caller's order entirely. It takes that as a mode now, `project` keeping the
+held cells and the other two keys filling cells in the sort's order. See
+`DESIGN.md` under **Ordering the zones**.
+
+The rest of that day (`8c245a2..94c587d`):
+
+- **A zone can be taken from its backdrop.** Right-click a zone's backdrop or
+  label for "Expire the zone (n)"; it arms on the first click and reads "Really
+  — expire n" before the second. Not a `confirm()` — a browser modal blocks the
+  page's event loop. `undoExpiry` now holds the batch an expiry took rather than
+  one artifact, so a zone goes and comes back in one Cmd-Z; a single card is a
+  batch of one, so nothing about the old behaviour moved.
+- **The wall is framed clear of the filter band.** `framePose` gained
+  `insetTop` beside the `insetRight` the sidebar already used — the band is an
+  overlay on the canvas, so the top row of zones used to sit behind it at every
+  zoom.
+
+- **A refresh no longer replays the last day.** The decode-order theory in the
+  old entry was wrong and is recorded as wrong in `8c245a2` — all the image
+  requests go out inside 20ms and land in chance order against the snapshot,
+  so there was no queue to reorder. The fault was that the card quad's
+  `<meshBasicMaterial>` took three's default white, so ~130 white rectangles
+  turned into pictures over ~400ms. An untextured card now takes
+  `colors.cardBlank`, and the wall holds dark until the front of every pile has
+  decoded (`lod.revealHoldMs`, `lod.revealFadeMs`), then fades in assembled.
+- **Alert debug buttons** are in the sidebar's debug section, one per level.
+  They are not a client-side fake: `POST /api/debug/alert/:level` runs the same
+  `alert` an arrival runs. The `raise` arm that launches a browser is
+  unreachable from the button — it lives in the wall, so `clients.size` is
+  never zero at that route.
+
+- **The wall holds HTML pages, not only images.** Built from
+  [`2026-09-06-html-artifacts.md`](2026-09-06-html-artifacts.md), which is
+  ticked through. Headless Chrome shoots a page once at ingest and the shot
+  goes through the picture pipeline, so nothing in the renderer branches on the
+  kind; `/orig` serves the source, so the lightbox runs the page live in an
+  iframe. `--sandbox` rides the sidecar and is the pusher's declaration.
+  `DESIGN.md`'s ingest contract is the reference.
+
+### The wheel throttle and the arrow axis — shipped
+
+Built from [`2026-09-08-wheel-throttle.md`](2026-09-08-wheel-throttle.md),
+ticked through; `git log --oneline 6e87fda..12c7a2a` is the list. Everything
+here and above is pushed — `origin/main` is at `12c7a2a`. One physical gesture
+now buys one rung: the design is in `DESIGN.md` under **One rung per gesture**,
+and `nav.cooldownMs` is gone, replaced by the quiet gate under `src/nav/`
+(`mergeStored` drops the old key on load). Defaults are `quietMs: 90`,
+`floorMs: 320`, measured across flicks, decaying tails and deliberate rolls.
+
+Worth knowing before touching it again:
+
+- **`nav.quietMs` is floored at 40 in the slider**, not 0. At 0 every event
+  reads as a fresh gesture and zeroes the charge before a trackpad stream can
+  reach the threshold, so the wall was unnavigable at the low end of its own
+  control.
+- **An arrow now has to lie within 45 degrees of the axis it was sent along.** A
+  zone's cell is the union of its pile's drawn cards, so a five-card pile is a
+  different size from a three-card one and the rows miss each other by about a
+  hundredth of the wall. Any drift at all counted as being in a direction, so
+  from the bottom-left zone, left went to the zone *above* it — and left, then
+  back right, skipped the zone you started on.
+
 ### Decisions made in conversation, in nobody's diff
 
 - **The wall's third dimension comes from the camera, not from a modifier.** A
@@ -200,53 +274,6 @@ The user's instruction is to work all of it, not just the head.
   `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.
 - **Kept cards do not move to a band of their own.** The decay freeze is all
   that marks one today. The reserved band is arrangement work.
-
-**The `?` modal is delaminated** (`c01b811`). It declares a `data-dl-lift` per
-layer and nothing else; the rows listing the layers read their Z back off
-`handle.planes`, so the card cannot describe a stack it is no longer in.
-
-**The page-wide sort is built** (`3fe3d64`). Three keys in the band, and the
-sidebar's flag list reads the same one. The design note that sent it there was
-wrong: zone order is *not* the insertion order of `byZone` — `createZoneGrid`
-sorts the names it is handed and holds a slot per zone, so it discarded the
-caller's order entirely. It takes that as a mode now, `project` keeping the
-held cells and the other two keys filling cells in the sort's order. See
-`DESIGN.md` under **Ordering the zones**.
-
-**Done since this list was written** (2026-09-06, `8c245a2..94c587d`):
-
-- **A zone can be taken from its backdrop.** Right-click a zone's backdrop or
-  label for "Expire the zone (n)"; it arms on the first click and reads "Really
-  — expire n" before the second. Not a `confirm()` — a browser modal blocks the
-  page's event loop. `undoExpiry` now holds the batch an expiry took rather than
-  one artifact, so a zone goes and comes back in one Cmd-Z; a single card is a
-  batch of one, so nothing about the old behaviour moved.
-- **The wall is framed clear of the filter band.** `framePose` gained
-  `insetTop` beside the `insetRight` the sidebar already used — the band is an
-  overlay on the canvas, so the top row of zones used to sit behind it at every
-  zoom.
-
-- **A refresh no longer replays the last day.** The decode-order theory in the
-  old entry was wrong and is recorded as wrong in `8c245a2` — all the image
-  requests go out inside 20ms and land in chance order against the snapshot,
-  so there was no queue to reorder. The fault was that the card quad's
-  `<meshBasicMaterial>` took three's default white, so ~130 white rectangles
-  turned into pictures over ~400ms. An untextured card now takes
-  `colors.cardBlank`, and the wall holds dark until the front of every pile has
-  decoded (`lod.revealHoldMs`, `lod.revealFadeMs`), then fades in assembled.
-- **Alert debug buttons** are in the sidebar's debug section, one per level.
-  They are not a client-side fake: `POST /api/debug/alert/:level` runs the same
-  `alert` an arrival runs. The `raise` arm that launches a browser is
-  unreachable from the button — it lives in the wall, so `clients.size` is
-  never zero at that route.
-
-- **The wall holds HTML pages, not only images.** Built from
-  [`2026-09-06-html-artifacts.md`](2026-09-06-html-artifacts.md), which is
-  ticked through. Headless Chrome shoots a page once at ingest and the shot
-  goes through the picture pipeline, so nothing in the renderer branches on the
-  kind; `/orig` serves the source, so the lightbox runs the page live in an
-  iframe. `--sandbox` rides the sidecar and is the pusher's declaration.
-  `DESIGN.md`'s ingest contract is the reference.
 
 **Independent of all of the above:**
 
