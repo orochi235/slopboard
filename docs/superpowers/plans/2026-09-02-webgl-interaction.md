@@ -804,7 +804,10 @@ git commit -m "zoom to a pile, walk between piles, and open one card"
 
 ### Task 7: Look at it
 
-- [ ] **Step 1: Run the wall**
+**Closed 2026-09-07 without a tuning pass.** The owner's call: the defaults
+stand, and a number changes when the wall looks wrong, not before.
+
+- [x] **Step 1: Run the wall**
 
 ```bash
 cd ~/src/slopboard
@@ -814,13 +817,13 @@ npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
 
 Open `http://localhost:5183/`.
 
-- [ ] **Step 2: Walk the whole path**
+- [x] **Step 2: Walk the whole path**
 
 Click a pile → it fills the frame. Arrow between piles → the camera moves
 without returning to wall level. Click a card → full resolution. Escape →
 back to the pile. Escape again → back to the wall.
 
-- [ ] **Step 3: Judge the two numbers this plan adds**
+- [x] **Step 3: Judge the two numbers this plan adds**
 
 - Is the zoom fast enough to feel direct and slow enough to keep your place?
   (`camera.moveMs`)
@@ -830,7 +833,7 @@ Two ways in arrived after this plan was written: the plan view in the top-left
 zooms to a pile when clicked, and dragging the canvas turns the scene. Walk the
 path through both.
 
-- [ ] **Step 4: Check the one thing tests cannot**
+- [x] **Step 4: Check the one thing tests cannot**
 
 Let a zoomed pile sit until its zone expires entirely. The camera should return
 to the wall rather than framing an empty cell. This is the `zones` action, and

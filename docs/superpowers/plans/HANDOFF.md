@@ -6,9 +6,9 @@ the traps that cost time.
 
 ## Done
 
-Plans 1, 2 and 3 are implemented and on `main` in both repos, except the two
-**eyes-only tuning tasks** — the last task of each plan. Those are deliberately
-still unticked, because their deliverable is a judgment.
+Plans 1, 2 and 3 are implemented and on `main` in both repos. The two
+**eyes-only tuning tasks** at the end of the renderer and interaction plans are
+closed unrun: the defaults stand until the wall looks wrong.
 
 - windease `main`: `Rect.z` (required), `LayoutResult.channels`, both wired
   through `ContainerHost` and the presets.
@@ -269,9 +269,10 @@ The user's instruction is to work all of it, not just the head.
   thumbnails.
 - **"also tomorrow"** — an unresolved fragment of a message. Ask before acting.
 
-### Judgment calls waiting on the wall
+### Known-unjudged, deliberately
 
-Every number here is a slider, so a bad answer is a drag, not a code change.
+Nobody has looked at these and nobody needs to. They are here so a later
+surprise is recognized rather than debugged.
 
 - **Pulse is off** — `attention.pulse` is a master gain at 0. Rate climbs with
   level underneath it; nobody has watched it move.
@@ -355,11 +356,13 @@ diverge. Adopting it means re-tuning `side` once and re-reading what the `lod`
 tiers mean, since rank-to-edge was calibrated against a card of stable size. It
 leaves `step.z` absolute, so a deep pile still trails past its cell either way.
 
-## Do this first
+## Running it
 
-Run the wall and answer the questions in
-[the renderer plan's Task 10](2026-09-02-webgl-renderer.md) and
-[the interaction plan's Task 7](2026-09-02-webgl-interaction.md):
+**The tuning is not a gate.** The renderer plan's Task 10 and the interaction
+plan's Task 7 are closed: the defaults stand, and a number gets changed when
+something on the wall looks wrong, not before. Same for `nav`, the hatch and
+`sky` — never judged, and that is fine. Do not hand any of it back as a
+question.
 
 ```bash
 cd ~/src/slopboard && bin/wall stat   # it is already up under launchd
@@ -367,15 +370,9 @@ npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
 open 'http://localhost:5183/'
 ```
 
-Every question there is a control in the `params` panel, so a bad answer is a
-drag and not a code change. When the numbers settle, write them into
-`src/params.ts` — or copy the whole tuned set to the clipboard from the panel,
-which pastes straight into that file.
-
-More has arrived unlooked-at than those two tasks ask about: the gesture rail's
-two thresholds and its cooldown (`nav`), the hatch backdrop's spacing, width
-and angle, and every `sky` knob. All are guesses that have never been judged
-against a moving wall.
+Every number is a control in the `params` panel, so a bad one is a drag and not
+a code change. If a set settles, copy it to the clipboard from the panel and
+paste it into `src/params.ts`.
 
 **Both halves belong to launchd now, not to a session.** `wall stat` says what
 launchd thinks and whether the daemon answers; `wall cycle` restarts both. To

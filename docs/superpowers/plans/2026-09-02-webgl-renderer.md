@@ -1312,10 +1312,13 @@ git commit -m "edit every stack parameter live"
 
 ### Task 10: Look at it
 
+**Closed 2026-09-07 without a tuning pass.** The owner's call: the defaults
+stand, and a number changes when the wall looks wrong, not before.
+
 The deliverable. Everything above is arithmetic; this is the question the
 project exists to answer, and it is the owner's to answer.
 
-- [ ] **Step 1: Run the wall with synthetic traffic**
+- [x] **Step 1: Run the wall with synthetic traffic**
 
 ```bash
 cd ~/src/slopboard
@@ -1325,7 +1328,7 @@ npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
 
 Open `http://localhost:5183/`.
 
-- [ ] **Step 2: Judge these, and write the answers into `params.ts`**
+- [x] **Step 2: Judge these, and write the answers into `params.ts`**
 
 Every one is a control in the panel on the wall, so a bad answer is a drag and
 not a code change. Open `params` at the top right.
@@ -1349,7 +1352,7 @@ not a code change. Open `params` at the top right.
 `overlay.zones` and `overlay.labels` draw each zone's extent and name into the
 scene, which is the fastest way to see whether a pile has outgrown its cell.
 
-- [ ] **Step 3: Record what the DOM wall could not tell you**
+- [x] **Step 3: Record what the DOM wall could not tell you**
 
 Append the answers to `DESIGN.md` under Arrangements. `DESIGN.md` currently
 carries the receding-wall concept as a *candidate*; this is the evidence that
