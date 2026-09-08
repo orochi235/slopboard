@@ -1,23 +1,22 @@
 # Throttling the wheel
 
-**Unbuilt.** For whoever implements it, or wonders later why the rail is shaped
-this way. It says why one scroll can currently carry you from the top-level view
-to full magnification inside an image, and what replaces the cooldown that was
-supposed to stop it.
+For whoever wonders later why the rail is shaped this way. It says why one
+scroll used to carry you from the top-level view to full magnification inside
+an image, and what replaced the cooldown that was supposed to stop it.
 
 ## The hole
 
-Two wheel mechanisms sit end to end and neither one ends the gesture.
+Two wheel mechanisms sat end to end and neither one ended the gesture.
 
-`createGestureRail` charges 60px per rung and then holds a 320ms dead time that
-zeroes charge. The dead time does not outlive a momentum tail. Once it lapses,
-a still-decaying flick re-accumulates 60px within a couple of frames and fires
-again, so a hard throw is good for several more rungs at 320ms apart. Any fixed
-duration loses this race — the tail is longer than a number anyone would pick
-for the pause between two deliberate pushes.
+`createGestureRail` charged 60px per rung and then held a 320ms dead time that
+zeroed charge. The dead time did not outlive a momentum tail. Once it lapsed,
+a still-decaying flick re-accumulated 60px within a couple of frames and fired
+again, so a hard throw was good for several more rungs at 320ms apart. Any
+fixed duration loses this race — the tail is longer than a number anyone would
+pick for the pause between two deliberate pushes.
 
-The lightbox has no rail at all. `ImageLightbox` calls `zoomByWheel` on every
-event it receives, and starts receiving them as soon as the port takes focus on
+The lightbox had no rail at all. `ImageLightbox` called `zoomByWheel` on every
+event it received, and started receiving them as soon as the port took focus on
 image load. Around 1800px of travel crosses fit to `MAX_SCALE`, which is inside
 one flick.
 
