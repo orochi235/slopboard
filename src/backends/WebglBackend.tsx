@@ -1529,7 +1529,14 @@ export function WebglBackend(props: Props) {
           }}
         />
       )}
-      {lit && <Lightbox item={lit} now={now} onClose={() => dispatch({ type: 'out' })} />}
+      {lit && (
+        <Lightbox
+          item={lit}
+          now={now}
+          quietMs={props.params.nav.quietMs}
+          onClose={() => dispatch({ type: 'out' })}
+        />
+      )}
     </>
   )
 }

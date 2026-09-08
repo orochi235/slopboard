@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
 import { metaOf } from '@/lightbox-meta.ts'
+import { createQuietGate } from '@/nav/quiet.ts'
 import { sandboxFor } from '@/lightbox-sandbox.ts'
 import {
   fitView,
@@ -33,10 +34,12 @@ const DRAG_SLOP_PX = 4
 function ImageLightbox({
   item,
   now,
+  quietMs,
   onClose,
 }: {
   item: WallItem
   now: number
+  quietMs: number
   onClose: () => void
 }) {
   const [loaded, setLoaded] = useState(false)
@@ -51,6 +54,9 @@ function ImageLightbox({
    *  handler, which has to know whether the image was fitted before it moved. */
   const size = useRef<Size>(portOf())
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  /** False until the wheel stream has gone quiet once. The flick that opened
+   *  this image is still arriving, and it has already been paid for. */
+  const armed = useRef(false)
 
   // The id changes when the viewer moves between images without closing. The
   // view goes back to fit with it: paging a pile is no way to land inside the
@@ -69,16 +75,24 @@ function ImageLightbox({
   useEffect(() => {
     const el = port.current
     if (!el) return
+    // `timeStamp` on a wheel event and `performance.now()` share the document's
+    // time origin, so the mount time is a gap the tail cannot open.
+    const gate = createQuietGate(quietMs, performance.now())
     const onWheel = (e: WheelEvent) => {
       if (!el.contains(document.activeElement)) return
       e.preventDefault()
+      // Swallowed even while disarmed: left to propagate, the tail reaches the
+      // wall's window listener and steps a rung back out from under the image
+      // that just opened.
       e.stopPropagation()
+      if (gate.feed(e.timeStamp)) armed.current = true
+      if (!armed.current) return
       setEased(false)
       setView((v) => zoomByWheel(v, e.deltaY, { x: e.clientX, y: e.clientY }, image, size.current))
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [image])
+  }, [image, quietMs])
 
   // The window is the viewport, so its size is half of every sum here. An image
   // that was fitted stays fitted; one that was zoomed keeps its scale and is
@@ -315,6 +329,16 @@ function PageLightbox({
  * image to a page unmounts one and mounts the other — which is also what stops
  * an iframe surviving a move to the next artifact.
  */
-export function Lightbox(props: { item: WallItem; now: number; onClose: () => void }) {
-  return props.item.kind === 'page' ? <PageLightbox {...props} /> : <ImageLightbox {...props} />
+export function Lightbox(props: {
+  item: WallItem
+  now: number
+  quietMs: number
+  onClose: () => void
+}) {
+  const { quietMs, ...rest } = props
+  return rest.item.kind === 'page' ? (
+    <PageLightbox {...rest} />
+  ) : (
+    <ImageLightbox {...rest} quietMs={quietMs} />
+  )
 }
