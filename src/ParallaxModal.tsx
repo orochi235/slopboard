@@ -1,21 +1,27 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import type { PointerEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useDelaminate } from 'delamin8r/react'
 import './parallax-modal.css'
 
-const EASE = 0.09
-const REDUCED = '(prefers-reduced-motion: reduce)'
+/** The card's parts, back to front. The number is `data-dl-lift`: steps clear
+ *  of the plane its siblings tie on, which is the whole of what this file says
+ *  about depth — delamin8r turns it into Z, and the rows below read the Z it
+ *  arrived at rather than repeating a number written here. */
+const LAYERS = [
+  'starfield',
+  'glow',
+  'wordmark',
+  'plate',
+  'body',
+  'crest',
+  'chip',
+] as const
 
-const LAYERS: ReadonlyArray<readonly [string, string]> = [
-  ['starfield', '-260'],
-  ['glow', '-180'],
-  ['wordmark', '-110'],
-  ['plate', '-30'],
-  ['body', '+10'],
-  ['crest', '+70'],
-  ['chip', '+110'],
-]
+/** Where the container's own plane falls in the stack. Four of the seven sit
+ *  behind it, which is what makes the starfield read as sky rather than as
+ *  another sheet on the pile. */
+const ORIGIN = 0.7
 
-const clamp = (n: number) => (n < -1 ? -1 : n > 1 ? 1 : n)
+const signed = (z: number) => `${z < 0 ? '−' : '+'}${Math.abs(Math.round(z))}`
 
 /**
  * A card whose parts sit on real Z planes inside one perspective, so pointer
@@ -23,10 +29,20 @@ const clamp = (n: number) => (n < -1 ? -1 : n > 1 ? 1 : n)
  */
 export function ParallaxModal() {
   const [open, setOpen] = useState(false)
-  const stage = useRef<HTMLDivElement>(null)
-  const deck = useRef<HTMLDivElement>(null)
-  const target = useRef({ x: 0, y: 0, mx: 50, my: 50 })
-  const centre = useRef({ x: 0, y: 0, w: 1, h: 1 })
+  const { ref, handle } = useDelaminate<HTMLDivElement>({
+    mode: 'tilt',
+    origin: ORIGIN,
+    // Wider than the spacing delamin8r derives from a card this size. The
+    // starfield has to read as sky rather than as the next sheet down, and
+    // that is a distance rather than a color.
+    step: 53,
+    // The whole overlay is the card's field: the pointer crossing the scrim is
+    // still aimed at the card, so it keeps driving rather than recentering.
+    recenterOnLeave: false,
+    // The seven layers and the body's own rows. Deeper than that is the leader
+    // dots, which have nothing to gain from a plane of their own.
+    maxDepth: 3,
+  })
 
   const close = useCallback(() => setOpen(false), [])
 
@@ -49,85 +65,41 @@ export function ParallaxModal() {
     return () => window.removeEventListener('keydown', onKey, true)
   }, [open, close])
 
-  // The deck's own rect is the rotated bounding box, so reading it per frame
-  // would feed the tilt back into itself. Measure the upright stage instead.
-  useEffect(() => {
-    if (!open) return
-    const measure = () => {
-      const r = stage.current?.getBoundingClientRect()
-      if (!r) return
-      centre.current = { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }
+  // What the layers actually landed on, read back off the planes. The card
+  // describes itself, so a change to the depth rules cannot leave it lying.
+  const depths = useMemo(() => {
+    const out = new Map<string, number>()
+    for (const plane of handle?.planes ?? []) {
+      const name = plane.el.dataset.layer
+      if (name) out.set(name, plane.z)
     }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const el = deck.current
-    if (!el) return
-    if (window.matchMedia(REDUCED).matches) return
-    let x = 0
-    let y = 0
-    let mx = 50
-    let my = 50
-    let id = 0
-    const tick = () => {
-      const t = target.current
-      x += (t.x - x) * EASE
-      y += (t.y - y) * EASE
-      mx += (t.mx - mx) * EASE
-      my += (t.my - my) * EASE
-      el.style.setProperty('--px', x.toFixed(4))
-      el.style.setProperty('--py', y.toFixed(4))
-      el.style.setProperty('--mx', `${mx.toFixed(2)}%`)
-      el.style.setProperty('--my', `${my.toFixed(2)}%`)
-      id = requestAnimationFrame(tick)
-    }
-    id = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(id)
-  }, [open])
-
-  const onPointerMove = (e: PointerEvent) => {
-    const c = centre.current
-    target.current = {
-      x: clamp((e.clientX - c.x) / c.w),
-      y: clamp((e.clientY - c.y) / c.h),
-      mx: ((e.clientX - c.x) / c.w) * 100 + 50,
-      my: ((e.clientY - c.y) / c.h) * 100 + 50,
-    }
-  }
+    return out
+  }, [handle])
 
   if (!open) return null
 
   return (
-    <div
-      className="pxm"
-      role="dialog"
-      aria-modal="true"
-      aria-label="About slopboard"
-      onPointerMove={onPointerMove}
-      onClick={close}
-    >
-      <div className="pxm__stage" ref={stage}>
-        <div className="pxm__deck" ref={deck} onClick={(e) => e.stopPropagation()}>
-          <div className="pxm__layer pxm__starfield" aria-hidden="true" />
-          <div className="pxm__layer pxm__glow" aria-hidden="true" />
-          <div className="pxm__layer pxm__wordmark" aria-hidden="true">
+    <div className="pxm" role="dialog" aria-modal="true" aria-label="About slopboard" onClick={close}>
+      {/* Every class in here is static: delamin8r writes `dl-plane` onto these
+          same elements, and React setting `className` would strip it. */}
+      <div className="pxm__stage" ref={ref}>
+        <div className="pxm__deck" onClick={(e) => e.stopPropagation()}>
+          <div className="pxm__layer pxm__starfield" data-layer="starfield" data-dl-lift="0" aria-hidden="true" />
+          <div className="pxm__layer pxm__glow" data-layer="glow" data-dl-lift="1" aria-hidden="true" />
+          <div className="pxm__layer pxm__wordmark" data-layer="wordmark" data-dl-lift="2" aria-hidden="true">
             SLOP
           </div>
-          <div className="pxm__layer pxm__plate" aria-hidden="true" />
-          <div className="pxm__layer pxm__body">
+          <div className="pxm__layer pxm__plate" data-layer="plate" data-dl-lift="3" aria-hidden="true" />
+          <div className="pxm__layer pxm__body" data-layer="body" data-dl-lift="4">
             <p className="pxm__lede">
               Images land here and start dying. Nothing on the wall is archival — a render survives
               its time-to-live or it is rescued, and the pile forgets it either way.
             </p>
             <dl className="pxm__specs">
-              {LAYERS.map(([name, z]) => (
+              {LAYERS.map((name) => (
                 <div className="pxm__spec" key={name}>
                   <dt className="pxm__specName">{name}</dt>
-                  <dd className="pxm__specZ">{z}</dd>
+                  <dd className="pxm__specZ">{depths.has(name) ? signed(depths.get(name) ?? 0) : '·'}</dd>
                 </div>
               ))}
             </dl>
@@ -136,11 +108,11 @@ export function ParallaxModal() {
               <span className="pxm__keys">esc</span>
             </p>
           </div>
-          <div className="pxm__layer pxm__crest">
+          <div className="pxm__layer pxm__crest" data-layer="crest" data-dl-lift="5">
             <h2 className="pxm__title">SLOPBOARD</h2>
             <p className="pxm__sub">ephemeral render wall</p>
           </div>
-          <div className="pxm__layer pxm__chip">
+          <div className="pxm__layer pxm__chip" data-layer="chip" data-dl-lift="6">
             <span className="pxm__badge">z-stack</span>
             <button type="button" className="pxm__close" onClick={close} aria-label="Close">
               ×

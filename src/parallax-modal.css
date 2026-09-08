@@ -14,40 +14,25 @@
   animation: pxm-scrim 260ms ease-out both;
 }
 
+/* The perspective, the rotation and every plane's Z are delamin8r's, off the
+   `data-dl-lift` each layer declares. What stays here is what the layers look
+   like. */
 .pxm__stage {
   width: min(640px, 88vw);
-  perspective: 900px;
-  perspective-origin: 50% 50%;
   animation: pxm-rise 420ms cubic-bezier(0.16, 0.84, 0.3, 1) both;
 }
 
 .pxm__deck {
-  --px: 0;
-  --py: 0;
-  --mx: 50%;
-  --my: 50%;
   position: relative;
-  transform-style: preserve-3d;
-  transform: rotateX(calc(var(--py) * -9deg)) rotateY(calc(var(--px) * 13deg))
-    translate3d(calc(var(--px) * -7px), calc(var(--py) * -7px), 0);
 }
 
-/* Every plane is placed by the same rule: a Z offset that the deck's rotation
-   turns into parallax, plus a drift that widens the spread past what the
-   rotation alone gives. */
 .pxm__layer {
-  --depth: 0px;
-  --drift: 0px;
   position: absolute;
   inset: 0;
-  transform-style: preserve-3d;
-  transform: translate3d(calc(var(--px) * var(--drift)), calc(var(--py) * var(--drift)), var(--depth));
   pointer-events: none;
 }
 
 .pxm__starfield {
-  --depth: -260px;
-  --drift: -26px;
   inset: -90px -120px;
   border-radius: 20px;
   background-image:
@@ -63,8 +48,6 @@
 }
 
 .pxm__glow {
-  --depth: -180px;
-  --drift: -16px;
   inset: -140px;
   background:
     radial-gradient(circle at 26% 28%, color-mix(in srgb, var(--accent) 42%, transparent) 0%, transparent 46%),
@@ -73,8 +56,6 @@
 }
 
 .pxm__wordmark {
-  --depth: -110px;
-  --drift: -10px;
   inset: auto -70px -66px auto;
   font: 600 132px/0.8 'Orbitron', ui-monospace, monospace;
   letter-spacing: 0.06em;
@@ -84,14 +65,13 @@
 }
 
 .pxm__plate {
-  --depth: -30px;
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--muted) 34%, transparent);
   /* The sheen tracks the pointer over an otherwise flat surface, which is what
      sells the plate as a physical sheet rather than a rectangle. */
   background:
     radial-gradient(
-      420px circle at var(--mx) var(--my),
+      420px circle at var(--dl-mx) var(--dl-my),
       color-mix(in srgb, var(--accent) 16%, transparent) 0%,
       transparent 70%
     ),
@@ -127,8 +107,6 @@
 }
 
 .pxm__body {
-  --depth: 1px;
-  --drift: 3px;
   position: relative;
   pointer-events: auto;
   padding: 104px 36px 30px;
@@ -206,8 +184,6 @@
 }
 
 .pxm__crest {
-  --depth: 7px;
-  --drift: 12px;
   inset: 46px auto auto 40px;
 }
 
@@ -230,8 +206,6 @@
 }
 
 .pxm__chip {
-  --depth: 11px;
-  --drift: 20px;
   inset: 40px 44px auto auto;
   display: flex;
   align-items: center;
@@ -280,15 +254,11 @@
   }
 }
 
-/* The Z offsets stay — they are the layout, not the motion. What goes is the
-   pointer response and the entrance. */
+/* delamin8r drops the pointer response and keeps the Z offsets, which are the
+   layout. The entrance is this file's, so it goes here. */
 @media (prefers-reduced-motion: reduce) {
   .pxm,
   .pxm__stage {
     animation: none;
-  }
-
-  .pxm__deck {
-    transform: none;
   }
 }
