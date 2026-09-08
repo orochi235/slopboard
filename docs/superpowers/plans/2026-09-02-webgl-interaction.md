@@ -808,11 +808,11 @@ git commit -m "zoom to a pile, walk between piles, and open one card"
 
 ```bash
 cd ~/src/slopboard
-npm run dev &
+bin/wall stat   # both halves run under launchd
 npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
 ```
 
-Open `http://localhost:5173/?backend=webgl`.
+Open `http://localhost:5183/`.
 
 - [ ] **Step 2: Walk the whole path**
 

@@ -1319,11 +1319,11 @@ project exists to answer, and it is the owner's to answer.
 
 ```bash
 cd ~/src/slopboard
-npm run dev &
+bin/wall stat   # both halves run under launchd
 npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
 ```
 
-Open `http://localhost:5173/?backend=webgl`.
+Open `http://localhost:5183/`.
 
 - [ ] **Step 2: Judge these, and write the answers into `params.ts`**
 

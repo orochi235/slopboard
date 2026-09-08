@@ -40,6 +40,16 @@ backdrop sits on its border instead of behind its pile; and `zoneGrid.padding`
 is retired. `git log --oneline` from `6fc3f8e` covers the lot, and each commit
 message carries the reasoning that is not in the diff.
 
+Landed 2026-09-07, all on `main`: **the wall runs under launchd**. `bin/wall`
+writes an agent per half — the daemon on 8787, the client on 5183 — so the wall
+comes up at login, comes back after a crash, and no longer dies with the
+terminal that started it; the menu bar can Cycle, Start and Stop it. That
+daemon runs `tsx` without `watch`, because a file save must not drop what is on
+screen, so a server edit takes through `wall cycle`. Also: `reticul8r`'s rename
+to `delamin8r` followed through every specifier here (the wall failed to load at
+all until it did, and the CSS prefix moved `rz-` to `dl-`); the client binds
+`::` so both loopbacks answer; and the lightbox centers with `place-content`.
+
 Read `DESIGN.md` under **The stack's camera** before touching the camera or the
 arrangement. It carries the one thing that is not visible in the code: a pile
 is a volume — deeper than the whole wall is tall at 29 cards — and every box
@@ -131,7 +141,7 @@ Release, Dismiss the flag, Copy path, Expire now, and Undo last expiry (also
 Cmd-Z). Keeping writes `kept` to the sidecar, so it survives a restart, and
 freezes the card's decay where it stood; expiry is undoable one deep and comes
 back with a fresh `bornAt`, since its old one is already past its TTL. The
-menu is a `reticul8r` parallax window in `window` mode — see the spec for why
+menu is a `delamin8r` parallax window in `window` mode — see the spec for why
 not `tilt`, and for the CSS that silently flattens it.
 
 Also landed: an axis gizmo under the minimap, off `params.camera.yawDeg` and
@@ -162,6 +172,12 @@ Also landed: an axis gizmo under the minimap, off `params.camera.yawDeg` and
   with correct geometry and fully transparent paint, which looks like a
   component that failed to mount. The bridge for the slider is written out in
   `src/topbar.css`, scoped to the band.
+- **The wall does not wear weasel's themes** (2026-09-07). Neither the DOM
+  chrome nor the scene follows them; slopboard keeps its cyan, and
+  `params.colors` stays the only thing that sets the wall's palette.
+  `spike/weasel-theme` is deleted — `8062c3a` in the reflog is the spike, and
+  the only place `@weasel-js/theme` was ever installed. Weasel's *components* stay — the filter band's `RangeSlider` is
+  `@weasel-js/ui`, painted through the `--wzl-*` bridge in `src/topbar.css`.
 - **A stored tuning outranks a changed default, forever.** `mergeStored` lays
   the stored blob over the defaults, so changing a default in `params.ts` does
   not reach anyone who has ever touched that control. Say so when handing over
@@ -185,7 +201,7 @@ The user's instruction is to work all of it, not just the head.
 **Then:**
 
 - **The `?` modal still places its seven planes by hand.** The library that
-  replaces that hand-work exists — `reticul8r` at `~/src/reticul8r`, which the
+  replaces that hand-work exists — `delamin8r` at `~/src/delamin8r`, which the
   context menu already uses — so the modal is now the odd one out rather than
   the reference. Wrapping it is a deletion, not a port.
 - **The keep set has no cap.** `DESIGN.md` bounds it at twelve so that keeping
@@ -286,16 +302,17 @@ Every number here is a slider, so a bad answer is a drag, not a code change.
   resolves answers **200 from the browser's own cache** and hides everything.
   Every probe needs `cache: 'no-store'`. This produced two wrong conclusions in
   a row before it was caught.
-- **Editing anything under `shared/` or `server/` restarts the daemon**, because
-  `tsx watch` follows imports. Confirm with the worker pid
-  (`pgrep -f preflight.cjs`), not the supervisor's, which never changes.
+- **The wall's daemon does not watch.** Under launchd it runs `tsx` without
+  `watch`, so a server edit reaches the wall only through `wall cycle`. A
+  daemon you start yourself with `npm run dev` does watch — editing anything
+  under `shared/` or `server/` restarts it, and the worker pid
+  (`pgrep -f preflight.cjs`) is how you confirm that, not the supervisor's,
+  which never changes.
 - **The devtools browser is a different profile from the user's.** Its
   `localStorage` params are not theirs; state read there says nothing about what
   they see. Chasing that wasted a round of colour "bugs" that were never real.
 - **Every open copy of the wall costs a core**, so leaving a driven browser on
   the page is not free.
-
-### One loose thread in the inbox
 
 ### Stats in the bottom-left corner
 
@@ -319,33 +336,6 @@ but repainting the DOM at about 4Hz, since text layout at 60Hz costs more than
 the readout is worth; FPS as a rolling average, not an instantaneous
 reciprocal; behind `overlay.stats`. It is lab chrome, so it is the first thing
 the `?lab` decision below should retire.
-
-### Wear weasel's themes — the decision is yours
-
-**Should the wall's own furniture go violet?** Weasel's accent is a midnight
-violet where slopboard's is cyan, so a scene that follows the theme repaints
-every card outline, every zone label and the sky. Following it in the DOM chrome
-only changes almost nothing you can see, because the panel's hand-picked darks
-already sit within a hair of weasel's. So "does the scene follow the theme" is
-not a side question about a bridge — it is the whole question.
-
-Both options were rendered to the wall as `theme-options`, A above B, and the
-branch `spike/weasel-theme` is **parked on purpose**: `?theme=weasel` is A,
-`?theme=weasel-scene` is B, and it is the only place `@weasel-js/theme` is
-installed. Its mapping of token to palette entry is one plausible reading, not
-a design.
-
-What the spike settled: `resolveTheme(theme, mode)` is pure, DOM-free, and hands
-back a concrete `#hex` per token, so the scene needs no `getComputedStyle` and
-no CSS parse. `@weasel-js/theme/react` publishes the same record as
-`useTheme().resolved`, for precisely this case. The bridge is not the work.
-
-Two things the ask did not know. `tokens.css` also sets `:root { font-family:
-Oswald; font-weight: 300 }`, so importing it re-types the whole wall and not
-only its colours. And a second fork waits behind the first: whether a theme
-**replaces** `params.colors` or only **seeds** it. `mergeStored` lays a stored
-tuning over the defaults, so a theme that merely seeds them is outranked forever
-by any entry the panel has ever touched, and a mode flip never reaches it.
 
 ### Make the page a lab
 
@@ -372,7 +362,7 @@ Run the wall and answer the questions in
 [the interaction plan's Task 7](2026-09-02-webgl-interaction.md):
 
 ```bash
-cd ~/src/slopboard && npm run dev
+cd ~/src/slopboard && bin/wall stat   # it is already up under launchd
 npm run sim -- --rate=2400 --zones=alpha,beta,gamma,delta,epsilon,zeta
 open 'http://localhost:5183/'
 ```
@@ -387,20 +377,12 @@ two thresholds and its cooldown (`nav`), the hatch backdrop's spacing, width
 and angle, and every `sky` knob. All are guesses that have never been judged
 against a moving wall.
 
-**The client on 5183 was owned by the session that wrote this handoff and dies
-with it.** If the wall's page does not answer, run `npm run dev:client`; the
-daemon on 8787 is independent and keeps running. Restart vite after any
-`npm install`, and clear `node_modules/.vite` — a dependency added under a
+**Both halves belong to launchd now, not to a session.** `wall stat` says what
+launchd thinks and whether the daemon answers; `wall cycle` restarts both. To
+drive the page from a session instead — for a vite that reloads on edit —
+`npm run dev:client` serves it against the running daemon. Restart vite after
+any `npm install`, and clear `node_modules/.vite`: a dependency added under a
 running vite serves 504 "Outdated Optimize Dep" until it is re-optimized.
-
-**Historical, and still true of the daemon:** A memory
-squeeze killed vite one morning while the daemon rode it out, so the client was
-restarted by hand from a session rather than by the original `npm run dev` —
-`concurrently` is still running its daemon leg alone. Expect the wall's page to
-go dark whenever whichever session started vite exits, while the daemon keeps
-ingesting. `npm run dev:client` brings the page back on its own; a full
-`npm run dev` also works, because the daemon leg finds 8787 taken, attaches and
-exits 0.
 
 To run against a daemon other than the one serving the real wall, set
 `SLOP_ROOT` and `SLOP_PORT` on both the daemon and the client — `vite.config.ts`
@@ -441,10 +423,11 @@ and its cards show up on the real wall for a TTL.
   over its params and resets its rank allocators, so keying the memo on the
   whole object reshuffles every pile on every frame of a camera drag. It is
   keyed on the layout half alone.
-- **`pkill -f 'tsx watch server'` kills the real wall's daemon, not just yours** —
-  and killing the daemon child takes `concurrently` and vite down with it. A
-  taken 8787 is now handled: the daemon attaches to a live one and exits 0, so
-  a second `npm run dev` gives you a client against the running daemon.
+- **`pkill -f 'tsx watch server'` no longer finds the real wall's daemon**, and
+  a signal does not stop it either: launchd's `KeepAlive` has it back within
+  seconds. `wall down` and `wall cycle` are the way. A taken 8787 is handled —
+  a `npm run dev` daemon attaches to the live one and exits 0, so you get a
+  client against the running wall.
 - **`bin/slop` renames every file to a UUID**, so the filename cannot carry a
   caption — and expiry renames it again to `<id>-<zone>`, without even an
   extension. Captions and provenance now travel in a `<image>.slop.json`
