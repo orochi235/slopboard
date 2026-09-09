@@ -15,10 +15,30 @@
   --wzl-surface-sunken: color-mix(in srgb, var(--ink) 22%, transparent);
   --wzl-border: color-mix(in srgb, var(--muted) 40%, transparent);
   --wzl-border-strong: var(--muted);
-  --wzl-slider-thumb-tint: var(--accent);
+  /* Percentages, not colors: both are the second argument of a `color-mix`
+     against `--wzl-accent`. A color here invalidates the whole expression and
+     the part goes unpainted. */
+  --wzl-slider-track-tint: 30%;
+  --wzl-slider-thumb-tint: 100%;
+  /* No fallback in the range's own CSS, so unset is a track and thumb of no
+     height at all rather than a default size. */
+  --wzl-slider-track-h: 4px;
+  --wzl-slider-thumb-size: 11px;
+  --wzl-fg-subtle: color-mix(in srgb, var(--muted) 80%, transparent);
+  /* Wide enough for a four-decimal readout, which the default clips. */
+  --wzl-prop-number-width: 52px;
   --wzl-focus-ring: var(--accent);
   --wzl-radius-sm: 2px;
   --wzl-radius-pill: 999px;
   --wzl-motion-fast: 120ms;
   --wzl-font-ui: inherit;
+}
+
+/* The row's readout is sized `calc(5em - 24px)` against a larger base font than
+   the wall's 11px and clips at `overflow: clip`, so a four-decimal value loses
+   its last digit. Matched on the substring because CSS modules hash around the
+   base name rather than replacing it. */
+.wzl-skin [class*='readout'] {
+  width: 4.8em;
+  min-width: 4.8em;
 }

@@ -189,11 +189,6 @@
   cursor: default;
 }
 
-/* The params controls came from a narrower corner panel; the column has room
-   for a wider name and a wider readout. */
-.sidebar .params__row {
-  grid-template-columns: 116px 1fr 46px;
-}
 
 /* A `soon` whose hold has run out has stopped asking, and the scene has already
    dropped its badge. The row stays, so the list still says what happened. */
