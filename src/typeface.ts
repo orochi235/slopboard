@@ -22,7 +22,7 @@ export const FACES = {
 /** A chip is a note on its subject and a label names the subject itself, so the
  *  two are not set at the same weight. Only Oxanium is vendored variable enough
  *  to honor the difference; the rest resolve both to their one instance. */
-export const CHIP_WEIGHT = 400
+export const CHIP_WEIGHT = 500
 export const LABEL_WEIGHT = 600
 
 /** Canvas silently falls back to the system face for a weight the document has
