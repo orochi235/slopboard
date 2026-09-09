@@ -544,6 +544,30 @@ the trash doesn't: seeing it go and wanting it back immediately.
 or lose this," everything gets pinned defensively and you are back to sediment.
 The arrangement carries decay peripherally or it doesn't work.
 
+## The lab and the wall
+
+The page is two things: the wall a room looks at, and the lab a person tunes it
+from. `?lab` is the whole difference — off by default, read once at boot and
+never persisted, so the URL launchd opens comes back clean after every reload
+and a session that wants to tune types the flag.
+
+**On the wall always:** the sidebar and its flag list, the filter band, the
+minimap, the right-click menu, the lightbox, the `?` modal, and the HUD's
+`offline`. Every one of them answers "what is asking to be looked at" or "show
+me that one", and the last four are reachable only by a hand already at the
+machine, so they cost a room-facing wall nothing by existing.
+
+**Behind `?lab`:** the sidebar's debug and params sections, the `,` preferences
+modal, the axes gizmo, the HUD's arrangement name — a constant now that
+`arrangements` holds one entry — and the stats block when it is built. A tuning
+the lab stored still governs the wall: `mergeStored` runs whether or not a panel
+is on screen.
+
+**A flag, not a build.** The wall is served from localhost to one machine, so a
+lighter bundle buys nothing, and what the split is for is what is on screen. A
+second vite entry would split dev iteration in two and make `bin/wall` choose a
+build, for no gain that a room can see.
+
 ## Traps
 
 **Partial writes.** `chokidar` fires `add` on file creation, not completion, so a
@@ -596,8 +620,6 @@ Base64-over-WebSocket hitches every time a render lands.
 - **Arrival rate.** Gates everything downstream. At 3/hour there is no packing
   problem, no memory problem, no zones, and the whole arrangement layer is
   decoration. At 200/hour the wall is a blur and nothing reads at any depth.
-- **Which arrangement, and with `bloom` or without.** The point of building six.
-- **Default TTL.** Unknowable until the wall has been live for a day.
 - **Does anything on the wall have thickness?** Every primitive is a flat plane
   today — cards, zone outlines, labels — while a pile occupies a volume many
   times the wall's own height. Two separable calls. Whether a *card* gets

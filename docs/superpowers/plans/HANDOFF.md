@@ -367,13 +367,21 @@ the readout is worth; FPS as a rolling average, not an instantaneous
 reciprocal; behind `overlay.stats`. It is lab chrome, so it is the first thing
 the `?lab` decision below should retire.
 
-### Make the page a lab
+### Make the page a lab — decided, unbuilt
 
-The params panel, the minimap and the HUD are developer chrome that a real wall
-display should not carry. The ask is to name that: this page is the lab, and a
-non-lab wall comes later. No decision yet on the mechanism — a `?lab` flag
-beside `?backend`, a separate route, or a build-time split — and that decision
-is the first thing to settle.
+`?lab` splits the page: the wall a room looks at, and the lab a person tunes it
+from. The list of which surface goes where, and why a flag rather than a second
+build, is in `DESIGN.md` under **The lab and the wall** — decided 2026-09-08,
+and **nothing is built**.
+
+The handoff used to call this "the params panel, the minimap and the HUD", and
+that list did not survive being checked against the code. The sidebar, the
+filter band, the minimap, the right-click menu and the lightbox are all
+user-facing; what leaves a wall is the sidebar's *debug* and *params* sections,
+the `,` modal, the axes gizmo and the HUD's arrangement name.
+
+The stats block below wants building on the far side of this, since it is lab
+chrome that would otherwise be built twice.
 
 ### Also parked
 
