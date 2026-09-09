@@ -93,6 +93,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'nav.dragDepthPerNotch': [0, 0.004, 0.0001],
   'overlay.cardEdgeWidth': [0.5, 12, 0.5],
   'overlay.filterDim': [0, 1, 0.01],
+  'zones.huedMinLight': [0, 1, 0.01],
   'zones.outlineWidth': [0.5, 12, 0.5],
   'zones.labelSize': [0.01, 0.6, 0.005],
   'zones.labelOffset': [-0.3, 0.3, 0.005],

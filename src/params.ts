@@ -266,6 +266,10 @@ export type StackParams = {
     huedFrame: boolean
     huedBackdrop: boolean
     huedCardEdge: boolean
+    /** Floor under a project colour's lightness. A `.hued` background is picked
+     *  to sit behind an editor's text, so some are near-black — weasel's is
+     *  #470013 — and unlifted they read as no colour at all on this wall. */
+    huedMinLight: number
     /** 0 is invisible, 1 is flat. */
     backdropOpacity: number
     /** World distance between hatch lines, and how wide a line is. Both are
@@ -500,6 +504,7 @@ export const defaultParams: StackParams = {
     huedFrame: true,
     huedBackdrop: true,
     huedCardEdge: true,
+    huedMinLight: 0.34,
     backdropOpacity: 0.69,
     hatchSpacing: 0.015,
     hatchWidth: 0.002,

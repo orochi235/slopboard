@@ -197,18 +197,26 @@ function Wall({
   const blank = useMemo(() => new THREE.Color(params.colors.cardBlank), [params.colors.cardBlank])
   const huedCardEdge = params.zones.huedCardEdge
   // Parsed once per color rather than per card per frame.
+  const huedMinLight = params.zones.huedMinLight
   const huedColors = useMemo(() => {
     const out = new Map<string, THREE.Color>()
+    const hsl = { h: 0, s: 0, l: 0 }
     for (const [zone, css] of Object.entries(zoneColors)) {
       try {
-        out.set(zone, new THREE.Color(css))
+        const color = new THREE.Color(css)
+        // Lifted, not replaced: the hue is what identifies the project, and a
+        // `.hued` background chosen to sit behind text is often too dark to
+        // carry it here.
+        color.getHSL(hsl)
+        if (hsl.l < huedMinLight) color.setHSL(hsl.h, hsl.s, huedMinLight)
+        out.set(zone, color)
       } catch {
         // hued allows any CSS color name; anything three cannot read is
         // simply a zone that keeps the palette.
       }
     }
     return out
-  }, [zoneColors])
+  }, [zoneColors, huedMinLight])
 
   const textures = useMemo(
     () =>
