@@ -101,6 +101,9 @@ const PLAN_MS = 250
 const DEG_PER_PX = 0.25
 
 /** Clear of its own card, so the plate never z-fights the border it sits on. */
+/** Drawn as text, so it wears whatever colour emoji font the system has. */
+const PIN_GLYPH = '📌'
+
 const BADGE_LIFT = 0.002
 
 /** Movement past this is an orbit; anything less is the click it looks like. */
@@ -338,7 +341,9 @@ function Wall({
   }, [])
   const chips = useMemo(() => createChips(), [])
   const chipRamp = useRef(rampOf(1))
+  const pins = useMemo(() => createChips(), [])
   useEffect(() => () => chips.dispose(), [chips])
+  useEffect(() => () => pins.dispose(), [pins])
 
   /** One line object per level rather than one per badge: a LineMaterial has a
    *  single color, and four draw calls is cheaper than one per flag. */
@@ -768,6 +773,7 @@ function Wall({
     // Real elapsed time, not the decay clock: keeping an artifact freezes how
     // it fades, and a chip that froze with it would report the wrong day.
     const bornAt = new Map(current.items.map((i) => [i.id, i.bornAt]))
+    const pinned = new Set(current.items.filter((i) => i.keptAt).map((i) => i.id))
     // A chip annotates its subject, so it shrinks when the camera closes on
     // one: at wall distance the pile is small and the note has to carry, and
     // zoomed in the card is what grew. Ramped over the camera's own move, so
@@ -1247,6 +1253,44 @@ function Wall({
         }
       }
 
+      // A pin says the wall will not take this one. Its own corner, opposite the
+      // age chip, because a pinned front card wears both at once.
+      const pin = pins.byId.get(id)
+      // Not gated on `chips.cards`: that switch is about the age chip, and a
+      // pin is state rather than decoration.
+      const wearsPin = pinned.has(id)
+      if (pin || wearsPin) {
+        const held = pins.sync(
+          id,
+          `pin|${params.colors.chipFill}|${params.colors.chipInk}|${badgeFamily}|${fontsReady}`,
+          PIN_GLYPH,
+          {
+            fill: params.colors.chipFill,
+            ink: params.colors.chipInk,
+            family: badgeFamily,
+          },
+        )
+        held.plate.visible = wearsPin
+        if (wearsPin) {
+          const h = chipHeight
+          const w = h * held.aspect
+          held.plate.scale.set(w, h, 1)
+          held.plate.rotation.copy(mesh.rotation)
+          const inset = params.chips.inset
+          held.plate.position
+            .copy(mesh.position)
+            .add(
+              new THREE.Vector3(
+                (drawnW * swell) / 2 - w / 2 - inset,
+                (drawnH * swell) / 2 - h / 2 - inset,
+                BADGE_LIFT,
+              ).applyEuler(mesh.rotation),
+            )
+          const material = held.plate.material as THREE.MeshBasicMaterial
+          material.opacity = cut
+        }
+      }
+
       // Set here rather than in the memo, which cannot see a zone that arrived
       // since, and which does not know how far the card has faded.
       const edge = edges.byId.get(id)
@@ -1341,6 +1385,10 @@ function Wall({
       {live.map((id) => {
         const held = chips.byId.get(id)
         return held ? <primitive key={`chip-${id}`} object={held.plate} /> : null
+      })}
+      {live.map((id) => {
+        const held = pins.byId.get(id)
+        return held ? <primitive key={`pin-${id}`} object={held.plate} /> : null
       })}
       {[...leaders].map(([level, line]) => (
         <primitive key={`leader-${level}`} object={line} />
