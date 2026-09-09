@@ -222,6 +222,38 @@ Worth knowing before touching it again:
   from the bottom-left zone, left went to the zone *above* it — and left, then
   back right, skipped the zone you started on.
 
+### The corner chips — shipped
+
+All on `main`, 2026-09-08, `42b12d0..ec6cbc5`. Two readouts the wall could not
+give without opening something: how old a pile's front card is, and how much a
+zone holds.
+
+**The age chip** rides inside each pile's front card, top-left — a clock and
+`ago()`'s one-unit age, black plate, yellow clock, white text. Only the front
+card wears one; a rank behind it is mostly hidden anyway.
+
+**The count chip** is centered on the zone's bottom-right corner, filled with
+the outline's own color by the outline's own rule, so the two cannot disagree
+about whose zone it is.
+
+**The zone's frame draws in one stack below the cards** — hatch (`-3`), border
+(`-2`), count (`-1`), then every artifact at `0`. A pile covers all of it,
+because the frame is the wall the pile hangs on. The border used to draw at
+`CHROME_ORDER` and cut straight through the count beside it.
+
+**`zones.huedOutline` and `huedLabel` merged into `huedFrame`.** Three parts of
+one frame with separate switches is three ways for them to disagree.
+
+**The ink is chosen by contrast ratio**, not a lightness threshold: green
+carries most of the luminance sum, so any threshold keeping white legible on a
+mid blue also keeps it on a mid green, at 2.5:1. `inkFor` in
+`src/textures/chip.ts` is the only tested part of that file.
+
+**Scrolling out at fit leaves the lightbox**, the inverse of the flick that
+opened it, and only on a fresh gesture — a roll that zooms out as far as fit
+stops there. The **page** lightbox is untouched: a wheel inside an iframe never
+reaches us, so the rule would only hold over the margin around the frame.
+
 ### Decisions made in conversation, in nobody's diff
 
 - **The wall's third dimension comes from the camera, not from a modifier.** A
@@ -263,6 +295,19 @@ The user's instruction is to work all of it, not just the head.
 
 **Next up:**
 
+- **The params panel's sliders are hand-rolled and bad.** Swap in
+  `@weasel-js/ui`'s real slider, and look at its timeline control for the
+  filter band while you are there. Asked for 2026-09-08, nothing built.
+  `ParamsBody` in `src/Params.tsx` is the surface; the `--wzl-*` bridge in
+  `src/topbar.css` is how a weasel control gets painted here.
+- **The inbox watcher needs a reconcile sweep.** chokidar 4 calls `fs.watch`
+  per directory with no `recursive` and no fsevents, and
+  [#1471](https://github.com/paulmillr/chokidar/issues/1471) — open, still in
+  v5 — silently drops a file written into a directory between its scan and its
+  watch registration. `bin/slop` does `mkdir -p` then `cp`, so a brand-new
+  zone's first artifact lands in that window. A periodic scan that ingests
+  what the store lacks makes the watcher an optimization; v5 is packaging only
+  and fixes none of it. Proposed 2026-09-08, not approved, not built.
 - **More band sections.** Time and sort are the first two; the band is built to
   take more blocks. Nothing else is specified yet.
 
@@ -314,6 +359,15 @@ surprise is recognized rather than debugged.
 
 ### Traps this cost real time
 
+- **A stored blob makes a changed default invisible, and it will fool you
+  twice.** Two rounds of "the chips are off-center" and "the frame is not
+  hued" were a browser profile pinning the old values, not the code. Have the
+  tab report `localStorage['slopboard.params.v2']` before touching placement
+  or color. **A parameter whose *meaning* changed has to be renamed**, not
+  redefined: `mergeStored` drops a key the defaults no longer have, which is
+  the only way a stored number gets given back. `chips.pad` became
+  `chips.inset` and `chips.bleed` for exactly this reason, as `cooldownMs`
+  became `quietMs` before it.
 - **`LineSegments2.setPositions` leaves a stale instance count.** It keeps the
   count from whichever frame had the most segments, so a frame with fewer draws
   past the end of its own buffer — one `GL_INVALID_OPERATION` per frame, silent
