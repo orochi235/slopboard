@@ -293,13 +293,37 @@ reaches us, so the rule would only hold over the margin around the frame.
 
 The user's instruction is to work all of it, not just the head.
 
-**Next up:**
+**Another session is writing in `server/`.** Four untracked files appeared
+mid-session on 2026-09-08 — `watchTree.ts`, `watchTree.test.ts`,
+`inboxSweep.ts`, `inboxSweep.test.ts`, the chokidar reconcile sweep from the
+list below. `watchTree.test.ts` does not typecheck yet, so `tsc --noEmit` and
+`npm test` both report a failure that is theirs, not yours. Keep `git add`
+scoped to your own paths and do not "fix" those files.
 
-- **The params panel's sliders are hand-rolled and bad.** Swap in
-  `@weasel-js/ui`'s real slider, and look at its timeline control for the
-  filter band while you are there. Asked for 2026-09-08, nothing built.
-  `ParamsBody` in `src/Params.tsx` is the surface; the `--wzl-*` bridge in
-  `src/topbar.css` is how a weasel control gets painted here.
+**In flight — the weasel control swap.** Plan at
+`docs/superpowers/plans/2026-09-08-weasel-controls.md`, spec beside it. Tasks
+1-4 are done and on `main` (`20cc948` and back); **tasks 5, 6 and 7 are not
+started**. Task 5 is the filter band: `RangeSlider` to `Slider`, histogram into
+`renderTrack`. The plan's step-by-step for it is current except that its stated
+cause for the band's narrow track was corrected in `72b26f3` — the 82px track
+is our own `align-items: center` on a column flex container, not a weasel bug.
+
+The bridge now lives in `src/weasel.css` as `.wzl-skin`, worn per params group
+and by `.topbar__range`. Four tokens it was missing are why the rows first
+rendered invisible; two of them are **percentages inside a `color-mix`, not
+colors**, and two carry **no fallback**, so unset means no height rather than a
+default. All four are written up with the rest of the weasel friction in
+`~/src/weasel/todo.md` (uncommitted — that repo has unrelated work in its tree).
+
+**Also asked for 2026-09-08, not started:**
+
+- **A "pinned" badge, top right, just the emoji in a badge.** Pinning is
+  `keptAt`; `src/textures/badge.ts` draws the attention plates and
+  `src/textures/chip.ts` the corner chips, so the question is which of the two
+  a pin badge is.
+- **Hued zone background colours need a minimum lightness** — weasel's is the
+  one that prompted it. `params.colors` and the daemon's per-zone colour in
+  `server/zoneColors.ts` are the two ends.
 - **The inbox watcher needs a reconcile sweep.** chokidar 4 calls `fs.watch`
   per directory with no `recursive` and no fsevents, and
   [#1471](https://github.com/paulmillr/chokidar/issues/1471) — open, still in
@@ -334,10 +358,6 @@ The user's instruction is to work all of it, not just the head.
 - **Enter should descend a rung**, the inverse of Escape.
 - **View state in the URL hash**, so a reload keeps the view. It already
   survives reloads somehow — find out how before adding a second mechanism.
-- **`ParamsBody` is a hand-rolled property panel.** `@weasel-js/ui` exports the
-  family it reimplements — `PropertyPanel`, `PropertyGroup`, `SliderRow`,
-  `NumberRow`, `ColorRow`, `ToggleRow`, `SelectRow` — and the package is now a
-  dependency. Replacing it is a real refactor and the user has not called it.
 - **`sharp` has a high-severity libvips advisory**, pre-existing and unrelated
   to this work. The fix is a breaking major bump and the daemon uses it for
   thumbnails.
