@@ -1,4 +1,3 @@
-import chokidar from 'chokidar'
 import sharp from 'sharp'
 import { mkdir, rm, stat, rename, utimes, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, extname } from 'node:path'
@@ -15,6 +14,8 @@ import { shootPage } from './shoot.ts'
 import { parseAttention } from '@shared/attention.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
 import { createLimiter } from './limit.ts'
+import { watchTree } from './watchTree.ts'
+import { startSweep } from './inboxSweep.ts'
 
 /**
  * The stamp into the file the wall hands out, which is the original — `/orig`
@@ -143,37 +144,60 @@ async function adopt(sourcePath: string): Promise<WallItem | null> {
 }
 
 export function watchInbox(onArrive: (item: WallItem) => void) {
-  let ready = false
-  const watcher = chokidar.watch(config.inbox, {
-    depth: 1,
-    ignoreInitial: false,
-    // chokidar fires `add` on creation, not completion: without this, a
-    // streaming write (`gen | slop renders`) hands sharp a truncated file.
-    awaitWriteFinish: { stabilityThreshold: 400, pollInterval: 50 },
-  })
-
   // Capped because ingest is the daemon's only heavy work: a decode, a resize,
   // a webp encode and a full-resolution re-encode per file. Uncapped, a restart
   // with a full inbox starts all of them at once.
   const gate = createLimiter(config.ingestAtOnce)
+  const inFlight = new Set<string>()
+  // Offered, and ingest wanted nothing to do with it — a file sharp cannot
+  // read. Without this the sweep re-offers it every tick until it ages out.
+  const declined = new Set<string>()
+  const held = (p: string) => store.has(p) || inFlight.has(p) || declined.has(p)
 
-  watcher.on('add', (path) => {
-    if (dirname(path) === config.inbox) return // zone dirs only
-    // Both read at arrival rather than when the turn comes. A file waiting
-    // behind others must not be dated when it finally runs, and one that was
-    // already on disk at startup must not be re-read as a live arrival because
-    // `ready` flipped while it queued — which would date it now and resurrect
-    // the wall, the exact thing `adopt` exists to prevent.
+  const take = (sourcePath: string, adopting: boolean) => {
+    // Several paths reach the same artifact on purpose: the watch, the
+    // adopting scan, the sweep, and the events ingest's own stamp rewrite
+    // fires. The store answers by source path, so the rest are dropped here.
+    if (held(sourcePath)) return
+    inFlight.add(sourcePath)
+    // Read at arrival rather than when the turn comes: a file waiting behind
+    // others must not be dated when it finally runs.
     const at = Date.now()
-    const adopting = !ready
     void gate(async () => {
-      const item = adopting ? await adopt(path) : await ingest(path, at)
-      if (item) onArrive(item)
+      try {
+        const item = adopting ? await adopt(sourcePath) : await ingest(sourcePath, at)
+        if (item) onArrive(item)
+        else declined.add(sourcePath)
+      } finally {
+        inFlight.delete(sourcePath)
+      }
     })
+  }
+
+  const notAnArtifact = (p: string) => kindOf(p) === null
+
+  const watcher = watchTree(config.inbox, {
+    ignore: notAnArtifact,
+    onFile: take,
   })
-  watcher.on('ready', () => {
-    ready = true
+  void watcher.ready.then(() => {
     console.log(`[watch] ${config.inbox} (ttl ${config.ttlMs / 1000}s)`)
   })
-  return watcher
+
+  // A watcher is allowed to miss; the wall is not. Anything the store never
+  // took in is offered again on a tick, and adopted at its own mtime so a
+  // late catch decays from when it landed.
+  const stopSweep = startSweep(config.inbox, {
+    intervalMs: config.sweepMs,
+    has: held,
+    ignore: notAnArtifact,
+    onFile: (p) => take(p, true),
+  })
+
+  return {
+    close: async () => {
+      stopSweep()
+      await watcher.close()
+    },
+  }
 }

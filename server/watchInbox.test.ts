@@ -1,0 +1,127 @@
+import { mkdtemp, mkdir, rm, utimes, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import sharp from 'sharp'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { WallItem } from '@shared/protocol.ts'
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const png = () =>
+  sharp({ create: { width: 8, height: 8, channels: 3, background: '#123456' } }).png().toBuffer()
+
+/** `config` reads the environment once at import, so each case gets its own
+ *  root and its own module graph. */
+async function bootDaemon(root: string) {
+  vi.resetModules()
+  vi.stubEnv('SLOP_ROOT', root)
+  vi.stubEnv('SLOP_SWEEP_MS', '40')
+  await mkdir(join(root, 'inbox'), { recursive: true })
+  return await import('./ingest.ts')
+}
+
+describe('watchInbox', () => {
+  let root = ''
+  let stop: (() => Promise<void>) | null = null
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'slop-watch-'))
+  })
+
+  afterEach(async () => {
+    await stop?.()
+    stop = null
+    vi.unstubAllEnvs()
+    vi.resetModules()
+    if (root) await rm(root, { recursive: true, force: true })
+  })
+
+  it('takes in an artifact and reports it under its zone', async () => {
+    const { watchInbox } = await bootDaemon(root)
+    const arrived: WallItem[] = []
+    const w = watchInbox((item) => arrived.push(item))
+    stop = () => w.close()
+
+    await mkdir(join(root, 'inbox', 'brick-icons'), { recursive: true })
+    await writeFile(join(root, 'inbox', 'brick-icons', 'a.png'), await png())
+
+    await vi.waitFor(() => expect(arrived).toHaveLength(1), { timeout: 8000 })
+    expect(arrived[0]!.zone).toBe('brick-icons')
+    expect(arrived[0]!.w).toBe(8)
+  })
+
+  it('reports it once however many times the file is touched', async () => {
+    // Ingest rewrites the source to stamp it and then restores its mtime, so
+    // every artifact fires further events after it has already been taken in.
+    const { watchInbox } = await bootDaemon(root)
+    const arrived: WallItem[] = []
+    const w = watchInbox((item) => arrived.push(item))
+    stop = () => w.close()
+
+    const f = join(root, 'inbox', 'z', 'a.png')
+    await mkdir(join(root, 'inbox', 'z'), { recursive: true })
+    await writeFile(f, await png())
+    await vi.waitFor(() => expect(arrived).toHaveLength(1), { timeout: 8000 })
+
+    for (let i = 0; i < 3; i++) {
+      await utimes(f, new Date(), new Date())
+      await sleep(120)
+    }
+    await sleep(400)
+    expect(arrived).toHaveLength(1)
+  })
+
+  it('takes in an artifact that was already there when it started', async () => {
+    await mkdir(join(root, 'inbox', 'weasel'), { recursive: true })
+    await writeFile(join(root, 'inbox', 'weasel', 'old.png'), await png())
+
+    const { watchInbox } = await bootDaemon(root)
+    const arrived: WallItem[] = []
+    const w = watchInbox((item) => arrived.push(item))
+    stop = () => w.close()
+
+    await vi.waitFor(() => expect(arrived).toHaveLength(1), { timeout: 8000 })
+    expect(arrived[0]!.zone).toBe('weasel')
+  })
+
+  it('costs one watch handle however many artifacts the inbox holds', async () => {
+    // The whole reason for the backend. A descriptor per watched path grows
+    // the daemon's cost with the wall, and an exhausted table stops the page
+    // shot and the wall browser from spawning long before anything blames the
+    // watcher.
+    const dir = join(root, 'inbox', 'z')
+    await mkdir(dir, { recursive: true })
+    const bytes = await png()
+    for (let i = 0; i < 60; i++) await writeFile(join(dir, `a${i}.png`), bytes)
+
+    const { watchInbox } = await bootDaemon(root)
+    // Counted by path, not by delta: sibling test files hold watchers of their
+    // own in this worker, and a delta reads theirs as ours.
+    const ours = () =>
+      (process.report.getReport() as { libuv: Array<{ type: string; filename?: string }> }).libuv
+        .filter((h) => h.type === 'fs_event' && h.filename?.includes(root))
+        .map((h) => h.filename)
+
+    const w = watchInbox(() => {})
+    stop = () => w.close()
+    await sleep(500)
+
+    expect(ours()).toHaveLength(1)
+  })
+
+  it('leaves the sidecar alone', async () => {
+    const { watchInbox } = await bootDaemon(root)
+    const arrived: WallItem[] = []
+    const w = watchInbox((item) => arrived.push(item))
+    stop = () => w.close()
+
+    const dir = join(root, 'inbox', 'z')
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, 'a.png.slop.json'), '{"caption":"c"}')
+    await writeFile(join(dir, 'a.png'), await png())
+
+    await vi.waitFor(() => expect(arrived).toHaveLength(1), { timeout: 8000 })
+    await sleep(300)
+    expect(arrived).toHaveLength(1)
+    expect(arrived[0]!.name).toBe('c')
+  })
+})

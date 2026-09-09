@@ -21,7 +21,10 @@ steals focus constantly, and most renders aren't worth looking at.
 
 **Daemon** (Node)
 
-- `chokidar` watches `~/slop/inbox/`, with `awaitWriteFinish` on — see Traps.
+- The OS's own recursive watcher (FSEvents on macOS) watches `~/slop/inbox/`,
+  one handle for the tree; `chokidar` is the fallback where that is not
+  trustworthy — see Traps. A sweep offers anything the store lacks, so a
+  dropped event costs a delay rather than the picture.
 - Subdirectory name = zone ID.
 - `sharp` downscales on ingest to 1024px longest edge; the original path stays
   in metadata for click-through.
@@ -570,10 +573,25 @@ build, for no gain that a room can see.
 
 ## Traps
 
-**Partial writes.** `chokidar` fires `add` on file creation, not completion, so a
-streaming write hands `sharp` a truncated PNG. `awaitWriteFinish` is mandatory —
-the `slop()` helper above is exactly this case. Without it a fraction of images
-arrive corrupt, intermittently, and it is miserable to diagnose later.
+**Partial writes.** A watcher reports a file on creation, not on completion, so
+a streaming write hands `sharp` a truncated PNG. `watchTree` holds a file until
+its size stops changing — the `slop()` helper above is exactly this case.
+Without that wait a fraction of images arrive corrupt, intermittently, and it is
+miserable to diagnose later.
+
+**A watcher is an optimization, never the only way in.** chokidar has shipped
+without `fsevents` since v4, so on macOS it registers a separate `fs.watch` per
+watched path: 211 images and their sidecars cost 422 descriptors, growing with
+the wall rather than with the number of zones. An exhausted table does not
+present as a watcher fault — libuv cannot allocate child-stdio pipes either, so
+the page shot and the wall browser start failing to spawn, and brainhouse chased
+that as a spawn race for a month before finding the watcher. It also loses a
+file written into a zone between its scan and its watch registration
+([#1471](https://github.com/paulmillr/chokidar/issues/1471), open), which is how
+two artifacts sat unseen in the inbox for an evening with no error anywhere. So
+macOS and Windows use the OS's recursive watcher and `inboxSweep` re-offers
+whatever the store lacks. chokidar stays for Linux, where it is inotify and was
+never the descriptor bomb.
 
 **Texture memory is budgeted in bytes, not count.** A 2048² RGBA texture is 16MB
 and a 2048×512 is 4MB; a per-zone item cap bounds nothing. Evict against a byte

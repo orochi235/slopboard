@@ -10,6 +10,11 @@ Plans 1, 2 and 3 are implemented and on `main` in both repos. The two
 **eyes-only tuning tasks** at the end of the renderer and interaction plans are
 closed unrun: the defaults stand until the wall looks wrong.
 
+- The inbox watch is the OS's recursive watcher on macOS and Windows
+  (`server/watchTree.ts`), with `server/inboxSweep.ts` re-offering whatever the
+  store lacks. Took the daemon from 508 open descriptors to 92, and closed the
+  two ways an artifact could land in the inbox and never reach the wall.
+  chokidar stays as the Linux backend.
 - windease `main`: `Rect.z` (required), `LayoutResult.channels`, both wired
   through `ContainerHost` and the presets.
 - slopboard `main`: the WebGL wall — now the only wall — texture LOD with a
@@ -324,14 +329,6 @@ default. All four are written up with the rest of the weasel friction in
 - **Hued zone background colours need a minimum lightness** — weasel's is the
   one that prompted it. `params.colors` and the daemon's per-zone colour in
   `server/zoneColors.ts` are the two ends.
-- **The inbox watcher needs a reconcile sweep.** chokidar 4 calls `fs.watch`
-  per directory with no `recursive` and no fsevents, and
-  [#1471](https://github.com/paulmillr/chokidar/issues/1471) — open, still in
-  v5 — silently drops a file written into a directory between its scan and its
-  watch registration. `bin/slop` does `mkdir -p` then `cp`, so a brand-new
-  zone's first artifact lands in that window. A periodic scan that ingests
-  what the store lacks makes the watcher an optimization; v5 is packaging only
-  and fixes none of it. Proposed 2026-09-08, not approved, not built.
 - **More band sections.** Time and sort are the first two; the band is built to
   take more blocks. Nothing else is specified yet.
 
