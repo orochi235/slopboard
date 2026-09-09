@@ -19,6 +19,16 @@ export const FACES = {
   tektur: '"Tektur", ui-monospace, monospace',
 } as const
 
+/** A chip is a note on its subject and a label names the subject itself, so the
+ *  two are not set at the same weight. Only Oxanium is vendored variable enough
+ *  to honor the difference; the rest resolve both to their one instance. */
+export const CHIP_WEIGHT = 400
+export const LABEL_WEIGHT = 600
+
+/** Canvas silently falls back to the system face for a weight the document has
+ *  not loaded, so every weight the wall draws with has to be asked for. */
+const WEIGHTS = [CHIP_WEIGHT, LABEL_WEIGHT] as const
+
 export type Typeface = keyof typeof FACES
 
 export const TYPEFACES = Object.keys(FACES) as Typeface[]
@@ -32,8 +42,8 @@ export const stackFor = (face: Typeface): string => FACES[face] ?? FACES.mono
  * caches it is told to rebuild. Resolves once every vendored face is ready.
  */
 export function loadFaces(px = 72): Promise<void> {
-  const wanted = TYPEFACES.filter((f) => f !== 'mono').map((f) =>
-    document.fonts.load(`600 ${px}px ${stackFor(f)}`).catch(() => []),
+  const wanted = TYPEFACES.filter((f) => f !== 'mono').flatMap((f) =>
+    WEIGHTS.map((w) => document.fonts.load(`${w} ${px}px ${stackFor(f)}`).catch(() => [])),
   )
   return Promise.all(wanted).then(() => undefined)
 }

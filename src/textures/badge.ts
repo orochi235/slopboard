@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { wrapLines } from '@/textures/text.ts'
+import { LABEL_WEIGHT } from '@/typeface.ts'
 
 /** Drawn at a fixed pixel height and scaled into world units by this module,
  *  so a badge stays crisp at any camera distance the wall actually uses. */
@@ -35,7 +36,7 @@ export function badgeTexture(
 ): { texture: THREE.CanvasTexture; width: number; height: number } {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
-  const font = `600 ${PX}px ${family}`
+  const font = `${LABEL_WEIGHT} ${PX}px ${family}`
   ctx.font = font
 
   // One line's canvas height is the scale factor between the two spaces, so the

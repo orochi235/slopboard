@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { CHROME_ORDER } from '@/backends/order.ts'
+import { CHIP_WEIGHT } from '@/typeface.ts'
 
 /** Drawn at a fixed pixel height and scaled into world units here, so a chip
  *  stays crisp at any distance the wall is read from. */
@@ -57,7 +58,7 @@ export function chipTexture(
 ): { texture: THREE.CanvasTexture; width: number; height: number } {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
-  const font = `600 ${PX * FONT}px ${family}`
+  const font = `${CHIP_WEIGHT} ${PX * FONT}px ${family}`
   ctx.font = font
 
   const glyph = icon ? PX * ICON + PX * GAP : 0

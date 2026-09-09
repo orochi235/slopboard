@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { wrapLines } from '@/textures/text.ts'
+import { LABEL_WEIGHT } from '@/typeface.ts'
 
 /** Drawn at a fixed pixel height and scaled in world units by the caller, so a
  *  label stays crisp at any camera distance the wall actually uses. */
@@ -20,7 +21,7 @@ export function labelTexture(
 ): { texture: THREE.CanvasTexture; aspect: number } {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
-  const font = `600 ${PX}px ${family}`
+  const font = `${LABEL_WEIGHT} ${PX}px ${family}`
 
   ctx.font = font
   const shown = wrapLines(ctx, text, MAX_WIDTH, 1)[0] ?? text
