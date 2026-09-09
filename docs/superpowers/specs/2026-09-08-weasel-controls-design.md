@@ -34,13 +34,18 @@ those unset a control renders with correct geometry and fully transparent
 paint, which looks like a component that failed to mount. The bridge that sets
 them is written out in `src/topbar.css`, scoped to `.topbar__range`.
 
-It moves to `src/weasel.css` as a `.wzl-skin` class, applied at two roots:
-`.topbar__range`, and a wrapper `ParamsBody` puts around its own output. The
-wrapper is why it is two and not three — `ParamsBody` renders into both the
-sidebar and the prefs modal, so carrying the skin itself means neither surface
-has to remember to. The token values are the ones already there — the wall's
-own palette, not `@weasel-js/theme`, whose tokens.css sets a document font and
-would re-type every label in the scene.
+It moves to `src/weasel.css` as a `.wzl-skin` class, applied to
+`.topbar__range` and to each `<details className="params__group">`. The token
+values are the ones already there — the wall's own palette, not
+`@weasel-js/theme`, whose tokens.css sets a document font and would re-type
+every label in the scene.
+
+Per group rather than one wrapper around `ParamsBody`, because `.prefs__body`
+lays its children out in CSS multi-columns (`columns: 320px`, with
+`.prefs__body > *` set to `break-inside: avoid`). A wrapper would become the
+single column item and fold the modal to one column. Carrying the skin on the
+groups leaves them the direct children they are today. The transfer row holds
+no weasel components and needs no skin.
 
 One deviation stays scoped to the band: `--wzl-surface-sunken` is translucent
 there so the histogram shows through the track. The params panel wants a solid
@@ -75,7 +80,8 @@ The reason it exists is in `params.controls.ts` and does not move.
 `params.css` loses `.params__row`, `.params__name`, `.params__slider`,
 `.params__value`, `.params__wide`, `.params__toggle` and `.params__color`. It
 keeps the group, transfer, button, note and file rules, which are the panel's
-own chrome rather than a control's.
+own chrome rather than a control's. `sidebar.css` loses its
+`.sidebar .params__row` column override, which has nothing left to widen.
 
 `SelectRow` and `ToggleRow` are typed `<T extends string>`, and `choice`
 options are `readonly (number | string)[]` — the numeric ones stringify at the
@@ -83,10 +89,17 @@ boundary and parse back exactly as the current `<select>` does.
 
 ### The readout
 
-`SliderRow` takes a `format`. A new pure function in `params.controls.ts`
-derives decimal places from the control's own step: step `0.001` renders three
-places, step `1` renders none. Every value in a group then keeps its decimal
-point in the same place down the column, with tabular figures.
+`SliderRow` takes a `format`. Two new pure functions in `params.controls.ts`:
+`decimalsOf(step)` counts the decimals the step itself is written with, and
+`formatStepped(value, step)` renders to that many places. Step `0.001` gives
+three, step `1` gives none, and the trailing zeros are the point — every value
+in a group then keeps its decimal point in the same place down the column, with
+tabular figures.
+
+The current `show()` sends anything at or above 1000 to exponential, which
+turns `shoveMs` 3000 into `3.00e+3`. The threshold moves to 1e6, so the only
+values that still go exponential are `lod.budgetBytes`, which genuinely has
+nine digits.
 
 This is the only new logic on the params side, and the only part of it worth a
 test.
