@@ -305,12 +305,10 @@ list below. `watchTree.test.ts` does not typecheck yet, so `tsc --noEmit` and
 `npm test` both report a failure that is theirs, not yours. Keep `git add`
 scoped to your own paths and do not "fix" those files.
 
-**In flight — the weasel control swap.** Plan at
+**The weasel control swap is finished.** Plan at
 `docs/superpowers/plans/2026-09-08-weasel-controls.md`, spec beside it. Tasks
-1-5 are done and on `main`. **Task 6 (before/after screenshots) and Task 7 (the
-full-suite gate and this file's own update) are not run** — 7 is blocked on the
-other session's `server/` work typechecking. Every surface has been shot to the
-wall as it landed, so 6 is a formality.
+**all seven tasks are done and on `main`.** Full suite green at 69 files /
+485 tests on 2026-09-09, run once with nothing else on the box. Unpushed.
 
 The bridge now lives in `src/weasel.css` as `.wzl-skin`, worn per params group
 and by `.topbar__range`. Four tokens it was missing are why the rows first

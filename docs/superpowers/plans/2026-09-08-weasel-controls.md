@@ -2,6 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status: done.** Tasks 1-7 landed on `main` on 2026-09-09, ending at `8e7c804`.
+Kept for the reasoning in its task notes, not as work outstanding.
+
 **Goal:** Replace the params panel's native form controls with `@weasel-js/ui`'s property rows, and the filter band's misaligned `RangeSlider` with a `Slider` that paints the histogram inside its own track.
 
 **Architecture:** The `--wzl-*` token bridge moves out of `src/topbar.css` into a shared `src/weasel.css`, worn by each params group and by the band's slider. `ParamsBody`'s five `Control` kinds map one-to-one onto `SliderRow`/`SelectRow`/`ColorRow`/`CheckboxRow`/`NumberRow`, deleting the hand-rolled three-column grid. The band's histogram moves from a sibling `<svg>` into `Slider`'s `renderTrack`, so the bars and the thumbs read one track width.
@@ -184,6 +187,13 @@ Create `src/weasel.css`:
   --wzl-font-ui: inherit;
 }
 ```
+
+**This block is wrong and shipped corrected — see `src/weasel.css` for what is
+actually there.** `--wzl-slider-thumb-tint` is a *percentage* consumed inside a
+`color-mix` against `--wzl-accent`, not a color, so the value above silently
+unpaints the thumb. It also misses `--wzl-slider-track-tint`,
+`--wzl-slider-track-h` and `--wzl-slider-thumb-size`, the last two of which have
+no fallback in weasel's CSS and so collapse the track to no height.
 
 - [ ] **Step 2: Import it once, at the entry**
 
