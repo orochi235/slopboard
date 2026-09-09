@@ -211,12 +211,12 @@ export function ZoneOverlay({
       held.plate.visible = shows
       if (!box || !shows) continue
       held.plate.scale.set(held.w, held.h, 1)
-      // The cell's bottom-right, in the plane the outline is drawn in. Coplanar
-      // with the border rather than lifted off it: a chip standing proud of the
-      // zone reads as a sticker in front of the wall the moment it turns.
+      // Centered on the cell's bottom-right corner, straddling the border, and
+      // coplanar with it: a chip standing proud of the zone reads as a sticker
+      // in front of the wall the moment it turns.
       held.plate.position.set(
-        box.x + box.w - held.w / 2 - chipSettings.pad,
-        -(box.y + box.h) + held.h / 2 + chipSettings.pad,
+        box.x + box.w + chipSettings.pad,
+        -(box.y + box.h) - chipSettings.pad,
         0,
       )
     }

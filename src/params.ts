@@ -75,7 +75,8 @@ export type StackParams = {
     zones: boolean
     /** World height of a chip, whichever it is. */
     size: number
-    /** How far a chip stands in from the corner it sits at. */
+    /** Nudge along the corner's diagonal, outward. A chip is centered on the
+     *  corner itself, so zero is the straddle and this is the correction. */
     pad: number
   }
   /**
@@ -387,7 +388,7 @@ export const defaultParams: StackParams = {
     cards: true,
     zones: true,
     size: 0.03,
-    pad: 0.008,
+    pad: 0,
   },
   attention: {
     pulse: 0,
