@@ -213,6 +213,10 @@ export function ZoneOverlay({
       sprite.position.set(across + outward - h / 2, -(box.y + box.h) + (h * aspect) / 2, 0)
     }
 
+    // Shrunk once the view is inside a zone, for the same reason the age chip
+    // is: the frame the count marks is what the camera came closer to.
+    const chipHeight = chipSettings.size * (focus ? chipSettings.shrink : 1)
+
     for (const zone of zones) {
       const box = cells.current?.get(zone)
       const count = counts.current?.get(zone) ?? 0
@@ -227,9 +231,9 @@ export function ZoneOverlay({
       const ink = inkFor(fill, colors.chipInk, colors.chipFill)
       const held = chips.sync(
         zone,
-        `${text}|${fill}|${ink}|${family}|${fontsReady}|${chipSettings.size}`,
+        `${text}|${fill}|${ink}|${family}|${fontsReady}|${chipHeight}`,
         text,
-        { fill, ink, family, height: chipSettings.size },
+        { fill, ink, family, height: chipHeight },
       )
       held.plate.visible = shows
       if (!box || !shows) continue

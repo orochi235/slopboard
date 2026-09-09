@@ -766,6 +766,11 @@ function Wall({
     // Real elapsed time, not the decay clock: keeping an artifact freezes how
     // it fades, and a chip that froze with it would report the wrong day.
     const bornAt = new Map(current.items.map((i) => [i.id, i.bornAt]))
+    // A chip annotates its subject, so it shrinks when the camera closes on
+    // one: at wall distance the pile is small and the note has to carry, and
+    // zoomed in the card is what grew.
+    const chipHeight =
+      params.chips.size * (zoneOf(viewRef.current) ? params.chips.shrink : 1)
     const zoneFor = new Map(model.map((m) => [m.id, m.zone]))
     zoneById.current = zoneFor
 
@@ -1202,7 +1207,7 @@ function Wall({
           ink: params.colors.chipInk,
           icon: params.colors.chipIcon,
           family: badgeFamily,
-          height: params.chips.size,
+          height: chipHeight,
         }
         const held = chips.sync(
           id,
