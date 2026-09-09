@@ -22,7 +22,7 @@ Both repos are green; `npm test` in each is the count, and it is current in a
 way a number written here stops being the moment anyone commits.
 
 Since the plans, also on `main`: a per-item TTL written into the filename
-(`name.ttl5m.ext`, bare number is seconds, wall default now 24h and `sim` tags
+(`name.ttl5m.ext`, bare number is seconds, wall default now 8h and `sim` tags
 its own cards `ttl60`); a port guard on both halves (a taken 8787 attaches to a
 live daemon or names `SLOP_PORT` and exits 1, instead of an unhandled error
 event; the client has its own port 5183 with `strictPort`); params persisted to
