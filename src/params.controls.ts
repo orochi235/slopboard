@@ -9,6 +9,20 @@ export type Control =
   | { kind: 'number'; path: string }
   | { kind: 'toggle'; path: string }
 
+/** How many decimals `step` is written with. `0.005` is three, `10` is none. */
+export function decimalsOf(step: number): number {
+  const text = String(step)
+  const dot = text.indexOf('.')
+  return dot === -1 ? 0 : text.length - dot - 1
+}
+
+/** A slider's readout, to its step's precision — trailing zeros included, so a
+ *  column is read down rather than across. Only a value too wide for the column
+ *  goes exponential. */
+export function formatStepped(value: number, step: number): string {
+  return Math.abs(value) >= 1e6 ? value.toExponential(2) : value.toFixed(decimalsOf(step))
+}
+
 /**
  * Values stored negative and read as a magnitude. `step.z` is the only one: the
  * other two step axes are directions and take either sign, but rank steps away

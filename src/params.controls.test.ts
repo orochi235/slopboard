@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { controlFor, controlsOf } from '@/params.controls.ts'
+import { controlFor, controlsOf, decimalsOf, formatStepped } from '@/params.controls.ts'
 import { defaultParams } from '@/params.ts'
 
 describe('controlFor', () => {
@@ -95,5 +95,43 @@ describe('controlsOf', () => {
   it('leaves the deep-tail sentinel typeable rather than draggable', () => {
     const tail = controlsOf(defaultParams).find((c) => c.path === 'lod.tiers.3.maxRank')
     expect(tail?.kind).toBe('number')
+  })
+})
+
+describe('decimalsOf', () => {
+  it('counts the decimals the step is written with', () => {
+    expect(decimalsOf(0.001)).toBe(3)
+    expect(decimalsOf(0.005)).toBe(3)
+    expect(decimalsOf(0.0002)).toBe(4)
+    expect(decimalsOf(0.5)).toBe(1)
+  })
+
+  it('gives a whole step none', () => {
+    expect(decimalsOf(1)).toBe(0)
+    expect(decimalsOf(10)).toBe(0)
+    expect(decimalsOf(16 * 1024 * 1024)).toBe(0)
+  })
+})
+
+describe('formatStepped', () => {
+  it('holds the trailing zeros, so a column keeps its point in one place', () => {
+    expect(formatStepped(0.3, 0.005)).toBe('0.300')
+    expect(formatStepped(1, 0.01)).toBe('1.00')
+  })
+
+  it('keeps a whole-stepped value whole', () => {
+    expect(formatStepped(420, 10)).toBe('420')
+    expect(formatStepped(22, 1)).toBe('22')
+  })
+
+  it('carries the sign', () => {
+    expect(formatStepped(-0.013, 0.001)).toBe('-0.013')
+  })
+
+  // The old show() sent everything past 1000 to exponential, which made
+  // shoveMs read 3.00e+3. Only budgetBytes is genuinely too wide.
+  it('goes exponential only past a million', () => {
+    expect(formatStepped(3000, 10)).toBe('3000')
+    expect(formatStepped(268435456, 16 * 1024 * 1024)).toBe('2.68e+8')
   })
 })
