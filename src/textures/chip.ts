@@ -5,9 +5,11 @@ import { CHROME_ORDER } from '@/backends/order.ts'
  *  stays crisp at any distance the wall is read from. */
 const PX = 96
 /** Everything below is a fraction of that height, so one number sizes a chip. */
-const PAD = 0.22
+/** Horizontal only — vertical room is whatever `FONT` leaves inside `PX`, so
+ *  raising the type is how a chip loses height. */
+const PAD_X = 0.46
 const RADIUS = 0.3
-const FONT = 0.5
+const FONT = 0.68
 /** The clock stands as tall as a digit, not as tall as the line: an icon sized
  *  to the em box reads as the label and leaves the number looking like a note
  *  on it. Cap height of `FONT` is about seven tenths of it. */
@@ -60,12 +62,18 @@ export function chipTexture(
 
   const glyph = icon ? PX * ICON + PX * GAP : 0
   const textWidth = ctx.measureText(text).width
-  canvas.width = Math.ceil(PX * PAD * 2 + glyph + textWidth)
+  canvas.width = Math.ceil(PX * PAD_X * 2 + glyph + textWidth)
   canvas.height = PX
 
   // Sizing the canvas resets the context, so everything is set again here.
   ctx.font = font
-  ctx.textBaseline = 'middle'
+  // On the ink rather than the em box: a chip says "128" or "23h", and neither
+  // has a descender, so centering the box hangs the digits high by half the
+  // descender space the face reserves.
+  ctx.textBaseline = 'alphabetic'
+  const box = ctx.measureText(text)
+  const baseline =
+    canvas.height / 2 + (box.actualBoundingBoxAscent - box.actualBoundingBoxDescent) / 2
 
   ctx.fillStyle = fill
   ctx.beginPath()
@@ -74,11 +82,11 @@ export function chipTexture(
 
   if (icon) {
     ctx.strokeStyle = icon
-    clockGlyph(ctx, PX * PAD, (PX - PX * ICON) / 2, PX * ICON)
+    clockGlyph(ctx, PX * PAD_X, (PX - PX * ICON) / 2, PX * ICON)
   }
 
   ctx.fillStyle = ink
-  ctx.fillText(text, PX * PAD + glyph, canvas.height / 2)
+  ctx.fillText(text, PX * PAD_X + glyph, baseline)
 
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
