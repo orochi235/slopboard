@@ -25,6 +25,7 @@ import { keptBy, type Range } from '@/nav/time-filter.ts'
 import { fakeFlags, type FakeFlag } from '@/debug-flags.ts'
 import { Sky } from '@/backends/Sky.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
+import { ago } from '@/age.ts'
 import { toStackItems } from '@/model.ts'
 import { DEFAULT_SORT, inZoneOrder, zoneOrder, type SortKey } from '@/nav/sort.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
@@ -32,6 +33,7 @@ import { Axes } from '@/nav/Axes.tsx'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { badgeTexture } from '@/textures/badge.ts'
+import { createChips } from '@/textures/chip.ts'
 import { loadFaces, stackFor } from '@/typeface.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
@@ -333,6 +335,9 @@ function Wall({
       },
     }
   }, [])
+  const chips = useMemo(() => createChips(), [])
+  useEffect(() => () => chips.dispose(), [chips])
+
   /** One line object per level rather than one per badge: a LineMaterial has a
    *  single color, and four draw calls is cheaper than one per flag. */
   const leaders = useMemo(() => {
@@ -396,6 +401,8 @@ function Wall({
   const zoneNamesRef = useRef<string[]>([])
   /** Each pile front to back, so the arrows can page it from the lightbox. */
   const cardsByZone = useRef<Map<string, string[]>>(new Map())
+  /** How many artifacts each zone holds, for the count chip on its corner. */
+  const zoneCounts = useRef<Map<string, number>>(new Map())
   /** The deepest z each pile reaches, so its backdrop can sit behind it. */
   const viewRef = useRef(view)
   viewRef.current = view
@@ -756,6 +763,9 @@ function Wall({
       zoneOrder(current.items, current.sort, now),
     )
     const aspects = new Map(model.map((m) => [m.id, m.aspect]))
+    // Real elapsed time, not the decay clock: keeping an artifact freezes how
+    // it fades, and a chip that froze with it would report the wrong day.
+    const bornAt = new Map(current.items.map((i) => [i.id, i.bornAt]))
     const zoneFor = new Map(model.map((m) => [m.id, m.zone]))
     zoneById.current = zoneFor
 
@@ -829,6 +839,14 @@ function Wall({
     cardsByZone.current = new Map(
       [...ranked].map(([zone, list]) => [zone, list.sort((a, b) => b.z - a.z).map((e) => e.id)]),
     )
+    // The front of each pile, which is the only card that wears an age chip:
+    // a rank behind it is mostly hidden by the card in front of it.
+    const fronts = new Set<string>()
+    for (const list of cardsByZone.current.values()) if (list[0]) fronts.add(list[0])
+    zoneCounts.current = new Map(
+      [...cardsByZone.current].map(([zone, list]) => [zone, list.length]),
+    )
+
     // Which shelf slot each floating badge takes, the front of the pile first.
     // Assigned over the pile rather than per card, because the collision this
     // fixes is between two plates that belong to different cards.
@@ -1175,6 +1193,44 @@ function Wall({
         }
       }
 
+      const chip = chips.byId.get(id)
+      const wearsChip = params.chips.cards && fronts.has(id)
+      if (chip || wearsChip) {
+        const text = ago(now - (bornAt.get(id) ?? now))
+        const look = {
+          fill: params.colors.chipFill,
+          ink: params.colors.chipInk,
+          icon: params.colors.chipIcon,
+          family: badgeFamily,
+          height: params.chips.size,
+        }
+        const held = chips.sync(
+          id,
+          `${text}|${look.fill}|${look.icon}|${look.ink}|${badgeFamily}|${fontsReady}|${look.height}`,
+          text,
+          look,
+        )
+        held.plate.visible = wearsChip
+        if (wearsChip) {
+          const { w, h } = held
+          held.plate.scale.set(w, h, 1)
+          held.plate.rotation.copy(mesh.rotation)
+          // Measured in the card's own frame and then turned with it, so the
+          // chip holds its corner from every angle rather than sliding off it.
+          held.plate.position
+            .copy(mesh.position)
+            .add(
+              new THREE.Vector3(
+                (drawnW * swell) / 2 - w / 2 - params.chips.pad,
+                -(drawnH * swell) / 2 + h / 2 + params.chips.pad,
+                BADGE_LIFT,
+              ).applyEuler(mesh.rotation),
+            )
+          const material = held.plate.material as THREE.MeshBasicMaterial
+          material.opacity = cut
+        }
+      }
+
       // Set here rather than in the memo, which cannot see a zone that arrived
       // since, and which does not know how far the card has faded.
       const edge = edges.byId.get(id)
@@ -1266,11 +1322,17 @@ function Wall({
         const held = badges.byId.get(id)
         return held ? <primitive key={`badge-${id}`} object={held.plate} /> : null
       })}
+      {live.map((id) => {
+        const held = chips.byId.get(id)
+        return held ? <primitive key={`chip-${id}`} object={held.plate} /> : null
+      })}
       {[...leaders].map(([level, line]) => (
         <primitive key={`leader-${level}`} object={line} />
       ))}
       <ZoneOverlay
         cells={bases}
+        counts={zoneCounts}
+        chips={params.chips}
         zones={zoneNames}
         focus={zoneOf(view)}
         settings={params.zones}

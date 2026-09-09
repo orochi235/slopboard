@@ -57,6 +57,13 @@ function ImageLightbox({
   /** False until the wheel stream has gone quiet once. The flick that opened
    *  this image is still arriving, and it has already been paid for. */
   const armed = useRef(false)
+  /** The live view and the live `onClose`, for the wheel handler: it is bound
+   *  once per image, and rebinding it per render would rebuild the quiet gate
+   *  under a stream it is in the middle of reading. */
+  const viewRef = useRef(view)
+  viewRef.current = view
+  const close = useRef(onClose)
+  close.current = onClose
 
   // The id changes when the viewer moves between images without closing. The
   // view goes back to fit with it: paging a pile is no way to land inside the
@@ -85,8 +92,18 @@ function ImageLightbox({
       // Swallowed even while disarmed, or the tail reaches the wall's window
       // listener and steps a rung back out from under the image that opened.
       e.stopPropagation()
-      if (gate.feed(e.timeStamp)) armed.current = true
+      const fresh = gate.feed(e.timeStamp)
+      if (fresh) armed.current = true
       if (!armed.current) return
+      // At fit there is nothing left to zoom out of, so an out-gesture spends
+      // itself on the rung instead and the image closes — the inverse of the
+      // flick that opened it. A fresh gesture only: a roll that zooms out as
+      // far as fit stops there rather than carrying on out of the lightbox in
+      // the same movement.
+      if (fresh && e.deltaY > 0 && !isZoomed(viewRef.current, image, size.current)) {
+        close.current()
+        return
+      }
       setEased(false)
       setView((v) => zoomByWheel(v, e.deltaY, { x: e.clientX, y: e.clientY }, image, size.current))
     }

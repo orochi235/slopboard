@@ -40,6 +40,8 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'distance.from': [0, 200, 1],
   'distance.to': [0, 200, 1],
   'distance.floor': [0, 1, 0.01],
+  'chips.size': [0.008, 0.12, 0.002],
+  'chips.pad': [0, 0.05, 0.001],
   'attention.pulse': [0, 1, 0.01],
   'attention.badgeSize': [0.008, 0.3, 0.002],
   'attention.hoverScale': [1, 1.5, 0.01],

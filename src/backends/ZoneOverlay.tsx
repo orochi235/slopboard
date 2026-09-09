@@ -7,10 +7,15 @@ import { createBackdropMaterial } from '@/backends/hatch.ts'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import type { StackParams } from '@/params.ts'
 import { labelTexture } from '@/textures/label.ts'
+import { createChips, inkFor } from '@/textures/chip.ts'
 
 type Props = {
   /** Written by the wall's frame loop, so the outlines track a growing pile. */
   cells: RefObject<Map<string, Rect>>
+  /** Written by the wall's frame loop, like `cells`: how many artifacts each
+   *  zone holds, which is what its corner chip says. */
+  counts: RefObject<Map<string, number>>
+  chips: StackParams['chips']
   zones: string[]
   focus: string | null
   settings: StackParams['zones']
@@ -45,6 +50,8 @@ function corners(box: Rect): number[] {
  */
 export function ZoneOverlay({
   cells,
+  counts,
+  chips: chipSettings,
   zones,
   focus,
   settings,
@@ -100,6 +107,13 @@ export function ZoneOverlay({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fontsReady is a
     // rebuild token, not a value the labels read.
   }, [zones, colors.label, settings.huedLabel, hued, family, fontsReady])
+
+  const chips = useMemo(() => createChips(), [])
+  useEffect(() => () => chips.dispose(), [chips])
+  const chipPlates = useMemo(
+    () => new Map(zones.map((zone) => [zone, chips.ensure(zone)] as const)),
+    [zones, chips],
+  )
 
   useEffect(
     () => () => {
@@ -179,6 +193,33 @@ export function ZoneOverlay({
       const outward = settings.labelAlign < 0.5 ? -settings.labelOffset : settings.labelOffset
       sprite.position.set(across + outward - h / 2, -(box.y + box.h) + (h * aspect) / 2, 0)
     }
+
+    for (const zone of zones) {
+      const box = cells.current?.get(zone)
+      const count = counts.current?.get(zone) ?? 0
+      const shows = chipSettings.zones && !!box && count > 0
+      const text = String(count)
+      const own = hued.get(zone)
+      const fill = own ? `#${own.getHexString()}` : colors.zoneIdle
+      const ink = inkFor(fill, colors.chipInk, colors.chipFill)
+      const held = chips.sync(
+        zone,
+        `${text}|${fill}|${ink}|${family}|${fontsReady}|${chipSettings.size}`,
+        text,
+        { fill, ink, family, height: chipSettings.size },
+      )
+      held.plate.visible = shows
+      if (!box || !shows) continue
+      held.plate.scale.set(held.w, held.h, 1)
+      // The cell's bottom-right, in the plane the outline is drawn in. Coplanar
+      // with the border rather than lifted off it: a chip standing proud of the
+      // zone reads as a sticker in front of the wall the moment it turns.
+      held.plate.position.set(
+        box.x + box.w - held.w / 2 - chipSettings.pad,
+        -(box.y + box.h) + held.h / 2 + chipSettings.pad,
+        0,
+      )
+    }
   })
 
   return (
@@ -192,6 +233,7 @@ export function ZoneOverlay({
             {backdrop && <primitive object={backdrop} />}
             {line && <primitive object={line} />}
             {label && <primitive object={label.sprite} />}
+            {chipPlates.get(zone) && <primitive object={chipPlates.get(zone)!.plate} />}
           </group>
         )
       })}

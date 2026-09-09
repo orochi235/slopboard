@@ -64,6 +64,21 @@ export type StackParams = {
     combine: 'ceiling' | 'min'
   }
   /**
+   * Small readouts standing in a corner: how old the front of a pile is, how
+   * many artifacts a zone holds. Both answer a question the wall could only be
+   * asked by walking up to it.
+   */
+  chips: {
+    /** An age chip on the front card of every pile. */
+    cards: boolean
+    /** A count chip on every zone. */
+    zones: boolean
+    /** World height of a chip, whichever it is. */
+    size: number
+    /** How far a chip stands in from the corner it sits at. */
+    pad: number
+  }
+  /**
    * How an item that asks to be looked at gets said. One strength drives all
    * three cues, so they cannot drift apart, and the wall reads the same
    * whether a flag is fresh or about to lapse.
@@ -295,6 +310,12 @@ export type StackParams = {
     /** Badge text. Black on every plate: they all run near-neon, and even pure
      *  red measures better against black (5.25:1) than against white (4.00:1). */
     badgeInk: string
+    /** A corner chip: a black plate, so it reads against a picture of any
+     *  color, with the clock struck in yellow so the glyph is findable at a
+     *  glance and the text stays the thing being read. */
+    chipFill: string
+    chipIcon: string
+    chipInk: string
     zoneIdle: string
     zoneFocus: string
     zoneBackdrop: string
@@ -361,6 +382,12 @@ export const defaultParams: StackParams = {
     to: 22,
     floor: 0.12,
     combine: 'ceiling',
+  },
+  chips: {
+    cards: true,
+    zones: true,
+    size: 0.03,
+    pad: 0.008,
   },
   attention: {
     pulse: 0,
@@ -486,6 +513,9 @@ export const defaultParams: StackParams = {
     attentionUrgent: '#ff8000',
     attentionProblem: '#ff0000',
     badgeInk: '#ffffff',
+    chipFill: '#000000',
+    chipIcon: '#ffe58f',
+    chipInk: '#ffffff',
     zoneIdle: '#64748b',
     zoneFocus: '#38bdf8',
     zoneBackdrop: '#64748b',
