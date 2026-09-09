@@ -26,11 +26,11 @@ describe('targetOf', () => {
 describe('menuFor', () => {
   const actions = (...args: Parameters<typeof menuFor>) => menuFor(...args).map((i) => i.action)
 
-  it('offers to keep a card that is not kept, and to release one that is', () => {
+  it('offers to pin a card that is not pinned, and to unpin one that is', () => {
     const target = targetOf(['slopboard', 'a'])
-    expect(actions(target, { item: item(), canUndo: false })).toContain('keep')
-    expect(actions(target, { item: item({ keptAt: 2000 }), canUndo: false })).toContain('release')
-    expect(actions(target, { item: item({ keptAt: 2000 }), canUndo: false })).not.toContain('keep')
+    expect(actions(target, { item: item(), canUndo: false })).toContain('pin')
+    expect(actions(target, { item: item({ keptAt: 2000 }), canUndo: false })).toContain('unpin')
+    expect(actions(target, { item: item({ keptAt: 2000 }), canUndo: false })).not.toContain('pin')
   })
 
   it('offers to dismiss only a card that is asking', () => {

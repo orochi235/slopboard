@@ -8,8 +8,8 @@ export type Target =
 
 export type Action =
   | 'open'
-  | 'keep'
-  | 'release'
+  | 'pin'
+  | 'unpin'
   | 'expire'
   | 'expireZone'
   | 'copyPath'
@@ -34,9 +34,8 @@ export function targetOf(chain: readonly string[]): Target {
 /**
  * The menu for a target, in the order it reads.
  *
- * "Release" rather than a shorter word because the short ones all mislead:
- * "drop" and "free" both read as throwing the image away, which is the
- * neighbouring item.
+ * "Unpin" rather than "drop" or "free", which both read as throwing the image
+ * away — the item directly below this one.
  */
 export function menuFor(
   target: Target,
@@ -54,8 +53,8 @@ export function menuFor(
     items.push({ action: 'open', label: 'Open' })
     items.push(
       ctx.item.keptAt
-        ? { action: 'release', label: 'Release' }
-        : { action: 'keep', label: 'Keep' },
+        ? { action: 'unpin', label: 'Unpin' }
+        : { action: 'pin', label: 'Pin' },
     )
     if (ctx.item.attention) items.push({ action: 'dismiss', label: 'Dismiss the flag' })
     items.push({ action: 'copyPath', label: 'Copy path' })

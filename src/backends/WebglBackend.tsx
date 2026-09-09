@@ -1511,8 +1511,8 @@ export function WebglBackend(props: Props) {
       if (action === 'dismiss') return dismiss(id)
       if (action === 'copyPath' && menuItem)
         return void navigator.clipboard?.writeText(menuItem.path).catch(() => {})
-      if (action === 'keep' || action === 'release') {
-        const on = action === 'keep' ? '1' : '0'
+      if (action === 'pin' || action === 'unpin') {
+        const on = action === 'pin' ? '1' : '0'
         return void fetch(`/api/items/${id}/keep?on=${on}`, { method: 'POST' }).catch(() => {})
       }
       if (action === 'expire') {

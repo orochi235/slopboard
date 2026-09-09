@@ -136,9 +136,9 @@ the `?backend=` flag and the flat half of the arrangement interface. `stack` is
 the set. The design doc's arrangement table keeps the six as what was tried, so
 nobody re-proposes porting one.
 
-**Right-click, and the rescue under it.** A menu on the canvas — Open, Keep /
-Release, Dismiss the flag, Copy path, Expire now, and Undo last expiry (also
-Cmd-Z). Keeping writes `kept` to the sidecar, so it survives a restart, and
+**Right-click, and the rescue under it.** A menu on the canvas — Open, Pin /
+Unpin, Dismiss the flag, Copy path, Expire now, and Undo last expiry (also
+Cmd-Z). Pinning writes `kept` to the sidecar, so it survives a restart, and
 freezes the card's decay where it stood; expiry is undoable one deep and comes
 back with a fresh `bornAt`, since its old one is already past its TTL. The
 menu is a `delamin8r` parallax window in `window` mode — see the spec for why
@@ -313,7 +313,7 @@ The user's instruction is to work all of it, not just the head.
 
 **Then:**
 
-- **The keep set has no cap.** `DESIGN.md` bounds it at twelve so that keeping
+- **The pin set has no cap.** `DESIGN.md` bounds it at twelve so that keeping
   costs something; the menu ships without the bound on purpose, because nothing
   had ever been kept when it was written. Revisit after living with it, and see
   `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.

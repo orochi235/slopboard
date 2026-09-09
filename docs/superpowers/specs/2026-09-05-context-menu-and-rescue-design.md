@@ -20,12 +20,13 @@ menu on it, because saving and copying an image is what that menu is for.
 The pick is a read of `chainAt` in `WebglBackend`, which already answers
 `[zone, id]`, `[zone]` or `[]` for any screen point. `targetOf` names the three.
 
-Over a card: **Open**, **Keep** (or **Release**), **Dismiss the flag** when it
+Over a card: **Open**, **Pin** (or **Unpin**), **Dismiss the flag** when it
 is asking, **Copy path**, **Expire now**. Over a zone or empty sky: **Undo last
 expiry**, and nothing else — a menu with no items does not open.
 
-"Release" rather than a one-syllable verb: "drop" and "free" both read as
-throwing the image away, which is the item directly below it.
+"Unpin" rather than "drop" or "free": both read as throwing the image away,
+which is the item directly below it. Dismissing a flag is a separate action and
+keeps its own word — it lets go of the attention, not of the image.
 
 Cmd-Z does the undo without the menu.
 
