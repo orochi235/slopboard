@@ -1,8 +1,5 @@
 import { useMemo } from 'react'
 import { RangeSlider } from '@weasel-js/ui'
-// The component styles only. Deliberately not `@weasel-js/theme`'s tokens.css,
-// which also sets a document font and would re-type the whole wall.
-import '@weasel-js/ui/style.css'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'

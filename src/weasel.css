@@ -1,0 +1,24 @@
+/*
+ * The tokens weasel's controls read, mapped onto the wall's own palette.
+ * Written out here rather than by importing `@weasel-js/theme` — its
+ * tokens.css also sets a document font and would re-type the whole wall.
+ * Worn by each element that holds weasel components, never by the document,
+ * so nothing here reaches the rest of the chrome.
+ */
+.wzl-skin {
+  --wzl-accent: var(--accent);
+  --wzl-accent-strong: color-mix(in srgb, var(--accent) 80%, white);
+  --wzl-fg: var(--ink);
+  --wzl-fg-muted: var(--muted);
+  --wzl-fg-inverse: var(--bg);
+  --wzl-fg-on-accent: var(--bg);
+  --wzl-surface-sunken: color-mix(in srgb, var(--ink) 22%, transparent);
+  --wzl-border: color-mix(in srgb, var(--muted) 40%, transparent);
+  --wzl-border-strong: var(--muted);
+  --wzl-slider-thumb-tint: var(--accent);
+  --wzl-focus-ring: var(--accent);
+  --wzl-radius-sm: 2px;
+  --wzl-radius-pill: 999px;
+  --wzl-motion-fast: 120ms;
+  --wzl-font-ui: inherit;
+}
