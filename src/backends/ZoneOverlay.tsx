@@ -37,6 +37,16 @@ type Props = {
  */
 const BACKDROP_Z = -0.001
 
+/**
+ * The zone's frame is the wall a pile hangs on, and the wall draws its cards at
+ * 0. So the whole frame sits below that, in the order it stacks: the hatched
+ * backdrop, the border over it, the count over both, and every artifact the
+ * zone holds over all of it.
+ */
+const BACKDROP_ORDER = -3
+const OUTLINE_ORDER = -2
+const CHIP_ORDER = -1
+
 /** A rect's four corners, in three's world space — the one place besides the
  *  card meshes that has to undo windease's downward-growing y. */
 function corners(box: Rect): number[] {
@@ -64,7 +74,14 @@ export function ZoneOverlay({
   const idle = useMemo(() => new THREE.Color(colors.zoneIdle), [colors.zoneIdle])
   const highlight = useMemo(() => new THREE.Color(colors.zoneFocus), [colors.zoneFocus])
   const outlines = useMemo(
-    () => new Map(zones.map((zone) => [zone, createLoop()] as const)),
+    () =>
+      new Map(
+        zones.map((zone) => {
+          const line = createLoop()
+          line.renderOrder = OUTLINE_ORDER
+          return [zone, line] as const
+        }),
+      ),
     [zones],
   )
 
@@ -77,7 +94,7 @@ export function ZoneOverlay({
           const mesh = new THREE.Mesh(quad, createBackdropMaterial())
           // Behind the cards in every sense: it never occludes and never
           // takes a pick.
-          mesh.renderOrder = -1
+          mesh.renderOrder = BACKDROP_ORDER
           mesh.raycast = () => null
           return [zone, mesh] as const
         }),
@@ -90,7 +107,7 @@ export function ZoneOverlay({
       zones.map((zone) => {
         // A label is a canvas texture, so its colour is baked at build time
         // rather than set per frame like the outline's.
-        const own = settings.huedLabel ? hued.get(zone) : undefined
+        const own = settings.huedFrame ? hued.get(zone) : undefined
         const ink = own ? `#${own.getHexString()}` : colors.label
         const { texture, aspect } = labelTexture(zone, ink, family)
         const material = new THREE.SpriteMaterial({
@@ -106,9 +123,11 @@ export function ZoneOverlay({
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fontsReady is a
     // rebuild token, not a value the labels read.
-  }, [zones, colors.label, settings.huedLabel, hued, family, fontsReady])
+  }, [zones, colors.label, settings.huedFrame, hued, family, fontsReady])
 
-  const chips = useMemo(() => createChips(), [])
+  // The count is part of the wall a pile hangs on, so the pile covers it rather
+  // than the other way round.
+  const chips = useMemo(() => createChips(CHIP_ORDER), [])
   useEffect(() => () => chips.dispose(), [chips])
   const chipPlates = useMemo(
     () => new Map(zones.map((zone) => [zone, chips.ensure(zone)] as const)),
@@ -165,7 +184,7 @@ export function ZoneOverlay({
       if (!box) continue
       line.geometry.setPositions(corners(box))
       line.computeLineDistances()
-      const own = settings.huedOutline ? hued.get(zone) : undefined
+      const own = settings.huedFrame ? hued.get(zone) : undefined
       line.material.color.copy(own ?? (zone === focus ? highlight : idle))
       line.material.linewidth = settings.outlineWidth
       line.material.opacity = 0.65
@@ -199,8 +218,12 @@ export function ZoneOverlay({
       const count = counts.current?.get(zone) ?? 0
       const shows = chipSettings.zones && !!box && count > 0
       const text = String(count)
-      const own = hued.get(zone)
-      const fill = own ? `#${own.getHexString()}` : colors.zoneIdle
+      // The outline's own color, by the outline's own rule: the chip straddles
+      // that border and is part of the same frame, so the two must not disagree
+      // about whose zone this is.
+      const own = settings.huedFrame ? hued.get(zone) : undefined
+      const paint = own ?? (zone === focus ? highlight : idle)
+      const fill = `#${paint.getHexString()}`
       const ink = inkFor(fill, colors.chipInk, colors.chipFill)
       const held = chips.sync(
         zone,
@@ -215,8 +238,8 @@ export function ZoneOverlay({
       // coplanar with it: a chip standing proud of the zone reads as a sticker
       // in front of the wall the moment it turns.
       held.plate.position.set(
-        box.x + box.w + chipSettings.pad,
-        -(box.y + box.h) - chipSettings.pad,
+        box.x + box.w + chipSettings.bleed,
+        -(box.y + box.h) - chipSettings.bleed,
         0,
       )
     }

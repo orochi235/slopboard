@@ -5,10 +5,14 @@ import { CHROME_ORDER } from '@/backends/order.ts'
  *  stays crisp at any distance the wall is read from. */
 const PX = 96
 /** Everything below is a fraction of that height, so one number sizes a chip. */
-const PAD = 0.36
+const PAD = 0.22
 const RADIUS = 0.3
-const ICON = 0.56
-const GAP = 0.2
+const FONT = 0.5
+/** The clock stands as tall as a digit, not as tall as the line: an icon sized
+ *  to the em box reads as the label and leaves the number looking like a note
+ *  on it. Cap height of `FONT` is about seven tenths of it. */
+const ICON = FONT * 0.7
+const GAP = 0.12
 
 export type ChipLook = {
   fill: string
@@ -51,7 +55,7 @@ export function chipTexture(
 ): { texture: THREE.CanvasTexture; width: number; height: number } {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
-  const font = `600 ${PX * 0.5}px ${family}`
+  const font = `600 ${PX * FONT}px ${family}`
   ctx.font = font
 
   const glyph = icon ? PX * ICON + PX * GAP : 0
@@ -123,7 +127,12 @@ export type HeldChip = { plate: THREE.Mesh; key: string; w: number; h: number }
  * Shared by the cards and the zones because the three.js plumbing is the whole
  * of it: a plane in the subject's own frame, composited over the wall.
  */
-export function createChips() {
+/**
+ * `renderOrder` is what decides whether the wall's cards cover a chip or the
+ * chip covers them: a card chip is chrome over its own artifact, while a zone's
+ * count belongs to the frame the pile hangs on and has to sit behind it.
+ */
+export function createChips(renderOrder: number = CHROME_ORDER) {
   const quad = new THREE.PlaneGeometry(1, 1)
   const byId = new Map<string, HeldChip>()
 
@@ -146,7 +155,7 @@ export function createChips() {
           side: THREE.DoubleSide,
         }),
       )
-      plate.renderOrder = CHROME_ORDER
+      plate.renderOrder = renderOrder
       // A readout, not a target: the card underneath keeps the whole pick.
       plate.raycast = () => null
       held = { plate, key: '', w: 0, h: 0 }

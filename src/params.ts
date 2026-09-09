@@ -75,9 +75,11 @@ export type StackParams = {
     zones: boolean
     /** World height of a chip, whichever it is. */
     size: number
-    /** Nudge along the corner's diagonal, outward. A chip is centered on the
-     *  corner itself, so zero is the straddle and this is the correction. */
-    pad: number
+    /** How far the age chip sits inside its artifact's top-left corner. */
+    inset: number
+    /** How far a zone's count runs past the corner it marks, along the
+     *  diagonal. Centered on the corner point, so zero is the straddle. */
+    bleed: number
   }
   /**
    * How an item that asks to be looked at gets said. One strength drives all
@@ -254,8 +256,10 @@ export type StackParams = {
     backdrop: 'none' | 'hatch' | 'solid'
     /** Borrow the colour of the project bound to a zone, where it has a
      *  `.hued`. Falls back to the palette for every zone that has none. */
-    huedOutline: boolean
-    huedLabel: boolean
+    /** The zone's frame — its outline, its name and its count — in the color
+     *  of the project bound to it. One switch, because three parts of one frame
+     *  disagreeing about whose zone this is reads as a bug. */
+    huedFrame: boolean
     huedBackdrop: boolean
     huedCardEdge: boolean
     /** 0 is invisible, 1 is flat. */
@@ -388,7 +392,8 @@ export const defaultParams: StackParams = {
     cards: true,
     zones: true,
     size: 0.03,
-    pad: 0,
+    inset: 0.006,
+    bleed: 0,
   },
   attention: {
     pulse: 0,
@@ -487,8 +492,7 @@ export const defaultParams: StackParams = {
     labelOffset: 0.01,
     labelAlign: 0,
     backdrop: 'hatch',
-    huedOutline: true,
-    huedLabel: false,
+    huedFrame: true,
     huedBackdrop: true,
     huedCardEdge: true,
     backdropOpacity: 0.69,

@@ -1215,15 +1215,16 @@ function Wall({
           const { w, h } = held
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
-          // Centered on the corner itself, so the chip straddles it rather than
-          // sitting inside the picture. Measured in the card's own frame and
-          // then turned with it, so it holds that corner from every angle.
+          // Inside the artifact's top-left corner. Measured in the card's own
+          // frame and then turned with it, so it holds that corner from every
+          // angle rather than sliding off it as the wall turns.
+          const inset = params.chips.inset
           held.plate.position
             .copy(mesh.position)
             .add(
               new THREE.Vector3(
-                (drawnW * swell) / 2 + params.chips.pad,
-                -(drawnH * swell) / 2 - params.chips.pad,
+                -(drawnW * swell) / 2 + w / 2 + inset,
+                (drawnH * swell) / 2 - h / 2 - inset,
                 BADGE_LIFT,
               ).applyEuler(mesh.rotation),
             )
