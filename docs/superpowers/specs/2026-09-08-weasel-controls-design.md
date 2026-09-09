@@ -17,11 +17,21 @@ wall, the checkboxes are whatever the OS draws, and the value column is ragged
 — `0.305` sits above `420` sits above `1`, so a column meant to be compared
 down has to be read across.
 
-**The band's slider is 82px wide over a 520px histogram.** `.topbar__range`
-stretches to its container with `position: absolute; inset: 0`, but
-`display: flex` never stretches the React Aria track inside it, which takes its
-natural width and centers. The thumbs do not point at the times they select.
-Measured on the running wall, not inferred.
+**The band's slider is 82px wide over a 520px histogram.** The thumbs do not
+point at the times they select. Measured on the running wall, not inferred.
+
+The cause is one property of ours. Weasel's `.slider` is already a column flex
+container, and `.topbar__range` adds `align-items: center` to sit it over the
+histogram. In a column container `align-items` governs the *horizontal* axis,
+so `center` makes the track shrink to fit instead of stretching, and it lands
+on its `min-width: 80px`. Vertical centering in a column container is
+`justify-content`. Confirmed by setting `display: block` on the live element,
+which restores the track to the full 520px.
+
+So the one-line fix is `align-items: stretch`. The rework below is not that
+fix — it is worth doing because it puts the bars and the thumbs on one track
+width permanently, but the bug was ours and is not an argument against
+`RangeSlider`.
 
 ## What replaces them
 
@@ -121,11 +131,11 @@ histogram moves from a sibling `<svg>` into its `renderTrack`, which is handed
 />
 ```
 
-The width bug is not fixed so much as made unrepresentable: the bars and the
-thumbs read the same track width from the same context, so they cannot drift
-apart again. `trackClick: 'move-nearest'` makes a press on the shape send the
-nearer edge there and carry on as a drag, which is what a person aims at a
-histogram expects.
+This also settles the width bug for good rather than by the one-line fix: the
+bars and the thumbs read the same track width from the same context, so no
+future rule on the wrapper can drift them apart again. `trackClick:
+'move-nearest'` makes a press on the shape send the nearer edge there and carry
+on as a drag, which is what a person aiming at a histogram expects.
 
 `onInput` fires through the drag and `onChange` once at its end; the wall wants
 the live one, as it has now.

@@ -219,7 +219,9 @@ In `src/TopBar.tsx`, delete lines 3–5 — the two-line comment and `import '@w
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-Then reload `http://localhost:5183/` and confirm the band's slider still renders with cyan paint rather than transparent. It is still mispositioned — that is Task 5.
+Then reload `http://localhost:5183/` and confirm the band's slider still renders with cyan paint rather than transparent. Paint is the only thing this step is checking.
+
+The band will look worse than it did, and that is expected: dropping the old rule takes `position: absolute; inset: 0` with it, so the slider falls out from over the histogram and sits below it. It stays that way until Task 5 removes the overlay arrangement entirely. Do not patch it back — the positioning is what Task 5 deletes.
 
 - [ ] **Step 6: Commit**
 
@@ -434,7 +436,9 @@ git commit -m "drop the params grid the property rows replaced"
 
 ### Task 5: The band's histogram moves inside the track
 
-`.topbar__range` stretches to its container with `position: absolute; inset: 0`, but `display: flex` never stretches the React Aria track inside it: the track takes its natural width — 82px against a 520px histogram — and centers. The thumbs do not point at the times they select. `Slider`'s `renderTrack` is handed `{ trackWidth, valueToFraction }`, so drawing the bars there puts them on the track's own width by construction.
+The band's track is 82px wide against a 520px histogram, so the thumbs do not point at the times they select. The cause is one property of ours: weasel's `.slider` is already a column flex container, and `.topbar__range` adds `align-items: center`, which in a column container governs the horizontal axis — the track shrinks to fit and lands on its `min-width: 80px`. The rework here removes that wrapper entirely, so the property goes with it.
+
+Doing the rework rather than the one-line `align-items: stretch`: `Slider`'s `renderTrack` is handed `{ trackWidth, valueToFraction }`, so drawing the bars inside the track puts them on its own width by construction, and no future rule on a wrapper can separate them again.
 
 **Files:**
 - Modify: `src/TopBar.tsx:1-10, 43-99`
