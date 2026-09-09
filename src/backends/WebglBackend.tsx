@@ -58,6 +58,7 @@ import {
   WALL,
   zoneOf,
 } from '@/view-state.ts'
+import { rampAt, rampOf, rampTo } from '@/ramp.ts'
 import type { WallItem } from '@shared/protocol.ts'
 
 type Props = {
@@ -336,6 +337,7 @@ function Wall({
     }
   }, [])
   const chips = useMemo(() => createChips(), [])
+  const chipRamp = useRef(rampOf(1))
   useEffect(() => () => chips.dispose(), [chips])
 
   /** One line object per level rather than one per badge: a LineMaterial has a
@@ -768,9 +770,16 @@ function Wall({
     const bornAt = new Map(current.items.map((i) => [i.id, i.bornAt]))
     // A chip annotates its subject, so it shrinks when the camera closes on
     // one: at wall distance the pile is small and the note has to carry, and
-    // zoomed in the card is what grew.
+    // zoomed in the card is what grew. Ramped over the camera's own move, so
+    // the two arrive together instead of the chip snapping mid-flight.
+    chipRamp.current = rampTo(
+      chipRamp.current,
+      zoneOf(viewRef.current) ? params.chips.shrink : 1,
+      now,
+      params.camera.moveMs,
+    )
     const chipHeight =
-      params.chips.size * (zoneOf(viewRef.current) ? params.chips.shrink : 1)
+      params.chips.size * rampAt(chipRamp.current, now, params.camera.moveMs)
     const zoneFor = new Map(model.map((m) => [m.id, m.zone]))
     zoneById.current = zoneFor
 
@@ -1207,17 +1216,17 @@ function Wall({
           ink: params.colors.chipInk,
           icon: params.colors.chipIcon,
           family: badgeFamily,
-          height: chipHeight,
         }
         const held = chips.sync(
           id,
-          `${text}|${look.fill}|${look.icon}|${look.ink}|${badgeFamily}|${fontsReady}|${look.height}`,
+          `${text}|${look.fill}|${look.icon}|${look.ink}|${badgeFamily}|${fontsReady}`,
           text,
           look,
         )
         held.plate.visible = wearsChip
         if (wearsChip) {
-          const { w, h } = held
+          const h = chipHeight
+          const w = h * held.aspect
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
           // Inside the artifact's top-left corner. Measured in the card's own
@@ -1342,6 +1351,7 @@ function Wall({
         chips={params.chips}
         zones={zoneNames}
         focus={zoneOf(view)}
+        moveMs={params.camera.moveMs}
         settings={params.zones}
         colors={params.colors}
         hued={huedColors}

@@ -23,8 +23,6 @@ export type ChipLook = {
   /** Color of the clock glyph. Omitted, the chip is text alone. */
   icon?: string
   family: string
-  /** World height of the whole chip. */
-  height: number
 }
 
 /** A clock face at 12:15, stroked into a box of `size` at (x, y). Drawn rather
@@ -54,8 +52,8 @@ function clockGlyph(ctx: CanvasRenderingContext2D, x: number, y: number, size: n
  */
 export function chipTexture(
   text: string,
-  { fill, ink, icon, family, height }: ChipLook,
-): { texture: THREE.CanvasTexture; width: number; height: number } {
+  { fill, ink, icon, family }: ChipLook,
+): { texture: THREE.CanvasTexture; aspect: number } {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')!
   const font = `${CHIP_WEIGHT} ${PX * FONT}px ${family}`
@@ -92,7 +90,9 @@ export function chipTexture(
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   texture.needsUpdate = true
-  return { texture, width: (height * canvas.width) / canvas.height, height }
+  // Width per unit of height, not a size: the world height is the caller's, and
+  // it changes as the camera moves without the pixels changing at all.
+  return { texture, aspect: canvas.width / canvas.height }
 }
 
 /** sRGB relative luminance, per WCAG. */
@@ -127,7 +127,7 @@ export function inkFor(fill: string, onDark: string, onLight: string): string {
     : onLight
 }
 
-export type HeldChip = { plate: THREE.Mesh; key: string; w: number; h: number }
+export type HeldChip = { plate: THREE.Mesh; key: string; aspect: number }
 
 /**
  * The plates, one per subject, rebuilt only when what they say changes — a chip
@@ -167,7 +167,7 @@ export function createChips(renderOrder: number = CHROME_ORDER) {
       plate.renderOrder = renderOrder
       // A readout, not a target: the card underneath keeps the whole pick.
       plate.raycast = () => null
-      held = { plate, key: '', w: 0, h: 0 }
+      held = { plate, key: '', aspect: 1 }
       byId.set(id, held)
     }
     return held
@@ -182,12 +182,11 @@ export function createChips(renderOrder: number = CHROME_ORDER) {
       if (held.key !== key) {
         const material = held.plate.material as THREE.MeshBasicMaterial
         material.map?.dispose()
-        const { texture, width, height } = chipTexture(text, look)
+        const { texture, aspect } = chipTexture(text, look)
         material.map = texture
         material.needsUpdate = true
         held.key = key
-        held.w = width
-        held.h = height
+        held.aspect = aspect
       }
       return held
     },

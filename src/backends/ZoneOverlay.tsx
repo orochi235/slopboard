@@ -1,11 +1,12 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { type RefObject, useEffect, useMemo } from 'react'
+import { type RefObject, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { Rect } from 'windease'
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { createBackdropMaterial } from '@/backends/hatch.ts'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import type { StackParams } from '@/params.ts'
+import { rampAt, rampOf, rampTo } from '@/ramp.ts'
 import { labelTexture } from '@/textures/label.ts'
 import { createChips, inkFor } from '@/textures/chip.ts'
 
@@ -16,6 +17,8 @@ type Props = {
    *  zone holds, which is what its corner chip says. */
   counts: RefObject<Map<string, number>>
   chips: StackParams['chips']
+  /** The camera's move duration, so a chip's shrink rides the same flight. */
+  moveMs: number
   zones: string[]
   focus: string | null
   settings: StackParams['zones']
@@ -62,6 +65,7 @@ export function ZoneOverlay({
   cells,
   counts,
   chips: chipSettings,
+  moveMs,
   zones,
   focus,
   settings,
@@ -71,6 +75,7 @@ export function ZoneOverlay({
   fontsReady,
 }: Props) {
   const { gl } = useThree()
+  const chipRamp = useRef(rampOf(1))
   const idle = useMemo(() => new THREE.Color(colors.zoneIdle), [colors.zoneIdle])
   const highlight = useMemo(() => new THREE.Color(colors.zoneFocus), [colors.zoneFocus])
   const outlines = useMemo(
@@ -214,8 +219,11 @@ export function ZoneOverlay({
     }
 
     // Shrunk once the view is inside a zone, for the same reason the age chip
-    // is: the frame the count marks is what the camera came closer to.
-    const chipHeight = chipSettings.size * (focus ? chipSettings.shrink : 1)
+    // is: the frame the count marks is what the camera came closer to. Ramped
+    // on the camera's own clock so it travels with the move, not after it.
+    const now = Date.now()
+    chipRamp.current = rampTo(chipRamp.current, focus ? chipSettings.shrink : 1, now, moveMs)
+    const chipHeight = chipSettings.size * rampAt(chipRamp.current, now, moveMs)
 
     for (const zone of zones) {
       const box = cells.current?.get(zone)
@@ -231,13 +239,13 @@ export function ZoneOverlay({
       const ink = inkFor(fill, colors.chipInk, colors.chipFill)
       const held = chips.sync(
         zone,
-        `${text}|${fill}|${ink}|${family}|${fontsReady}|${chipHeight}`,
+        `${text}|${fill}|${ink}|${family}|${fontsReady}`,
         text,
-        { fill, ink, family, height: chipHeight },
+        { fill, ink, family },
       )
       held.plate.visible = shows
       if (!box || !shows) continue
-      held.plate.scale.set(held.w, held.h, 1)
+      held.plate.scale.set(chipHeight * held.aspect, chipHeight, 1)
       // Centered on the cell's bottom-right corner, straddling the border, and
       // coplanar with it: a chip standing proud of the zone reads as a sticker
       // in front of the wall the moment it turns.
