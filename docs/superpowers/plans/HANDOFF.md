@@ -307,11 +307,10 @@ scoped to your own paths and do not "fix" those files.
 
 **In flight — the weasel control swap.** Plan at
 `docs/superpowers/plans/2026-09-08-weasel-controls.md`, spec beside it. Tasks
-1-4 are done and on `main` (`20cc948` and back); **tasks 5, 6 and 7 are not
-started**. Task 5 is the filter band: `RangeSlider` to `Slider`, histogram into
-`renderTrack`. The plan's step-by-step for it is current except that its stated
-cause for the band's narrow track was corrected in `72b26f3` — the 82px track
-is our own `align-items: center` on a column flex container, not a weasel bug.
+1-5 are done and on `main`. **Task 6 (before/after screenshots) and Task 7 (the
+full-suite gate and this file's own update) are not run** — 7 is blocked on the
+other session's `server/` work typechecking. Every surface has been shot to the
+wall as it landed, so 6 is a formality.
 
 The bridge now lives in `src/weasel.css` as `.wzl-skin`, worn per params group
 and by `.topbar__range`. Four tokens it was missing are why the rows first
@@ -320,15 +319,11 @@ colors**, and two carry **no fallback**, so unset means no height rather than a
 default. All four are written up with the rest of the weasel friction in
 `~/src/weasel/todo.md` (uncommitted — that repo has unrelated work in its tree).
 
-**Also asked for 2026-09-08, not started:**
-
-- **A "pinned" badge, top right, just the emoji in a badge.** Pinning is
-  `keptAt`; `src/textures/badge.ts` draws the attention plates and
-  `src/textures/chip.ts` the corner chips, so the question is which of the two
-  a pin badge is.
-- **Hued zone background colours need a minimum lightness** — weasel's is the
-  one that prompted it. `params.colors` and the daemon's per-zone colour in
-  `server/zoneColors.ts` are the two ends.
+Both of 2026-09-08's other asks landed too: a 📌 badge on a pinned card
+(`25a4e53`, its own corner opposite the age chip, ungated by `chips.cards`
+because a pin is state not decoration), and `zones.huedMinLight` (`8519829`),
+which lifts a near-black project colour — weasel's `#470013` is L 0.14 — while
+leaving hue and saturation alone.
 - **More band sections.** Time and sort are the first two; the band is built to
   take more blocks. Nothing else is specified yet.
 
