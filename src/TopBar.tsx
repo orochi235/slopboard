@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { RangeSlider } from '@weasel-js/ui'
+import { Slider } from '@weasel-js/ui'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'
@@ -53,40 +53,45 @@ export function TopBar({
         </div>
 
         <div className="topbar__chart">
-          {/* The shape of the day, so a burst is something you can see before
-              you go looking for it. */}
-          <svg
-            className="topbar__hist"
-            viewBox={`0 0 ${BINS} 100`}
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            {bins.map((n, i) => {
-              const start = span.from + ((span.to - span.from) * i) / BINS
-              const inside = !range || (start >= range.from && start <= range.to)
-              return (
-                <rect
-                  key={i}
-                  className={`topbar__bar ${inside ? '' : 'topbar__bar--out'}`}
-                  x={i}
-                  y={100 - (n / tallest) * 100}
-                  width={0.86}
-                  height={(n / tallest) * 100}
-                />
-              )
-            })}
-          </svg>
-          <RangeSlider
-            className="topbar__range"
-            minValue={span.from}
-            maxValue={span.to}
-            value={value}
+          <Slider
+            className="topbar__range wzl-skin"
+            thumbs={[{ value: value[0] }, { value: value[1] }]}
+            min={span.from}
+            max={span.to}
             step={Math.max(1000, Math.round((span.to - span.from) / 400))}
-            onChange={(v) =>
-              Array.isArray(v) ? onRange({ from: v[0] as number, to: v[1] as number }) : undefined
-            }
-            aria-label="Time range"
-            showOutput={false}
+            constraint="ordered"
+            trackClick="move-nearest"
+            trackHeight={34}
+            readoutPlacement="none"
+            ariaLabel="Time range"
+            onInput={(next) => onRange({ from: next[0].value, to: next[1].value })}
+            renderTrack={() => (
+              /* The shape of the day, so a burst is something you can see
+                 before you go looking for it. Drawn inside the track rather
+                 than beside it, so the bars and the thumbs cannot land on
+                 different widths. */
+              <svg
+                className="topbar__hist"
+                viewBox={`0 0 ${BINS} 100`}
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                {bins.map((n, i) => {
+                  const start = span.from + ((span.to - span.from) * i) / BINS
+                  const inside = !range || (start >= range.from && start <= range.to)
+                  return (
+                    <rect
+                      key={i}
+                      className={`topbar__bar ${inside ? '' : 'topbar__bar--out'}`}
+                      x={i}
+                      y={100 - (n / tallest) * 100}
+                      width={0.86}
+                      height={(n / tallest) * 100}
+                    />
+                  )
+                })}
+              </svg>
+            )}
           />
         </div>
 
