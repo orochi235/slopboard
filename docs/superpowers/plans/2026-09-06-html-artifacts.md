@@ -800,6 +800,17 @@ So the blur hypothesis is dead, and headless Chrome does not reproduce the bug
 at any pixel budget. Both runs are re-runnable: `tools/flicker-matrix.mjs` and
 `tools/flicker-screencast.mjs`, which document their own wall setup.
 
+**The iframe is not reloading, now measured rather than read.** Pinned to the
+one artifact that is known to trigger it, on a wall with nothing else to open,
+15 seconds of arrivals produced **no request for `/orig/` and no frame
+navigation** — and 1493 identical presented frames. The frame is not being
+touched, and neither is the picture.
+
+The artifact that triggers it is `wall/1670B20E…` ("Pinning a yellow"). It has
+no script, no timer, no canvas, and no CSS animation, and its five siblings on
+that zone come from the same generator with the same `color-scheme` — one of
+them larger. Whatever singles it out is not visible in its source.
+
 ### What is left
 
 Everything the harness could not hold: the real 120Hz display, a window the
