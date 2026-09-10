@@ -65,7 +65,6 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'attention.floatLift': [0, 0.4, 0.005],
   'attention.floatGap': [0, 0.1, 0.002],
   'attention.leaderWidth': [0.5, 6, 0.25],
-  'menu.fan': [0, 3, 0.25],
   'menu.step': [0, 40, 1],
   'menu.swing': [0, 120, 2],
   'menu.tilt': [0, 30, 1],

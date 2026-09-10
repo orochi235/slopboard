@@ -211,10 +211,6 @@ export type StackParams = {
      *  click lands where it was aimed. `tilt` rotates the deck under the
      *  pointer, which reads harder and moves the target while you approach. */
     mode: 'window' | 'tilt'
-    /** Steps of depth per row. Zero — the default here and in delamin8r —
-     *  keeps the rows coplanar, which is what a menu is. Depth in the menu
-     *  comes from the label standing clear of its own highlight instead. */
-    fan: number
     /** Z between adjacent planes, px. */
     step: number
     /** How far the viewpoint swings at full deflection, px. */
@@ -479,7 +475,6 @@ export const defaultParams: StackParams = {
   },
   menu: {
     mode: 'tilt',
-    fan: 0,
     step: 16,
     swing: 40,
     tilt: 12,
