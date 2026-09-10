@@ -760,26 +760,66 @@ git commit -m "record what a page artifact is"
 
 ## Open bug: the whole screen flickers while a page is open
 
-Reported 2026-09-10, **hypothesis only — not yet measured.** Opening an HTML
-artifact and leaving it open while artifacts arrive flickers the entire window
-at once, page and surround together, as if frames are being dropped.
+Reported 2026-09-10. Opening an HTML artifact and leaving it open while
+artifacts arrive flickers the entire window at once, page and surround
+together, as if frames are being dropped. **Measured 2026-09-10, and the
+compositing explanation did not survive it. Still unexplained, still unfixed.**
 
-The suspected mechanism is compositing, not the iframe. `.lightbox` is a
-fullscreen translucent sheet (`86% scrim`), the canvas underneath renders
-continuously, and `.topbar` and `.sidebar` each carry `backdrop-filter:
-blur(6px)` above it. Every canvas frame invalidates those blur regions, so the
-blur is recomputed over a changing translucent stack — which is why an idle
-wall is fine and an active one is not.
+The suspected mechanism was blur cost: `.lightbox` is a fullscreen translucent
+sheet, the canvas underneath redraws continuously, and `.topbar` and
+`.sidebar` each carry `backdrop-filter: blur(6px)` above it, so every canvas
+frame would invalidate a blur region over a changing translucent stack.
 
-Ruled out by reading: the iframe's `src` is `/orig/${item.id}` and is
-byte-identical across re-renders, so React never touches the attribute and the
-frame is not reloading. `now` re-renders the lightbox once a second, which is
-far slower than the reported flicker.
+### What the measurement says
 
-To confirm or kill it: run `npm run sim` for background activity, open a page
-artifact, and take a Chrome performance trace. If it is the blur, the trace
-shows compositing and paint dominating with dropped frames, and the cheapest
-test is dropping `backdrop-filter` from the two bars while a lightbox is open.
+Six ten-second holds against a seeded wall with an artifact arriving every
+second, at the side monitor's own backing store (3008×1692 at 2x), each
+isolating one suspect. Run twice, agreeing both times:
+
+| hold | dropped |
+| --- | --- |
+| lightbox closed | 0.1–2.6% |
+| **page open** | **0.0–0.3%** |
+| page open, no `backdrop-filter` | 0.0–0.9% |
+| page open, opaque scrim | 0.0–0.9% |
+| page open, iframe hidden | 0.0–2.2% |
+
+**Opening a page is the calmest the wall gets, not the busiest** — it covers
+the canvas, so there is less to composite. Removing `backdrop-filter` does not
+help; in both runs it left drops flat or slightly worse. No frame in any hold
+carried missing content or a checkerboarded tile, which is what a flicker
+would have to be made of.
+
+Then the symptom itself, rather than a suspect: every presented frame captured
+and diffed against the one before it. With a page open, **1193 consecutive
+frames over 12 seconds were identical** — the output does not change at all,
+let alone flicker. With the lightbox closed the only global steps are cards
+arriving, one frame of untextured box before the texture lands.
+
+So the blur hypothesis is dead, and headless Chrome does not reproduce the bug
+at any pixel budget. Both runs are re-runnable: `tools/flicker-matrix.mjs` and
+`tools/flicker-screencast.mjs`, which document their own wall setup.
+
+### What is left
+
+Everything the harness could not hold: the real 120Hz display, a window the
+macOS window server actually composites, Chrome's EDR handling on a monitor in
+that mode, and a browser with the rest of a working day open in it.
+
+Three observations would cut the field before anyone traces anything, and each
+takes ten seconds at the wall:
+
+- Does it still flicker with the window dragged to the built-in display?
+- Does a dark page flicker as much as a bright one?
+- Does an **image** lightbox flicker, or only a page?
+
+A display-only answer to the first points at the monitor's refresh or its EDR
+headroom rather than at anything in this repo. A yes to the third takes the
+iframe out of it entirely.
+
+The trace that would settle it has to come from the real window — DevTools →
+Performance, ten seconds while it flickers, saved to JSON. `tools/flicker-report.mjs`
+reads the same events out of one.
 
 ## Deliberately not in this plan
 
