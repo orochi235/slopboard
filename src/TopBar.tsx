@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Slider } from '@weasel-js/ui'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
@@ -37,19 +37,58 @@ export function TopBar({
   const value: [number, number] = [range?.from ?? span.from, range?.to ?? span.to]
   const kept = range ? bornAts.filter((t) => t >= range.from && t <= range.to).length : bornAts.length
 
+  // Everything else fixed to the top clears the band by `--band`, and the band
+  // is as tall as its own type — so it publishes what it measures rather than
+  // a constant that has to be re-guessed whenever the chrome is resized.
+  const band = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = band.current
+    if (!el) return
+    const publish = () =>
+      document.documentElement.style.setProperty('--band', `${el.getBoundingClientRect().height}px`)
+    publish()
+    const watch = new ResizeObserver(publish)
+    watch.observe(el)
+    return () => watch.disconnect()
+  }, [])
+
   return (
-    <header className="topbar" aria-label="Wall filters">
+    <header className="topbar" ref={band} aria-label="Wall filters">
       <section className="topbar__block">
         <div className="topbar__head">
           <h2 className="topbar__name">time</h2>
           <span className="topbar__count">
             {kept}/{bornAts.length}
           </span>
-          {range && (
-            <button type="button" className="topbar__clear" onClick={() => onRange(null)}>
-              clear
-            </button>
-          )}
+
+          <div className="topbar__buckets">
+            {BUCKETS.map((bucket) => {
+              const b = bucketRange(bucket.key, now)
+              const on = !!range && Math.abs(range.from - b.from) < 1000 && range.to >= b.to - 1000
+              return (
+                <button
+                  key={bucket.key}
+                  type="button"
+                  className={`topbar__bucket ${on ? 'topbar__bucket--on' : ''}`}
+                  aria-pressed={on}
+                  onClick={() => onRange(on ? null : b)}
+                >
+                  {bucket.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Always in the row, so setting a range does not shift the bucket
+              you just clicked out from under the pointer. */}
+          <button
+            type="button"
+            className="topbar__clear"
+            disabled={!range}
+            onClick={() => onRange(null)}
+          >
+            clear
+          </button>
         </div>
 
         <div className="topbar__chart">
@@ -98,24 +137,6 @@ export function TopBar({
         <div className="topbar__scale">
           <span>{ago(now - span.from)} ago</span>
           <span>now</span>
-        </div>
-
-        <div className="topbar__buckets">
-          {BUCKETS.map((bucket) => {
-            const b = bucketRange(bucket.key, now)
-            const on = !!range && Math.abs(range.from - b.from) < 1000 && range.to >= b.to - 1000
-            return (
-              <button
-                key={bucket.key}
-                type="button"
-                className={`topbar__bucket ${on ? 'topbar__bucket--on' : ''}`}
-                aria-pressed={on}
-                onClick={() => onRange(on ? null : b)}
-              >
-                {bucket.label}
-              </button>
-            )
-          })}
         </div>
       </section>
 
