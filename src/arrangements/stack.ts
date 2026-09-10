@@ -145,7 +145,12 @@ export function createStack(
             // An item asking to be looked at does not recede: emphasis floors
             // the depth falloff rather than being applied after it, so being
             // buried can dim it no further than the flag allows.
-            const byDepth = Math.max(distance(depth, params), emphasis)
+            //
+            // An excluded one is exempt: it is at the back because the band cut
+            // it, not because the pile buried it, so charging it the falloff as
+            // well multiplies the two — a card the filter means to hold at
+            // `filterDim` lands nearer a hundredth, which reads as gone.
+            const byDepth = it.excluded ? 1 : Math.max(distance(depth, params), emphasis)
 
             channels.set(it.id, {
               z: depth * params.step.z,

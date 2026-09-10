@@ -190,3 +190,24 @@ describe('stack', () => {
     expect(out.placements.size).toBe(0)
   })
 })
+
+describe('an excluded artifact', () => {
+  const container = { w: 16 / 9, h: 1 }
+  const run = (items: ReturnType<typeof item>[]) =>
+    createStack().strategy.layout({ items, container, state: undefined, options: { now: 0 } })
+
+  it('is dimmed by the filter alone, not by the rank the filter gave it', () => {
+    // The newest many cut, as dragging the band's front edge back does: they
+    // rank behind every kept one, and must not pay the depth falloff for it.
+    const items = Array.from({ length: 30 }, (_, i) => ({
+      ...item(`c${i}`, 'z', 0.01 + i * 0.001),
+      excluded: i < 25,
+    }))
+    const channels = run(items).channels!
+    for (let i = 0; i < 25; i++) {
+      expect(channels.get(`c${i}`)!.opacity).toBeCloseTo(1, 5)
+    }
+    // The kept ones still recede with depth, which is the whole point of it.
+    expect(channels.get('c29')!.opacity).toBeLessThan(1)
+  })
+})
