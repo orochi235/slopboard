@@ -156,6 +156,15 @@ export type StackParams = {
     orientation: 'wide' | 'tall'
     cols?: number
     rows?: number
+    /**
+     * The fewest cells the grid lays out, however few zones there are. A wall
+     * with one repo writing to it otherwise hands that pile the whole
+     * container, so the general view is a different size every time a zone
+     * arrives or falls quiet. The spare cells draw nothing — they are room,
+     * not zones — and the wall frames them so zooming out settles on one
+     * framing rather than on however many piles happen to exist.
+     */
+    minCells: number
     /** Which way the zones run along each axis. Mirroring the placed cells
      *  rather than re-sorting the slots, so reversing an axis moves the grid
      *  and never renumbers a zone — a pile keeps the cell it has claimed. */
@@ -453,6 +462,7 @@ export const defaultParams: StackParams = {
     orientation: 'wide',
     reverseX: false,
     reverseY: false,
+    minCells: 4,
   },
   camera: {
     projection: 'orthographic',

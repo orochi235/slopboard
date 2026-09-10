@@ -12,6 +12,7 @@ import {
 import * as THREE from 'three'
 import type { Rect } from 'windease'
 import type { Arrangement, SlopChannels } from '@/arrangements/index.ts'
+import { frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { framePose, type Pose } from '@/camera/frame.ts'
 import { type Move, poseAt } from '@/camera/move.ts'
 import { orbitOffset } from '@/camera/orbit.ts'
@@ -432,7 +433,26 @@ function Wall({
     // pile's deep ranks step past its cell and are allowed to run off the
     // screen behind it: framing them pulls the camera back until the fronts —
     // the only rank anyone reads — are small.
-    const wall = unionOf([...bases.current.values()]) ?? { x: 0, y: 0, z: 0, w: aspect, h: 1 }
+    // The room a spare cell reserves is framed as though a pile stood in it, or
+    // the camera would pull straight back into the one occupied quarter and
+    // `minCells` would change nothing you can see. Only while zones are short
+    // of it: once there are enough, every cell is claimed and the fronts are
+    // the whole grid already.
+    const container = { w: aspect, h: 1 }
+    const zones = zoneNamesRef.current
+    const spare =
+      zones.length < params.zoneGrid.minCells
+        ? gridCells(params.zoneGrid.minCells, container, params.zoneGrid)
+            .slice(zones.length)
+            .map((cell) => frontSlotOf(cell, params))
+        : []
+    const wall = unionOf([...bases.current.values(), ...spare]) ?? {
+      x: 0,
+      y: 0,
+      z: 0,
+      w: aspect,
+      h: 1,
+    }
     const framed = !zone ? wall : (bases.current.get(zone) ?? wall)
     // A label hangs above its cell, so framing the cells alone crops it.
     const headroom =

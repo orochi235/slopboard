@@ -4,6 +4,46 @@ import { createSlots } from './slots.ts'
 import type { StackParams } from '@/params.ts'
 
 /**
+ * Every cell the grid lays out for `count` items, in the order the strategy
+ * placed them. Pure, so the wall can ask for the cells of a grid it is not
+ * laying out — which is how it frames the room a spare cell reserves without
+ * the strategy having to publish anything.
+ */
+export function gridCells(
+  count: number,
+  container: WeSize,
+  cfg: StackParams['zoneGrid'],
+): Rect[] {
+  if (count <= 0) return []
+  const out = gridStrategy.layout({
+    items: Array.from({ length: count }, (_, i) => ({ id: String(i) })),
+    container,
+    state: undefined,
+    options: {
+      gap: cfg.gap,
+      orientation: cfg.orientation,
+      ...(cfg.cols === undefined ? {} : { cols: cfg.cols }),
+      ...(cfg.rows === undefined ? {} : { rows: cfg.rows }),
+    },
+  })
+  return Array.from({ length: count }, (_, i) => out.placements.get(String(i))).filter(
+    (r): r is Rect => r !== undefined,
+  )
+}
+
+/** Where a pile's front card stands in its cell — the box the wall frames,
+ *  since a pile's deep ranks are allowed to run off behind it. */
+export function frontSlotOf(cell: Rect, params: StackParams): Rect {
+  return {
+    x: cell.x + params.origin.x * (cell.w - params.side),
+    y: cell.y + params.origin.y * (cell.h - params.side),
+    z: 0,
+    w: params.side,
+    h: params.side,
+  }
+}
+
+/**
  * One cell per zone, tiled by windease.
  *
  * Held: cells are addressed by slot index rather than by sorted zone name, so
@@ -29,25 +69,25 @@ export function createZoneGrid() {
       ordered = [...held.entries()].sort((a, b) => a[1] - b[1]).map(([zone]) => zone)
     }
 
-    const out = gridStrategy.layout({
-      items: ordered.map((zone) => ({ id: zone })),
-      container,
-      state: undefined,
-      options: {
-        gap: cfg.gap,
-        orientation: cfg.orientation,
-        ...(cfg.cols === undefined ? {} : { cols: cfg.cols }),
-        ...(cfg.rows === undefined ? {} : { rows: cfg.rows }),
-      },
+    // The grid is laid out for `minCells` even when fewer zones exist, so two
+    // zones take two of four cells rather than half the container each. The
+    // cells past the last zone go unclaimed: they reserve room, and room
+    // draws nothing.
+    const cells = gridCells(Math.max(ordered.length, cfg.minCells), container, cfg)
+
+    const placed = new Map<string, Rect>()
+    ordered.forEach((zone, i) => {
+      const cell = cells[i]
+      if (cell) placed.set(zone, cell)
     })
 
-    if (!cfg.reverseX && !cfg.reverseY) return out.placements
+    if (!cfg.reverseX && !cfg.reverseY) return placed
 
     // Mirrored within the container, which reverses an axis without touching
     // slot assignment: re-sorting the slots instead would hand every zone a
     // different cell and shuffle the whole wall.
     const mirrored = new Map<string, Rect>()
-    for (const [zone, box] of out.placements) {
+    for (const [zone, box] of placed) {
       mirrored.set(zone, {
         ...box,
         x: cfg.reverseX ? container.w - (box.x + box.w) : box.x,

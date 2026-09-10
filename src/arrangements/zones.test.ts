@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createZoneGrid } from '@/arrangements/zones.ts'
+import { createZoneGrid, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { defaultParams } from '@/params.ts'
 
 const container = { w: 16 / 9, h: 1 }
@@ -15,6 +15,42 @@ describe('createZoneGrid', () => {
       expect(r.x + r.w).toBeLessThanOrEqual(container.w + 0.0001)
       expect(r.y + r.h).toBeLessThanOrEqual(container.h + 0.0001)
     }
+  })
+
+  it('lays out minCells even when fewer zones exist, so one pile is not the wall', () => {
+    const gridOf = createZoneGrid()
+    const two = gridOf(['weasel', 'astv'], container, { ...cfg, minCells: 4 })
+    const four = gridOf(['weasel', 'astv', 'onto', 'cke'], container, { ...cfg, minCells: 4 })
+    expect(two.size).toBe(2)
+    // The same grid either way: a zone arriving fills a cell that was already
+    // reserved rather than resizing every pile on the wall.
+    expect(two.get('weasel')!.w).toBeCloseTo(four.get('weasel')!.w)
+    expect(two.get('weasel')!.h).toBeCloseTo(four.get('weasel')!.h)
+  })
+
+  it('is a floor, not a cap', () => {
+    const gridOf = createZoneGrid()
+    const out = gridOf(['a', 'b', 'c', 'd', 'e'], container, { ...cfg, minCells: 4 })
+    expect(out.size).toBe(5)
+  })
+
+  it('leaves the cells past the last zone unclaimed', () => {
+    const cells = gridCells(4, container, { ...cfg, minCells: 4 })
+    const out = createZoneGrid()(['only'], container, { ...cfg, minCells: 4 })
+    expect(cells).toHaveLength(4)
+    expect(out.size).toBe(1)
+    // The spare three are the wall's own room to frame — no zone answers for them.
+    const claimed = [...out.values()]
+    expect(claimed).toHaveLength(1)
+    expect(cells.some((c) => c.x === claimed[0]!.x && c.y === claimed[0]!.y)).toBe(true)
+  })
+
+  it('puts a front slot inside the cell it belongs to', () => {
+    const [cell] = gridCells(4, container, { ...cfg, minCells: 4 })
+    const slot = frontSlotOf(cell!, defaultParams)
+    expect(slot.w).toBe(defaultParams.side)
+    expect(slot.x).toBeGreaterThanOrEqual(cell!.x - 1e-9)
+    expect(slot.x + slot.w).toBeLessThanOrEqual(cell!.x + cell!.w + 1e-9)
   })
 
   it('keeps a zone in its cell when another zone appears', () => {
@@ -64,7 +100,7 @@ describe('createZoneGrid', () => {
 
 describe('reversing an axis', () => {
   const container = { w: 2, h: 1 }
-  const cfg = { gap: 0, orientation: 'wide' as const, reverseX: false, reverseY: false }
+  const cfg = { gap: 0, orientation: 'wide' as const, reverseX: false, reverseY: false, minCells: 2 }
   const place = (over: Partial<typeof cfg>) =>
     createZoneGrid()(['a', 'b'], container, { ...cfg, ...over })
 
