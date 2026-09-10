@@ -758,6 +758,29 @@ git commit -m "record what a page artifact is"
 
 ---
 
+## Open bug: the whole screen flickers while a page is open
+
+Reported 2026-09-10, **hypothesis only — not yet measured.** Opening an HTML
+artifact and leaving it open while artifacts arrive flickers the entire window
+at once, page and surround together, as if frames are being dropped.
+
+The suspected mechanism is compositing, not the iframe. `.lightbox` is a
+fullscreen translucent sheet (`86% scrim`), the canvas underneath renders
+continuously, and `.topbar` and `.sidebar` each carry `backdrop-filter:
+blur(6px)` above it. Every canvas frame invalidates those blur regions, so the
+blur is recomputed over a changing translucent stack — which is why an idle
+wall is fine and an active one is not.
+
+Ruled out by reading: the iframe's `src` is `/orig/${item.id}` and is
+byte-identical across re-renders, so React never touches the attribute and the
+frame is not reloading. `now` re-renders the lightbox once a second, which is
+far slower than the reported flicker.
+
+To confirm or kill it: run `npm run sim` for background activity, open a page
+artifact, and take a Chrome performance trace. If it is the blur, the trace
+shows compositing and paint dominating with dropped frames, and the cheapest
+test is dropping `backdrop-filter` from the two bars while a lightbox is open.
+
 ## Deliberately not in this plan
 
 - **A card treatment that says "this is a page."** Every card is a picture and
