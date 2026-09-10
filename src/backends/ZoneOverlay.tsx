@@ -42,13 +42,13 @@ const BACKDROP_Z = -0.001
 
 /**
  * The zone's frame is the wall a pile hangs on, and the wall draws its cards at
- * 0. So the whole frame sits below that, in the order it stacks: the hatched
- * backdrop, the border over it, the count over both, and every artifact the
- * zone holds over all of it.
+ * 0. So the frame sits below that, in the order it stacks: the hatched
+ * backdrop, the border over it, and every artifact the zone holds over both.
+ * The count is signage rather than frame and draws at `CHROME_ORDER`, over the
+ * pile it counts.
  */
 const BACKDROP_ORDER = -3
 const OUTLINE_ORDER = -2
-const CHIP_ORDER = -1
 
 /** A rect's four corners, in three's world space — the one place besides the
  *  card meshes that has to undo windease's downward-growing y. */
@@ -130,9 +130,7 @@ export function ZoneOverlay({
     // rebuild token, not a value the labels read.
   }, [zones, colors.label, settings.huedFrame, hued, family, fontsReady])
 
-  // The count is part of the wall a pile hangs on, so the pile covers it rather
-  // than the other way round.
-  const chips = useMemo(() => createChips(CHIP_ORDER), [])
+  const chips = useMemo(() => createChips(), [])
   useEffect(() => () => chips.dispose(), [chips])
   const chipPlates = useMemo(
     () => new Map(zones.map((zone) => [zone, chips.ensure(zone)] as const)),

@@ -136,12 +136,7 @@ export type HeldChip = { plate: THREE.Mesh; key: string; aspect: number }
  * Shared by the cards and the zones because the three.js plumbing is the whole
  * of it: a plane in the subject's own frame, composited over the wall.
  */
-/**
- * `renderOrder` is what decides whether the wall's cards cover a chip or the
- * chip covers them: a card chip is chrome over its own artifact, while a zone's
- * count belongs to the frame the pile hangs on and has to sit behind it.
- */
-export function createChips(renderOrder: number = CHROME_ORDER) {
+export function createChips() {
   const quad = new THREE.PlaneGeometry(1, 1)
   const byId = new Map<string, HeldChip>()
 
@@ -164,7 +159,7 @@ export function createChips(renderOrder: number = CHROME_ORDER) {
           side: THREE.DoubleSide,
         }),
       )
-      plate.renderOrder = renderOrder
+      plate.renderOrder = CHROME_ORDER
       // A readout, not a target: the card underneath keeps the whole pick.
       plate.raycast = () => null
       held = { plate, key: '', aspect: 1 }
