@@ -16,7 +16,7 @@
   backdrop-filter: blur(6px);
   border-bottom: 1px solid color-mix(in srgb, var(--muted) 24%, transparent);
   color: var(--ink);
-  font: 11px/1.3 ui-monospace, monospace;
+  font: 500 calc(11px * var(--ui-type))/1.3 'Oxanium', ui-monospace, monospace;
 }
 
 /* A block, not a strip: a section gets room for a real control. */

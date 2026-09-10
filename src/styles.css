@@ -41,6 +41,12 @@
 
 :root {
   color-scheme: dark;
+  /* One dial over the DOM chrome's type. Each panel still sets its own base
+     size, in px, and everything inside it is relative to that — so this scales
+     the whole of it together and nothing has to be re-tuned per panel. The
+     wall's own in-scene text is world-sized and answers to `typeface` and the
+     size sliders instead. */
+  --ui-type: 1.2;
 }
 
 html,
@@ -50,7 +56,7 @@ body,
   margin: 0;
   overflow: hidden;
   background: var(--bg);
-  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: calc(12px * var(--ui-type))/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .hud {

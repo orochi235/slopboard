@@ -11,7 +11,7 @@
   backdrop-filter: blur(6px);
   border-left: 1px solid color-mix(in srgb, var(--muted) 24%, transparent);
   color: var(--ink);
-  font: 11px/1.3 ui-monospace, monospace;
+  font: 500 calc(11px * var(--ui-type))/1.3 'Oxanium', ui-monospace, monospace;
 }
 
 .sidebar__head {
@@ -34,7 +34,7 @@
   border: none;
   color: var(--muted);
   font: inherit;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-type));
   line-height: 1;
   padding: 0 2px;
   cursor: pointer;
@@ -60,7 +60,7 @@
   border-radius: 5px 0 0 5px;
   color: var(--ink);
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-type));
   cursor: pointer;
   opacity: 1;
   transition: background 200ms ease;

@@ -95,7 +95,7 @@
   border-radius: 4px;
   background: color-mix(in srgb, var(--scrim) 70%, transparent);
   color: color-mix(in srgb, var(--ink) 72%, transparent);
-  font: 11px/1.4 ui-monospace, monospace;
+  font: calc(11px * var(--ui-type))/1.4 ui-monospace, monospace;
   letter-spacing: 0.04em;
   cursor: default;
 }
@@ -127,7 +127,7 @@
   border-radius: 4px;
   background: color-mix(in srgb, var(--scrim) 70%, transparent);
   color: var(--ink);
-  font: 12px/1.4 ui-monospace, monospace;
+  font: calc(12px * var(--ui-type))/1.4 ui-monospace, monospace;
   cursor: default;
 }
 

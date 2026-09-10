@@ -10,7 +10,7 @@
 }
 
 .axes__label {
-  font: 10px/1 ui-monospace, monospace;
+  font: calc(10px * var(--ui-type))/1 ui-monospace, monospace;
   text-anchor: middle;
 }
 
