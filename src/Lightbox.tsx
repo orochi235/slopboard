@@ -291,6 +291,7 @@ function PageLightbox({
 }) {
   const sandbox = sandboxFor(item.sandbox)
   const root = useRef<HTMLDivElement>(null)
+  const frame = useRef<HTMLIFrameElement>(null)
 
   // The wall navigates on a `window` wheel listener. A wheel inside a
   // same-origin frame never leaves it, but one over the margin around the
@@ -310,20 +311,27 @@ function PageLightbox({
       role="dialog"
       aria-modal="true"
       aria-label="Page"
-      // The way out that does not need a keystroke. Escape and the arrows are
-      // the wall's, over `window`, and a keydown inside the frame never
-      // reaches it — so once the pointer is in the page, this margin is the
-      // only thing that still closes.
+      // Every part of the surround, not just the margin: a click inside the
+      // frame is delivered to the page's own document and never arrives here,
+      // so anything that does arrive landed beside the page.
       onClick={(e) => {
-        if (e.target === root.current) onClose()
+        if (e.target !== frame.current) onClose()
       }}
     >
       <iframe
         className="lightbox__page"
+        ref={frame}
         src={`/orig/${item.id}`}
         title={item.name || 'page'}
         {...(sandbox === null ? {} : { sandbox })}
       />
+
+      {/* The wall's Escape is a `window` listener, and a keystroke inside an
+          opaque-origin frame never reaches it. Once the pointer is in the
+          page this is the only way out that is visible. */}
+      <button type="button" className="lightbox__close" onClick={onClose}>
+        ✕ close
+      </button>
 
       <div className="lightbox__meta">
         {metaOf(item, now).map((part) => (
