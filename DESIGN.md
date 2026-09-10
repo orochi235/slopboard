@@ -675,5 +675,10 @@ the whole path an agent would — including the partial-write guard.
    one-deep undo ship with the right-click menu; the capacity bound and the
    reserved band do not. See
    `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.
+7. Arrival motion. An artifact that just landed looks exactly like one that has
+   been up an hour, minus its age chip. `bloom` (*Entry behavior is a separate
+   axis*) is the designed answer but pulls the other way — it exists to make an
+   arrival quieter rather than to mark it, and which of the two the wall wants
+   is unsettled.
 
 Steps 1–3 are cheap and answer most of the open questions.
