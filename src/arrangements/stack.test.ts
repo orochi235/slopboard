@@ -34,6 +34,28 @@ describe('stack', () => {
     expect(far.z - near.z).toBeCloseTo(defaultParams.step.z)
   })
 
+  it('ranks an excluded artifact behind every kept one', () => {
+    const stack = createStack()
+    // Newest first, so untouched the front of the pile is `fresh`. Excluding
+    // it has to promote `older` rather than leave it buried.
+    const items = [
+      { ...item('fresh', 'z', 0), excluded: true },
+      item('older', 'z', 0.5),
+    ]
+    const out = stack.strategy.layout({ items, container, state: undefined, options: { now: 0 } })
+    const fresh = out.placements.get('fresh')!
+    const older = out.placements.get('older')!
+    expect(older.z).toBeGreaterThan(fresh.z)
+  })
+
+  it('leaves the pile alone when the band excludes nothing', () => {
+    const stack = createStack()
+    const out = run(stack, [item('fresh', 'z', 0), item('older', 'z', 0.5)], 0)
+    const fresh = out.placements.get('fresh')!
+    const older = out.placements.get('older')!
+    expect(older.z).toBeLessThan(fresh.z)
+  })
+
   it('puts each zone in its own cell', () => {
     const out = run(createStack(), [item('a', 'weasel'), item('b', 'klieg')], 0)
     const a = out.placements.get('a')!

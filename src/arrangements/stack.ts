@@ -4,7 +4,12 @@ import { createZoneGrid } from './zones.ts'
 import { defaultParams, type StackParams } from '@/params.ts'
 import type { Arrangement, SlopChannels } from './types.ts'
 
-type StackItem = LayoutItem & { zone: string; age01: number; emphasis?: number }
+type StackItem = LayoutItem & {
+  zone: string
+  age01: number
+  emphasis?: number
+  excluded?: boolean
+}
 
 /** Stable per-id noise in [-1, 1]. Cheap, and identical across cache drops. */
 function hashUnit(id: string): number {
@@ -89,7 +94,13 @@ export function createStack(
           if (bucket) bucket.push(it)
           else byZone.set(it.zone, [it])
         }
-        for (const bucket of byZone.values()) bucket.sort((a, b) => a.age01 - b.age01)
+        // Excluded artifacts rank behind every kept one, so pulling the band's
+        // front edge back brings the newest artifact still in range to the
+        // front of its pile instead of leaving it buried under what was cut.
+        // Rank is what animates, so the promoted card slides forward.
+        const order = (it: StackItem) => (it.excluded ? 1 : 0)
+        for (const bucket of byZone.values())
+          bucket.sort((a, b) => order(a) - order(b) || a.age01 - b.age01)
 
         const cells = zoneGrid([...byZone.keys()], container, params.zoneGrid, zoneOrder)
 

@@ -394,8 +394,8 @@ function Wall({
   /** The flagged artifact under the pointer, badge included. */
   const hovered = useRef<string | null>(null)
 
-  const latest = useRef({ items, ttlMs, clockOffset, sort })
-  latest.current = { items, ttlMs, clockOffset, sort }
+  const latest = useRef({ items, ttlMs, clockOffset, sort, dimmed })
+  latest.current = { items, ttlMs, clockOffset, sort, dimmed }
 
   const cells = useRef<Map<string, Rect>>(new Map())
   /** Each pile's front card. The zone chrome is drawn on this rather than on
@@ -774,7 +774,7 @@ function Wall({
     const current = latest.current
     const now = Date.now() + current.clockOffset
     const model = inZoneOrder(
-      toStackItems(current.items, { now, ttlMs: current.ttlMs }),
+      toStackItems(current.items, { now, ttlMs: current.ttlMs }, current.dimmed),
       zoneOrder(current.items, current.sort, now),
     )
     const aspects = new Map(model.map((m) => [m.id, m.aspect]))
@@ -1474,8 +1474,9 @@ export function WebglBackend(props: Props) {
     })
   }, [props.items, fakes])
 
-  // Excluded rather than removed: the arrangement never sees the filter, so
-  // nothing reshuffles and a pile keeps the shape you learned.
+  // Dimmed rather than removed, and ranked last rather than left in place: an
+  // excluded artifact keeps a slot on the wall but gives up its place in the
+  // pile, so narrowing the band brings what is still in range to the front.
   const dimmed = useMemo(() => {
     const out = new Set<string>()
     if (!range) return out

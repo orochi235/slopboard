@@ -9,6 +9,9 @@ export type StackItem = LayoutItem & {
   age01: number
   aspect: number
   emphasis: number
+  /** The band's range leaves this one out. Read for rank, not for opacity:
+   *  what it buys is the pile closing over the gap. */
+  excluded: boolean
 }
 
 /** `now` is the daemon's clock, not the browser's — decay stays server-anchored
@@ -16,6 +19,7 @@ export type StackItem = LayoutItem & {
 export function toStackItems(
   items: readonly WallItem[],
   clock: { now: number; ttlMs: number },
+  excluded: ReadonlySet<string> = new Set(),
 ): StackItem[] {
   return items.map((i) => ({
     id: i.id,
@@ -27,5 +31,6 @@ export function toStackItems(
     // On the daemon's clock for the same reason age01 is: a reload must not
     // restart a flag's hold.
     emphasis: emphasisAt(i.attention, i.bornAt, clock.now),
+    excluded: excluded.has(i.id),
   }))
 }

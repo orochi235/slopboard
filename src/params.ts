@@ -230,8 +230,9 @@ export type StackParams = {
     /** Screen pixels. Real widths need fat lines; WebGL ignores linewidth. */
     cardEdgeWidth: number
     /** What an artifact the filter excludes fades to. Not zero: the point of
-     *  dimming rather than removing is that you can still see what you cut,
-     *  and where it sat relative to what you kept. */
+     *  dimming rather than removing is that you can still see how much you
+     *  cut. It does not keep its place in the pile — excluded artifacts rank
+     *  behind every kept one, so the pile closes over the gap. */
     filterDim: number
   }
   /** How a zone presents itself, beyond the cards standing in it. */
