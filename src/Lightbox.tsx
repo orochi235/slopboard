@@ -3,6 +3,7 @@ import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from 'rea
 import { metaOf } from '@/lightbox-meta.ts'
 import { createQuietGate } from '@/nav/quiet.ts'
 import { sandboxFor } from '@/lightbox-sandbox.ts'
+import { KEY_MESSAGE } from '@shared/page-keys.ts'
 import {
   fitView,
   isZoomed,
@@ -304,6 +305,22 @@ function PageLightbox({
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
 
+  // The keys the page hands back, replayed where the wall already listens for
+  // them. The frame is an opaque origin, so `event.origin` is "null" for every
+  // page alike and the frame's own window is the only thing worth checking.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== frame.current?.contentWindow) return
+      const key = (e.data as { type?: string; key?: string } | null)?.type === KEY_MESSAGE
+        ? (e.data as { key?: string }).key
+        : undefined
+      if (!key) return
+      window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }))
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+
   return (
     <div
       className="lightbox"
@@ -321,7 +338,7 @@ function PageLightbox({
       <iframe
         className="lightbox__page"
         ref={frame}
-        src={`/orig/${item.id}`}
+        src={`/page/${item.id}`}
         title={item.name || 'page'}
         {...(sandbox === null ? {} : { sandbox })}
       />

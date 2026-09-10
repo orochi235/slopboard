@@ -36,6 +36,12 @@ and stop rather than picking a different one.
 - **The sandbox is the pusher's call, not the wall's.** Whoever sends a page
   says what it is allowed to do; the wall applies what it was told. This is why
   there is no security model in this plan beyond carrying a string.
+  Tested and held, 2026-09-10: keyboard navigation inside a page wanted a
+  listener the wall cannot attach through an opaque origin. Rather than default
+  to `allow-same-origin` — which is same-origin with the wall, so a page could
+  delete its own sandbox attribute and reload out of it — the lightbox frames
+  `/page/:id`, which serves the same bytes with a forwarder that posts Escape
+  and the arrows up. `/orig` stays byte-exact for a save.
 
 ## What it collides with
 

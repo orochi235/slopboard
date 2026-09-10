@@ -1,7 +1,7 @@
 import express from 'express'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { createServer } from 'node:http'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import { config } from './config.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
@@ -9,6 +9,7 @@ import { watchInbox } from './ingest.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { zoneCounts } from './zoneCounts.ts'
 import { alert, debugItem } from './alert.ts'
+import { withKeyForwarder } from './page-keys.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { ServerMessage } from '@shared/protocol.ts'
 
@@ -51,6 +52,20 @@ app.get('/orig/:id', (req, res) => {
   const path = store.resolveOriginal(req.params.id)
   if (!path) return void res.sendStatus(404)
   res.sendFile(path, { dotfiles: 'allow' })
+})
+
+// What the lightbox frames a page with, as opposed to what `/orig` hands to a
+// save: the same bytes plus the forwarder that carries the wall's keys back
+// out of a frame it cannot listen inside.
+app.get('/page/:id', async (req, res) => {
+  const item = store.snapshot().find((i) => i.id === req.params.id)
+  const path = store.resolveOriginal(req.params.id)
+  if (!path || item?.kind !== 'page') return void res.sendStatus(404)
+  try {
+    res.type('html').send(withKeyForwarder(await readFile(path, 'utf8')))
+  } catch {
+    res.sendStatus(404)
+  }
 })
 
 // The only route that writes. A wall on a private machine, so the guard is

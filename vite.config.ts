@@ -32,6 +32,6 @@ export default defineConfig({
     // `::` is the only value that answers on both: `0.0.0.0` is IPv4 only.
     host: '::',
     strictPort: true,
-    proxy: { '/img': proxy, '/orig': proxy, '/api': proxy, '/ws': proxy },
+    proxy: { '/img': proxy, '/orig': proxy, '/page': proxy, '/api': proxy, '/ws': proxy },
   },
 })
