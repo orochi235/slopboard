@@ -73,6 +73,8 @@ type Props = {
   zoneColors: Record<string, string>
   /** An arrival whose level asks to be opened the moment it lands. */
   announce: WallItem | null
+  /** Whether the daemon is still on the other end of the socket. */
+  connected: boolean
 }
 
 type WallProps = Props & {
@@ -878,10 +880,7 @@ function Wall({
     const tick = performance.now()
     if (tick - planAt.current > PLAN_MS) {
       planAt.current = tick
-      onPlan({
-        cells: [...bases.current].map(([zone, box]) => ({ zone, box })),
-        extent: unionOf([...cells.current.values()]),
-      })
+      onPlan({ cells: [...bases.current].map(([zone, box]) => ({ zone, box })) })
     }
 
     const names = [...cells.current.keys()]
@@ -1523,7 +1522,7 @@ export function WebglBackend(props: Props) {
   }, [sidebarOpen])
 
   const [view, dispatch] = useReducer(reduceView, WALL)
-  const [plan, setPlan] = useState<Plan>({ cells: [], extent: null })
+  const [plan, setPlan] = useState<Plan>({ cells: [] })
   // Flags the wall never received, merged in below. Held here rather than in
   // App so that a fake reaches the scene by exactly the route a real one does.
   const [fakes, setFakes] = useState<Record<string, FakeFlag>>({})
@@ -1698,16 +1697,23 @@ export function WebglBackend(props: Props) {
         />
         <Sky settings={props.params.sky} colors={props.params.colors} />
       </Canvas>
-      <Minimap
-        cells={plan.cells}
-        extent={plan.extent}
-        focus={zoneOf(view)}
-        onFocus={(zone) => dispatch({ type: 'to', path: [zone] })}
-      />
-      <div className="axes">
-        <Axes yawDeg={props.params.camera.yawDeg} pitchDeg={props.params.camera.pitchDeg} />
-      </div>
       <TopBar
+        where={zoneOf(view)}
+        arrangement={props.arrangement.name}
+        count={items.length}
+        connected={props.connected}
+        plan={
+          <Minimap
+            cells={plan.cells}
+            focus={zoneOf(view)}
+            onFocus={(zone) => dispatch({ type: 'to', path: [zone] })}
+          />
+        }
+        axes={
+          <div className="axes">
+            <Axes yawDeg={props.params.camera.yawDeg} pitchDeg={props.params.camera.pitchDeg} />
+          </div>
+        }
         items={items}
         now={now}
         range={range}

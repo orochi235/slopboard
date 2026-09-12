@@ -14,7 +14,6 @@ import { useWall } from '@/useWall.ts'
 export function App() {
   const { items, zoneColors, ttlMs, clockOffset, connected, announce } = useWall()
   const [index, setIndex] = useState(0)
-  const [flash, setFlash] = useState(false)
   const [prefs, setPrefs] = useState(false)
   // Lazy: reading storage on every render would be wasted, and the tuning
   // pass is the whole reason the panel exists — losing it on reload defeats it.
@@ -48,17 +47,10 @@ export function App() {
       if (e.key !== '[' && e.key !== ']') return
       const step = e.key === ']' ? 1 : -1
       setIndex((i) => (i + step + arrangements.length) % arrangements.length)
-      setFlash(true)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
-
-  useEffect(() => {
-    if (!flash) return
-    const id = setTimeout(() => setFlash(false), 1200)
-    return () => clearTimeout(id)
-  }, [flash])
 
   const arrangement = arrangements[index]
   if (!arrangement) return null
@@ -74,14 +66,10 @@ export function App() {
         onParams={setParams}
         zoneColors={zoneColors}
         announce={announce}
+        connected={connected}
       />
       <ParallaxModal />
       {prefs && <Prefs params={params} onChange={setParams} onClose={() => setPrefs(false)} />}
-      <div className={`hud ${flash ? 'hud--flash' : ''}`}>
-        <span className="hud__name">{arrangement.name}</span>
-        <span className="hud__count">{items.length}</span>
-        {!connected && <span className="hud__offline">offline</span>}
-      </div>
     </>
   )
 }

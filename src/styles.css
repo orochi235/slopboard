@@ -59,28 +59,6 @@ body,
   font: calc(12px * var(--ui-type))/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.hud {
-  position: fixed;
-  left: 12px;
-  bottom: 10px;
-  z-index: 2000;
-  display: flex;
-  gap: 10px;
-  color: color-mix(in srgb, var(--ink) 55%, transparent);
-  opacity: 0.25;
-  transition: opacity 400ms ease;
-  pointer-events: none;
-}
-
-.hud--flash {
-  opacity: 1;
-  transition: opacity 80ms ease;
-}
-
-.hud__offline {
-  color: var(--danger);
-}
-
 .scene {
   cursor: grab;
   touch-action: none;

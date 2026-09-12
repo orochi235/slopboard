@@ -4,9 +4,8 @@ import './minimap.css'
 
 export type MinimapCell = { zone: string; box: Rect }
 
-/** What the plan draws, and the wall extent it draws them inside. The two are
- *  separate because an icon is a pile's base and the wall is the whole sprawl. */
-export type Plan = { cells: MinimapCell[]; extent: Rect | null }
+/** What the plan draws. */
+export type Plan = { cells: MinimapCell[] }
 
 /**
  * The wall's plan view: one icon per zone in its place on the wall, with the
@@ -17,18 +16,17 @@ export type Plan = { cells: MinimapCell[]; extent: Rect | null }
  */
 export function Minimap({
   cells,
-  extent,
   focus,
   onFocus,
 }: {
   cells: MinimapCell[]
-  extent: Rect | null
   focus: string | null
   onFocus: (zone: string) => void
 }) {
-  // The wall's extent, not the icons', so the plan keeps the wall's proportions
-  // and an icon sits where its pile does.
-  const bounds = extent ?? unionOf(cells.map((c) => c.box))
+  // The icons' own extent. A pile steps back and to the left as it deepens, so
+  // framing everything drawn leaves the plan sitting in a margin of the sprawl
+  // nobody reads off a box this size.
+  const bounds = unionOf(cells.map((c) => c.box))
   if (!bounds || bounds.w <= 0 || bounds.h <= 0) return null
 
   return (
@@ -62,7 +60,6 @@ export function Minimap({
           />
         ))}
       </svg>
-      <span className="minimap__label">{focus ?? 'wall'}</span>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Slider } from '@weasel-js/ui'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
@@ -20,6 +20,12 @@ export function TopBar({
   onRange,
   sort,
   onSort,
+  where,
+  arrangement,
+  count,
+  connected,
+  plan,
+  axes,
 }: {
   items: readonly WallItem[]
   /** The daemon's clock, so the axis agrees with every age on the wall. */
@@ -28,6 +34,18 @@ export function TopBar({
   onRange: (next: Range | null) => void
   sort: SortKey
   onSort: (next: SortKey) => void
+  /** The zone the view is inside, or null for the wall itself. */
+  where: string | null
+  /** How the wall is laid out, and how many artifacts are on it. */
+  arrangement: string
+  count: number
+  /** Whether the daemon is still on the other end of the socket. */
+  connected: boolean
+  /** The wall's plan view and its axis gizmo. Passed in rather than built
+   *  here: both read the live camera, which the band has no other reason to
+   *  know about. */
+  plan?: ReactNode
+  axes?: ReactNode
 }) {
   const bornAts = useMemo(() => items.map((i) => i.bornAt), [items])
   const span = useMemo(() => spanOf(bornAts, now), [bornAts, now])
@@ -54,14 +72,19 @@ export function TopBar({
 
   return (
     <header className="topbar" ref={band} aria-label="Wall filters">
-      <section className="topbar__block">
-        <div className="topbar__head">
-          <h2 className="topbar__name">time</h2>
+      <fieldset className="topbar__block">
+        {/* The whole top edge: the title holds one end and the keys the other,
+            both cut into the border rather than sitting under it. */}
+        <legend className="topbar__legend topbar__legend--row">
+          <span className="topbar__name">time</span>
           <span className="topbar__count">
             {kept}/{bornAts.length}
           </span>
 
-          <div className="topbar__buckets">
+          {/* The run of border the legend displaces between the two ends. */}
+          <span className="topbar__rule" aria-hidden="true" />
+
+          <div className="topbar__buckets topbar__buckets--end">
             {BUCKETS.map((bucket) => {
               const b = bucketRange(bucket.key, now)
               const on = !!range && Math.abs(range.from - b.from) < 1000 && range.to >= b.to - 1000
@@ -79,17 +102,7 @@ export function TopBar({
             })}
           </div>
 
-          {/* Always in the row, so setting a range does not shift the bucket
-              you just clicked out from under the pointer. */}
-          <button
-            type="button"
-            className="topbar__clear"
-            disabled={!range}
-            onClick={() => onRange(null)}
-          >
-            clear
-          </button>
-        </div>
+        </legend>
 
         <div className="topbar__chart">
           <Slider
@@ -138,15 +151,13 @@ export function TopBar({
           <span>{ago(now - span.from)} ago</span>
           <span>now</span>
         </div>
-      </section>
+      </fieldset>
 
       {/* One key, both places: the zones on the wall and the flag list in the
           sidebar. */}
-      <section className="topbar__block topbar__block--tight">
-        <div className="topbar__head">
-          <h2 className="topbar__name">sort</h2>
-        </div>
-        <div className="topbar__buckets">
+      <fieldset className="topbar__block topbar__block--tight">
+        <legend className="topbar__name topbar__legend">sort</legend>
+        <div className="topbar__buckets topbar__buckets--stack">
           {SORTS.map((option) => (
             <button
               key={option.key}
@@ -159,7 +170,33 @@ export function TopBar({
             </button>
           ))}
         </div>
-      </section>
+      </fieldset>
+
+      {/* Where you are, held against the right edge and away from what you are
+          filtering. */}
+      <fieldset className="topbar__block topbar__block--tight topbar__block--pushed">
+        <legend className="topbar__name topbar__legend">view</legend>
+        <div className="topbar__view">
+          <span className="topbar__where">{where ?? 'wall'}</span>
+          <span className="topbar__arrangement">{arrangement}</span>
+          <span className="topbar__tally">
+            <span className="topbar__count">{count}</span> {count === 1 ? 'item' : 'items'}
+          </span>
+          {!connected && <span className="topbar__offline">offline</span>}
+        </div>
+      </fieldset>
+      {plan && (
+        <fieldset className="topbar__block topbar__block--tight">
+          <legend className="topbar__name topbar__legend">map</legend>
+          {plan}
+        </fieldset>
+      )}
+      {axes && (
+        <fieldset className="topbar__block topbar__block--tight">
+          <legend className="topbar__name topbar__legend">axes</legend>
+          {axes}
+        </fieldset>
+      )}
     </header>
   )
 }

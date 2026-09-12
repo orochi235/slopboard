@@ -1,6 +1,6 @@
 .axes__svg {
   width: 100%;
-  height: 76px;
+  height: 72px;
   overflow: visible;
 }
 
@@ -37,14 +37,8 @@
   fill: var(--muted);
 }
 
-/* Under the minimap, which is the other thing that answers "where am I". */
+/* Beside the plan in the band, which is the other thing that answers
+   "where am I". */
 .axes {
-  position: fixed;
-  top: calc(var(--band, 0px) + 148px);
-  left: 8px;
-  z-index: 50;
-  width: 96px;
-  padding: 6px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--scrim) 72%, transparent);
+  width: 72px;
 }
