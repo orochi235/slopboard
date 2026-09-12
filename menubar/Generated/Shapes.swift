@@ -21,11 +21,11 @@ struct WallData: Decodable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        ok = (try? c.decode(Bool.self, forKey: .ok)) ?? false
-        items = (try? c.decode(Int.self, forKey: .items)) ?? 0
-        ttlMs = (try? c.decode(Int.self, forKey: .ttlMs)) ?? 0
-        inbox = (try? c.decode(String.self, forKey: .inbox)) ?? ""
-        trash = (try? c.decode(String.self, forKey: .trash)) ?? ""
+        self.ok = (try? c.decode(Bool.self, forKey: .ok)) ?? false
+        self.items = (try? c.decode(Int.self, forKey: .items)) ?? 0
+        self.ttlMs = (try? c.decode(Int.self, forKey: .ttlMs)) ?? 0
+        self.inbox = (try? c.decode(String.self, forKey: .inbox)) ?? ""
+        self.trash = (try? c.decode(String.self, forKey: .trash)) ?? ""
     }
 }
 
@@ -40,7 +40,7 @@ struct ZonesData: Decodable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        zones = (try? c.decode([ZonesDataZones].self, forKey: .zones)) ?? []
+        self.zones = (try? c.decode([ZonesDataZones].self, forKey: .zones)) ?? []
     }
 }
 
@@ -59,9 +59,9 @@ struct ZonesDataZones: Decodable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        zone = (try? c.decode(String.self, forKey: .zone)) ?? ""
-        items = (try? c.decode(Int.self, forKey: .items)) ?? 0
-        path = (try? c.decode(String.self, forKey: .path)) ?? ""
+        self.zone = (try? c.decode(String.self, forKey: .zone)) ?? ""
+        self.items = (try? c.decode(Int.self, forKey: .items)) ?? 0
+        self.path = (try? c.decode(String.self, forKey: .path)) ?? ""
     }
 }
 

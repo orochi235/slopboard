@@ -3,25 +3,6 @@
 import AppKit
 import Foundation
 
-struct WallResult {
-    var ok = false
-    var status = 0
-    var out = ""
-    var data: WallData = WallData()
-}
-
-struct ZonesResult {
-    var ok = false
-    var status = 0
-    var out = ""
-    var data: ZonesData = ZonesData()
-}
-
-struct Results {
-    var wall = WallResult()
-    var zones = ZonesResult()
-}
-
 final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private var results = Results()
@@ -32,6 +13,9 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+            ) { [weak self] _ in self?.refresh() }
         refresh()
         poll()
         timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
@@ -46,12 +30,25 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         group.enter()
         DispatchQueue.global(qos: .utility).async {
-            var r = WallResult()
-            let o = Watcher.http("http://localhost:8787/api/health")
-            r.ok = o.ok
-            r.status = o.status
-            r.out = o.out
-            r.data = (try? JSONDecoder().decode(WallData.self, from: Data(o.out.utf8))) ?? WallData()
+            let r = DaemonResult(Watcher.launchAgent(label: "tech.michaelbaker.slopboard.daemon", plist: "~/Library/LaunchAgents/tech.michaelbaker.slopboard.daemon.plist"))
+            sync.async {
+                next.daemon = r
+                group.leave()
+            }
+        }
+
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            let r = ClientResult(Watcher.launchAgent(label: "tech.michaelbaker.slopboard.client", plist: "~/Library/LaunchAgents/tech.michaelbaker.slopboard.client.plist"))
+            sync.async {
+                next.client = r
+                group.leave()
+            }
+        }
+
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            let r = WallResult(Watcher.http("http://localhost:8787/api/health"))
             sync.async {
                 next.wall = r
                 group.leave()
@@ -60,12 +57,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         group.enter()
         DispatchQueue.global(qos: .utility).async {
-            var r = ZonesResult()
-            let o = Watcher.http("http://localhost:8787/api/zones")
-            r.ok = o.ok
-            r.status = o.status
-            r.out = o.out
-            r.data = (try? JSONDecoder().decode(ZonesData.self, from: Data(o.out.utf8))) ?? ZonesData()
+            let r = ZonesResult(Watcher.http("http://localhost:8787/api/zones"))
             sync.async {
                 next.zones = r
                 group.leave()
@@ -82,77 +74,11 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func refresh() {
         guard let button = statusItem.button else { return }
-        var icon = "rectangle.stack"
-        var dim = false
-        var badge = ""
-        if !(self.results.wall.ok) {
-            icon = "exclamationmark.triangle"
-        } else if (self.results.wall.data.items == 0) {
-            dim = true
-        } else {
-            badge = String(self.results.wall.data.items)
-        }
-        let image = NSImage(systemSymbolName: icon, accessibilityDescription: nil)
-        image?.isTemplate = true
-        button.image = image
-        button.appearsDisabled = dim
-        button.title = badge.isEmpty ? "" : " " + badge
+        Draw.face(renderFace(results), on: button)
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.removeAllItems()
-        if self.results.wall.ok {
-            menu.addItem(NSMenuItem(title: "\(String(self.results.wall.data.items)) on the wall", action: nil, keyEquivalent: ""))
-        }
-        if !(self.results.wall.ok) {
-            menu.addItem(NSMenuItem(title: "daemon not running", action: nil, keyEquivalent: ""))
-        }
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(ActionItem(title: "Man the wall") {
-            Act.open("http://localhost:5183")
-        })
-        menu.addItem(NSMenuItem.separator())
-        for it1 in self.results.zones.data.zones {
-            if self.results.zones.ok {
-                menu.addItem(ActionItem(title: "\(it1.zone) — \(String(it1.items))") {
-                    Act.open("\(it1.path)")
-                })
-            }
-        }
-        menu.addItem(NSMenuItem.separator())
-        if self.results.wall.ok {
-            menu.addItem(ActionItem(title: "Undo last expiry") { [weak self] in
-                Act.post("http://localhost:8787/api/undo", body: "") { self?.poll() }
-            })
-        }
-        if self.results.wall.ok {
-            menu.addItem(ActionItem(title: "Open the inbox") {
-                Act.open("\(self.results.wall.data.inbox)")
-            })
-        }
-        if self.results.wall.ok {
-            menu.addItem(ActionItem(title: "Open the trash") {
-                Act.open("\(self.results.wall.data.trash)")
-            })
-        }
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(ActionItem(title: "Cycle the wall") { [weak self] in
-            Act.run(["wall", "cycle"]) { self?.poll() }
-        })
-        if !(self.results.wall.ok) {
-            menu.addItem(ActionItem(title: "Start the wall") { [weak self] in
-                Act.run(["wall", "up"]) { self?.poll() }
-            })
-        }
-        if self.results.wall.ok {
-            menu.addItem(ActionItem(title: "Stop the wall") { [weak self] in
-                Act.run(["wall", "down"]) { self?.poll() }
-            })
-        }
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(ActionItem(title: "Quit") {
-            NSApp.terminate(nil)
-        })
+        Draw.menu(renderMenu(results), into: menu) { [weak self] in self?.poll() }
     }
 }
 
