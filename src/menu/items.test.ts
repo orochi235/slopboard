@@ -63,16 +63,39 @@ describe('menuFor', () => {
 describe('menuFor on a zone', () => {
   const zone = targetOf(['slopboard'])
 
+  const rowFor = (action: string, ctx: Parameters<typeof menuFor>[1]) =>
+    menuFor(zone, ctx).find((i) => i.action === action)
+
   it('offers to take the zone, and says how many that is', () => {
-    const [row] = menuFor(zone, { canUndo: false, zoneCount: 30 })
-    expect(row?.action).toBe('expireZone')
+    const row = rowFor('expireZone', { canUndo: false, zoneCount: 30 })
     expect(row?.label).toBe('Expire the zone (30)')
     expect(row?.grave).toBe(true)
   })
 
   it('asks again once it is armed, rather than opening a browser dialog', () => {
-    const [row] = menuFor(zone, { canUndo: false, zoneCount: 30, armed: 'expireZone' })
+    const row = rowFor('expireZone', { canUndo: false, zoneCount: 30, armed: 'expireZone' })
     expect(row?.label).toBe('Really — expire 30')
+  })
+
+  it('offers to pin an unpinned zone and to unpin a pinned one', () => {
+    expect(rowFor('pinZone', { canUndo: false, zoneCount: 3 })?.label).toBe(
+      'Pin the zone to the top',
+    )
+    expect(rowFor('unpinZone', { canUndo: false, zoneCount: 3 })).toBeUndefined()
+
+    const held = { canUndo: false, zoneCount: 3, zonePinned: true }
+    expect(rowFor('unpinZone', held)?.label).toBe('Unpin the zone')
+    expect(rowFor('pinZone', held)).toBeUndefined()
+  })
+
+  it('puts the pin above the row that takes the zone away', () => {
+    const menu = menuFor(zone, { canUndo: false, zoneCount: 3 })
+    expect(menu.map((i) => i.action)).toEqual(['pinZone', 'expireZone'])
+  })
+
+  it('marks nothing about the pin as destructive — it goes both ways', () => {
+    const menu = menuFor(zone, { canUndo: false, zoneCount: 3, zonePinned: true })
+    expect(menu.filter((i) => i.grave).map((i) => i.action)).toEqual(['expireZone'])
   })
 
   it('offers nothing on a zone that is already empty', () => {
@@ -83,5 +106,6 @@ describe('menuFor on a zone', () => {
   it('leaves a card menu alone', () => {
     const card = menuFor(targetOf(['slopboard', 'a']), { item: item(), canUndo: false, zoneCount: 30 })
     expect(card.map((i) => i.action)).not.toContain('expireZone')
+    expect(card.map((i) => i.action)).not.toContain('pinZone')
   })
 })

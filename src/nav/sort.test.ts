@@ -63,6 +63,25 @@ describe('zoneOrder', () => {
     const tied = [item('x', 'beta', NOW), item('y', 'alpha', NOW)]
     expect(zoneOrder(tied, 'recency', NOW)).toEqual(['alpha', 'beta'])
   })
+
+  it('leads with a pinned zone under every key', () => {
+    const pinned = new Set(['zeta'])
+    expect(zoneOrder(items, 'project', NOW, pinned)).toEqual(['zeta', 'alpha', 'mid'])
+    expect(zoneOrder(items, 'severity', NOW, pinned)).toEqual(['zeta', 'mid', 'alpha'])
+    expect(zoneOrder(items, 'recency', NOW, pinned)).toEqual(['zeta', 'alpha', 'mid'])
+  })
+
+  it('orders pinned zones among themselves by the live key, not by pin', () => {
+    expect(zoneOrder(items, 'severity', NOW, new Set(['zeta', 'alpha']))).toEqual([
+      'alpha',
+      'zeta',
+      'mid',
+    ])
+  })
+
+  it('ignores a pin on a zone that holds nothing', () => {
+    expect(zoneOrder(items, 'project', NOW, new Set(['gone']))).toEqual(['alpha', 'mid', 'zeta'])
+  })
 })
 
 describe('inZoneOrder', () => {
@@ -101,5 +120,20 @@ describe('sortFlags', () => {
 
   it('groups by zone under project, newest first inside one', () => {
     expect(sortFlags(flags, 'project', NOW).map((i) => i.zone)).toEqual(['a', 'm', 'z'])
+  })
+
+  it('leads with a pinned zone, so the list and the wall agree about the top', () => {
+    const pinned = new Set(['z'])
+    expect(sortFlags(flags, 'severity', NOW, pinned).map((i) => i.id)).toEqual([
+      'loud',
+      'newest',
+      'quiet',
+    ])
+    expect(sortFlags(flags, 'recency', NOW, pinned).map((i) => i.id)).toEqual([
+      'loud',
+      'newest',
+      'quiet',
+    ])
+    expect(sortFlags(flags, 'project', NOW, pinned).map((i) => i.zone)).toEqual(['z', 'a', 'm'])
   })
 })

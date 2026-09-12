@@ -6,6 +6,8 @@ export type Wall = {
   items: WallItem[]
   /** Zone to the colour of the project bound to it, where it has a `.hued`. */
   zoneColors: Record<string, string>
+  /** The zones held at the top of the wall, each to when it was pinned. */
+  pinnedZones: Record<string, number>
   ttlMs: number
   /** Add to Date.now() to get the daemon's clock. Keeps decay server-anchored. */
   clockOffset: number
@@ -19,6 +21,7 @@ export type Wall = {
 export function useWall(): Wall {
   const [items, setItems] = useState<WallItem[]>([])
   const [zoneColors, setZoneColors] = useState<Record<string, string>>({})
+  const [pinnedZones, setPinnedZones] = useState<Record<string, number>>({})
   const [ttlMs, setTtlMs] = useState(300_000)
   const [connected, setConnected] = useState(false)
   const [announce, setAnnounce] = useState<WallItem | null>(null)
@@ -45,8 +48,17 @@ export function useWall(): Wall {
           setTtlMs(msg.ttlMs)
           setItems(msg.items)
           setZoneColors(msg.zoneColors ?? {})
+          setPinnedZones(msg.pinnedZones ?? {})
         } else if (msg.type === 'zoneColors') {
           setZoneColors(msg.zoneColors)
+        } else if (msg.type === 'zonePin') {
+          setPinnedZones((prev) => {
+            if (msg.pinnedAt === null) {
+              const { [msg.zone]: _released, ...rest } = prev
+              return rest
+            }
+            return { ...prev, [msg.zone]: msg.pinnedAt }
+          })
         } else if (msg.type === 'arrive') {
           setItems((prev) => [...prev, msg.item])
           const level = msg.item.attention?.level
@@ -85,5 +97,13 @@ export function useWall(): Wall {
     }
   }, [])
 
-  return { items, zoneColors, ttlMs, clockOffset: clockOffset.current, connected, announce }
+  return {
+    items,
+    zoneColors,
+    pinnedZones,
+    ttlMs,
+    clockOffset: clockOffset.current,
+    connected,
+    announce,
+  }
 }

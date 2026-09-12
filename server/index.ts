@@ -7,6 +7,7 @@ import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
 import { watchZoneColors } from './zoneColors.ts'
+import { readPins, setPinned } from './pins.ts'
 import { zoneCounts } from './zoneCounts.ts'
 import { alert, debugItem } from './alert.ts'
 import { withKeyForwarder } from './page-keys.ts'
@@ -21,6 +22,7 @@ const http = createServer(app)
 const wss = new WebSocketServer({ server: http, path: '/ws' })
 const clients = new Set<WebSocket>()
 let zoneColors: Record<string, string> = {}
+let pinnedZones: Record<string, number> = {}
 
 function broadcast(msg: ServerMessage) {
   const payload = JSON.stringify(msg)
@@ -36,6 +38,7 @@ wss.on('connection', (ws) => {
     ttlMs: config.ttlMs,
     items: store.snapshot(),
     zoneColors,
+    pinnedZones,
   }
   ws.send(JSON.stringify(hello))
 })
@@ -107,6 +110,15 @@ app.post('/api/zones/:zone/expire', async (req, res) => {
   res.json({ ok: ids.length > 0, expired: ids.length })
 })
 
+// Holding a zone at the top, and letting it go. Reversible in one click, so
+// unlike the expiry above it asks nothing first.
+app.post('/api/zones/:zone/pin', async (req, res) => {
+  const pinnedAt = await setPinned(req.params.zone, req.query.on !== '0')
+  pinnedZones = await readPins()
+  broadcast({ type: 'zonePin', zone: req.params.zone, pinnedAt })
+  res.json({ ok: true, pinnedAt })
+})
+
 // Fires a level's whole treatment against an arrival that never happened, so
 // the sound, the notification and the raise can be heard rather than reasoned
 // about. Guarded like the dismiss route — a wall on a private machine — and by
@@ -136,6 +148,10 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/api/zones', (_req, res) => {
   res.json({ zones: zoneCounts(store.snapshot()) })
+})
+
+void readPins().then((pins) => {
+  pinnedZones = pins
 })
 
 watchZoneColors((colors) => {

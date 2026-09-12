@@ -21,10 +21,23 @@ type Props = {
   moveMs: number
   zones: string[]
   focus: string | null
+  /** The zone the arrows are pointing at from the wall. Lit like a focused
+   *  one — it is the same selection — but it moves no camera, so nothing that
+   *  answers to the camera closing in may read it. */
+  cursor: string | null
   settings: StackParams['zones']
   colors: StackParams['colors']
   /** A zone's project colour, where the daemon found one. */
   hued: Map<string, THREE.Color>
+  /** Filled with each zone's label sprite, so the wall's pick can treat the
+   *  name as part of the zone it names. The label is drawn outside the zone's
+   *  own box, which is what puts it beyond the reach of a pick that only
+   *  tests the box. */
+  labelPicks?: RefObject<Map<string, THREE.Object3D>>
+  /** The zones held at the top of the wall. Their labels carry a mark, so a
+   *  zone that leads because it is pinned does not read as one that leads
+   *  because something just landed in it. */
+  pinnedZones: ReadonlySet<string>
   /** The face labels are drawn in, plus a token that changes once the vendored
    *  faces have loaded — a label built before then wears the fallback. */
   family: string
@@ -68,6 +81,9 @@ export function ZoneOverlay({
   moveMs,
   zones,
   focus,
+  cursor,
+  pinnedZones,
+  labelPicks,
   settings,
   colors,
   hued,
@@ -114,7 +130,7 @@ export function ZoneOverlay({
         // rather than set per frame like the outline's.
         const own = settings.huedFrame ? hued.get(zone) : undefined
         const ink = own ? `#${own.getHexString()}` : colors.label
-        const { texture, aspect } = labelTexture(zone, ink, family)
+        const { texture, aspect } = labelTexture(zone, ink, family, pinnedZones.has(zone))
         const material = new THREE.SpriteMaterial({
           map: texture,
           transparent: true,
@@ -128,7 +144,7 @@ export function ZoneOverlay({
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fontsReady is a
     // rebuild token, not a value the labels read.
-  }, [zones, colors.label, settings.huedFrame, hued, family, fontsReady])
+  }, [zones, colors.label, settings.huedFrame, hued, family, fontsReady, pinnedZones])
 
   const chips = useMemo(() => createChips(), [])
   useEffect(() => () => chips.dispose(), [chips])
@@ -188,15 +204,19 @@ export function ZoneOverlay({
       line.geometry.setPositions(corners(box))
       line.computeLineDistances()
       const own = settings.huedFrame ? hued.get(zone) : undefined
-      line.material.color.copy(own ?? (zone === focus ? highlight : idle))
+      const lit = zone === focus || zone === cursor
+      line.material.color.copy(own ?? (lit ? highlight : idle))
       line.material.linewidth = settings.outlineWidth
       line.material.opacity = 0.65
       setResolution(line.material, gl)
     }
 
+    const picks = labelPicks?.current
+    picks?.clear()
     for (const [zone, { sprite, aspect }] of labels) {
       const box = cells.current?.get(zone)
       sprite.visible = settings.labels && !!box
+      if (sprite.visible) picks?.set(zone, sprite)
       if (!box) continue
       const h = settings.labelSize
       sprite.scale.set(h * aspect, h, 1)
@@ -232,7 +252,7 @@ export function ZoneOverlay({
       // that border and is part of the same frame, so the two must not disagree
       // about whose zone this is.
       const own = settings.huedFrame ? hued.get(zone) : undefined
-      const paint = own ?? (zone === focus ? highlight : idle)
+      const paint = own ?? (zone === focus || zone === cursor ? highlight : idle)
       const fill = `#${paint.getHexString()}`
       const ink = inkFor(fill, colors.chipInk, colors.chipFill)
       const held = chips.sync(

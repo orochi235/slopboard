@@ -52,6 +52,9 @@ export type ServerMessage =
       /** Zone name to the colour of the project bound to it, where one has a
        *  `.hued`. Only the daemon can read those files. */
       zoneColors: Record<string, string>
+      /** Zone name to when it was pinned, for the zones held at the top of
+       *  the wall. A zone that is not held has no entry. */
+      pinnedZones: Record<string, number>
     }
   | { type: 'zoneColors'; zoneColors: Record<string, string> }
   | { type: 'arrive'; item: WallItem }
@@ -60,3 +63,6 @@ export type ServerMessage =
   | { type: 'dismiss'; id: string }
   /** Rescued, or let go again. `keptAt` is null for the second. */
   | { type: 'keep'; id: string; keptAt: number | null }
+  /** A zone held at the top of the wall, or let back into the order.
+   *  `pinnedAt` is null for the second. */
+  | { type: 'zonePin'; zone: string; pinnedAt: number | null }

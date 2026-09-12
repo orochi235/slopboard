@@ -143,6 +143,17 @@ give that up by definition — a wall ordered by severity or by arrival
 reshuffles as artifacts land — and take cells in the order the sort implies
 instead.
 
+A zone pinned from its right-click menu leads whatever the key says. Pinned
+zones among themselves fall back to the key rather than to when each was
+pinned, because the order they were pinned in is nowhere on the wall. A pin is
+a reordering asked for out loud, so it costs `project` its held cells for as
+long as one is held — the grid would otherwise hand every zone the slot it
+already had and the pin would reach nothing. The daemon keeps pins in
+`pins.json`, so every viewer of a wall agrees about what is at the top. A
+pinned zone's label carries a mark, since a zone leading under `recency`
+because it is pinned would otherwise read as one leading because something just
+landed in it.
+
 Severity is a ranking the levels deliberately lack. `LEVELS` is a set of
 treatments and not a scale, so the ranking lives in `src/nav/sort.ts` and
 nowhere the ingest contract can reach it; a lapsed flag ranks below a live one

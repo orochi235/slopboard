@@ -39,7 +39,7 @@ import { loadFaces, stackFor } from '@/typeface.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { createGestureRail } from '@/nav/gesture.ts'
-import { directionFor, isForAControl, opensIn } from '@/nav/keys.ts'
+import { directionFor, isForAControl, opensIn, sortFor } from '@/nav/keys.ts'
 import { neighborOf } from '@/nav/neighbor.ts'
 import { zoneAt } from '@/nav/pick.ts'
 import { choose, makeGrid, mark, offscreen, score, type Box } from '@/nav/whitespace.ts'
@@ -71,6 +71,9 @@ type Props = {
   onParams: Dispatch<SetStateAction<StackParams>>
   /** Published by the daemon: a zone's project color, where it has a `.hued`. */
   zoneColors: Record<string, string>
+  /** Published by the daemon: the zones held at the top of the wall, each to
+   *  when it was pinned. */
+  pinnedZones: Record<string, number>
   /** An arrival whose level asks to be opened the moment it lands. */
   announce: WallItem | null
   /** Whether the daemon is still on the other end of the socket. */
@@ -159,6 +162,7 @@ function Wall({
   params,
   onParams,
   zoneColors,
+  pinnedZones,
   view,
   dispatch,
   onPlan,
@@ -168,6 +172,10 @@ function Wall({
   topInset,
 }: WallProps) {
   const meshes = useRef(new Map<string, THREE.Mesh>())
+  /** The zone the arrows are pointing at from the wall, or null for a cursor
+   *  that has not been shown yet. Not the view: pointing at a pile is not
+   *  going to it, and the camera stays where it is until Enter says so. */
+  const [cursor, setCursor] = useState<string | null>(null)
   const { gl, camera } = useThree()
   const cardEdges = params.overlay.cardEdges
   const cardEdgeColor = params.colors.cardEdge
@@ -403,14 +411,19 @@ function Wall({
   /** The flagged artifact under the pointer, badge included. */
   const hovered = useRef<string | null>(null)
 
-  const latest = useRef({ items, ttlMs, clockOffset, sort, dimmed })
-  latest.current = { items, ttlMs, clockOffset, sort, dimmed }
+  // A set because the order the zones were pinned in is not what sorts them;
+  // only whether each is held.
+  const heldZones = useMemo(() => new Set(Object.keys(pinnedZones)), [pinnedZones])
+  const latest = useRef({ items, ttlMs, clockOffset, sort, dimmed, heldZones })
+  latest.current = { items, ttlMs, clockOffset, sort, dimmed, heldZones }
 
   const cells = useRef<Map<string, Rect>>(new Map())
   /** Each pile's front card. The zone chrome is drawn on this rather than on
    *  the drawn union, so a tall pile does not outline more of the wall than its
    *  neighbor; the camera still frames the union, which is what is drawn. */
   const bases = useRef<Map<string, Rect>>(new Map())
+  /** Each zone's label sprite, filled by the overlay that draws them. */
+  const zoneLabels = useRef<Map<string, THREE.Object3D>>(new Map())
   const zoneById = useRef<Map<string, string>>(new Map())
   const move = useRef<Move | null>(null)
   const pose = useRef<Pose>({ x: 0, y: 0, distance: 2, halfHeight: 0.5 })
@@ -515,6 +528,15 @@ function Wall({
       ),
       camera,
     )
+
+    // A label draws over everything, depth test and all, so it takes the
+    // pick where it overlaps a card: what is on top is what was clicked. Its
+    // whole quad counts, which is the point — the gaps between the letters are
+    // not holes.
+    for (const [zone, sprite] of zoneLabels.current) {
+      if (!sprite.visible) continue
+      if (raycaster.intersectObject(sprite, false).length > 0) return [zone]
+    }
 
     const targets: THREE.Object3D[] = [...meshes.current.values()]
     for (const { plate } of badges.byId.values()) if (plate.visible) targets.push(plate)
@@ -769,23 +791,39 @@ function Wall({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isForAControl(e.target)) return
-      if (e.key === 'Escape') return dispatch({ type: 'out' })
+      if (e.key === 'Escape') {
+        // The cursor is the innermost thing showing, so it is what Escape
+        // takes away first.
+        if (!zoneOf(viewRef.current) && cursor) return setCursor(null)
+        return dispatch({ type: 'out' })
+      }
       if (opensIn(e)) {
-        // Only from a focused pile: at the wall nothing has been chosen yet,
-        // and inside a card there is nowhere further in.
-        const zone = zoneOf(viewRef.current)
+        // From a focused pile, or from the one the cursor is pointing at —
+        // which is the gesture that turns pointing into going.
+        const zone = zoneOf(viewRef.current) ?? cursor
         if (!zone || cardOf(viewRef.current)) return
         const front = cardsByZone.current.get(zone)?.[0]
         if (!front) return
         // Space scrolls a document, and the canvas is one as far as the
         // browser is concerned.
         e.preventDefault()
+        setCursor(null)
         return dispatch({ type: 'to', path: [zone, front] })
       }
       const direction = directionFor(e)
       if (!direction) return
       const zone = zoneOf(viewRef.current)
-      if (!zone) return
+      if (!zone) {
+        // At the wall the arrows drive the cursor rather than the camera: the
+        // first press shows it on the first cell, every press after walks it.
+        e.preventDefault()
+        setCursor((at) => {
+          const cells_ = cells.current
+          if (!at || !cells_.has(at)) return [...cells_.keys()][0] ?? null
+          return neighborOf(cells_, at, direction) ?? at
+        })
+        return
+      }
 
       const card = cardOf(viewRef.current)
       if (card) {
@@ -808,14 +846,14 @@ function Wall({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [dispatch])
+  }, [dispatch, cursor])
 
   useFrame((_state, delta) => {
     const current = latest.current
     const now = Date.now() + current.clockOffset
     const model = inZoneOrder(
       toStackItems(current.items, { now, ttlMs: current.ttlMs }, current.dimmed),
-      zoneOrder(current.items, current.sort, now),
+      zoneOrder(current.items, current.sort, now, current.heldZones),
     )
     const aspects = new Map(model.map((m) => [m.id, m.aspect]))
     // Real elapsed time, not the decay clock: keeping an artifact freezes how
@@ -845,7 +883,14 @@ function Wall({
       // `project` keeps the held cells the wall has always had, so the
       // default order is the one nobody asked to change. The other two keys
       // are a reordering by definition, and take the cells the sort implies.
-      options: { now, zones: current.sort === 'project' ? 'held' : 'given' },
+      // A pin is a reordering asked for out loud, so it takes the given cells
+      // under `project` too — otherwise the grid hands every zone the slot it
+      // already had and the pin reaches nothing.
+      options: {
+        now,
+        zones:
+          current.sort !== 'project' || current.heldZones.size > 0 ? 'given' : 'held',
+      },
     })
 
     const channels = (result.channels ?? new Map()) as Map<string, SlopChannels>
@@ -1485,6 +1530,9 @@ function Wall({
         chips={params.chips}
         zones={zoneNames}
         focus={zoneOf(view)}
+        cursor={cursor}
+        pinnedZones={heldZones}
+        labelPicks={zoneLabels}
         moveMs={params.camera.moveMs}
         settings={params.zones}
         colors={params.colors}
@@ -1592,6 +1640,10 @@ export function WebglBackend(props: Props) {
   /** What the band counts: the pile you are inside, or the whole wall. The
    *  number is what paging the current scope would walk through, so it has to
    *  narrow with the view. */
+  const heldZoneNames = useMemo(
+    () => new Set(Object.keys(props.pinnedZones)),
+    [props.pinnedZones],
+  )
   const scope = zoneOf(view)
   const countInScope = scope ? items.filter((i) => i.zone === scope).length : items.length
 
@@ -1643,6 +1695,14 @@ export function WebglBackend(props: Props) {
           method: 'POST',
         }).catch(() => {})
       }
+      if ((action === 'pinZone' || action === 'unpinZone') && target?.kind === 'zone') {
+        setArmed(null)
+        setMenu(null)
+        const on = action === 'pinZone' ? '1' : '0'
+        return void fetch(`/api/zones/${encodeURIComponent(target.zone)}/pin?on=${on}`, {
+          method: 'POST',
+        }).catch(() => {})
+      }
       setArmed(null)
       setMenu(null)
       if (action === 'undo') return undo()
@@ -1663,6 +1723,20 @@ export function WebglBackend(props: Props) {
     },
     [menu, menuItem, dispatch, dismiss, undo, armed],
   )
+
+  // The function keys pick a sort. No control guard, unlike the wall's own
+  // keys: clicking a sort leaves its button focused, and a guard would then
+  // swallow the key that row is labelled with.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const key = sortFor(e)
+      if (!key) return
+      e.preventDefault()
+      setSort(key)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   // Cmd-Z is what a hand reaches for, and the wall has nothing else to undo.
   useEffect(() => {
@@ -1734,6 +1808,7 @@ export function WebglBackend(props: Props) {
         items={items.filter((i) => keptBy(i.bornAt, range))}
         clockOffset={props.clockOffset}
         sort={sort}
+        pinnedZones={heldZoneNames}
         params={props.params}
         onParams={props.onParams}
         onOpen={(item) => dispatch({ type: 'to', path: [item.zone, item.id] })}
@@ -1748,6 +1823,7 @@ export function WebglBackend(props: Props) {
           item={menuItem}
           canUndo={expired}
           zoneCount={zoneCount}
+          zonePinned={menuZone !== null && menuZone in props.pinnedZones}
           armed={armed}
           look={props.params.menu}
           onAct={act}

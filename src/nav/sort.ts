@@ -29,6 +29,9 @@ const severityOf = (item: WallItem, now: number): number =>
     ? SEVERITY[item.attention.level]
     : 0
 
+/** Shared so the default argument allocates nothing per call. */
+const EMPTY: ReadonlySet<string> = new Set()
+
 /** Names, not locales: the order has to be the same on every machine showing
  *  the same wall. */
 const byName = (a: string, b: string): number => (a === b ? 0 : a < b ? -1 : 1)
@@ -46,10 +49,24 @@ function factsOf(items: readonly WallItem[], now: number): ZoneFacts[] {
   return [...byZone.values()]
 }
 
-/** The zones in the order they should be laid out, loudest or newest first. */
-export function zoneOrder(items: readonly WallItem[], key: SortKey, now: number): string[] {
+/**
+ * The zones in the order they should be laid out, loudest or newest first.
+ *
+ * A pinned zone leads whatever the key says. Pinned zones among themselves fall
+ * back to the key rather than to when each was pinned: the order they were
+ * pinned in is nowhere on the wall, so ranking by it would move the top-left
+ * cell for a reason nothing on screen explains.
+ */
+export function zoneOrder(
+  items: readonly WallItem[],
+  key: SortKey,
+  now: number,
+  pinned: ReadonlySet<string> = EMPTY,
+): string[] {
   const facts = factsOf(items, now)
   facts.sort((a, b) => {
+    const held = Number(pinned.has(b.zone)) - Number(pinned.has(a.zone))
+    if (held !== 0) return held
     if (key === 'severity' && a.severity !== b.severity) return b.severity - a.severity
     if (key !== 'project' && a.newest !== b.newest) return b.newest - a.newest
     return byName(a.zone, b.zone)
@@ -70,10 +87,18 @@ export function inZoneOrder<T extends { zone: string }>(
   return [...items].sort((a, b) => (rank.get(a.zone) ?? 0) - (rank.get(b.zone) ?? 0))
 }
 
-/** The sidebar's list under the same key. Ties break on arrival, newest first,
+/** The sidebar's list under the same key, pinned zones first for the same
+ *  reason the wall puts them there. Ties break on arrival, newest first,
  *  because a list of flags is read from the top. */
-export function sortFlags(items: readonly WallItem[], key: SortKey, now: number): WallItem[] {
+export function sortFlags(
+  items: readonly WallItem[],
+  key: SortKey,
+  now: number,
+  pinned: ReadonlySet<string> = EMPTY,
+): WallItem[] {
   return [...items].sort((a, b) => {
+    const held = Number(pinned.has(b.zone)) - Number(pinned.has(a.zone))
+    if (held !== 0) return held
     if (key === 'severity') {
       const rank = severityOf(b, now) - severityOf(a, now)
       if (rank !== 0) return rank

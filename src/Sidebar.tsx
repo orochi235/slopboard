@@ -39,6 +39,7 @@ function Flags({
   items,
   now,
   sort,
+  pinnedZones,
   onOpen,
   onDismiss,
 }: {
@@ -47,6 +48,8 @@ function Flags({
   /** The band's key, read and never set here: the list and the wall agree
    *  about what is at the top because neither owns the order. */
   sort: SortKey
+  /** The zones held at the top of the wall, for the same reason. */
+  pinnedZones: ReadonlySet<string>
   onOpen: (item: WallItem) => void
   onDismiss: (id: string) => void
 }) {
@@ -54,6 +57,7 @@ function Flags({
     items.filter((i) => i.attention),
     sort,
     now,
+    pinnedZones,
   )
   if (flagged.length === 0) return <p className="sidebar__empty">nothing is asking</p>
 
@@ -176,6 +180,7 @@ export function Sidebar({
   items,
   clockOffset,
   sort,
+  pinnedZones,
   params,
   onParams,
   onOpen,
@@ -189,6 +194,8 @@ export function Sidebar({
   items: readonly WallItem[]
   clockOffset: number
   sort: SortKey
+  /** The zones held at the top of the wall. */
+  pinnedZones: ReadonlySet<string>
   params: StackParams
   onParams: Dispatch<SetStateAction<StackParams>>
   onOpen: (item: WallItem) => void
@@ -246,7 +253,14 @@ export function Sidebar({
       </header>
 
       <Section name="flags" storageKey="slopboard.sidebar.flags.v1">
-        <Flags items={items} now={now} sort={sort} onOpen={onOpen} onDismiss={onDismiss} />
+        <Flags
+          items={items}
+          now={now}
+          sort={sort}
+          pinnedZones={pinnedZones}
+          onOpen={onOpen}
+          onDismiss={onDismiss}
+        />
       </Section>
 
       <Section name="debug" storageKey="slopboard.sidebar.debug.v1">

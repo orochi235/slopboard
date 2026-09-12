@@ -12,7 +12,8 @@ import { useWall } from '@/useWall.ts'
 
 
 export function App() {
-  const { items, zoneColors, ttlMs, clockOffset, connected, announce } = useWall()
+  const { items, zoneColors, pinnedZones, ttlMs, clockOffset, connected, announce } =
+    useWall()
   const [index, setIndex] = useState(0)
   const [prefs, setPrefs] = useState(false)
   // Lazy: reading storage on every render would be wasted, and the tuning
@@ -65,6 +66,7 @@ export function App() {
         params={params}
         onParams={setParams}
         zoneColors={zoneColors}
+        pinnedZones={pinnedZones}
         announce={announce}
         connected={connected}
       />

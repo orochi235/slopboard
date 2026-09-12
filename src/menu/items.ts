@@ -10,6 +10,12 @@ export type Action =
   | 'open'
   | 'pin'
   | 'unpin'
+  /** Held at the top of the wall, or let back into the order. A zone's own
+   *  pair: `pin` rescues one artifact from expiry, which is a different thing
+   *  under the same word. The two never share a menu — a target is a card or a
+   *  zone — so only the code has to tell them apart. */
+  | 'pinZone'
+  | 'unpinZone'
   | 'expire'
   | 'expireZone'
   | 'copyPath'
@@ -44,6 +50,8 @@ export function menuFor(
     canUndo: boolean
     /** How many artifacts the zone holds, so the row says what it costs. */
     zoneCount?: number
+    /** Whether the zone is already held at the top. */
+    zonePinned?: boolean
     /** The row that has been clicked once and is waiting to be meant. */
     armed?: Action | null
   },
@@ -66,6 +74,11 @@ export function menuFor(
   // content of the question anyway.
   if (target.kind === 'zone' && (ctx.zoneCount ?? 0) > 0) {
     const n = ctx.zoneCount ?? 0
+    items.push(
+      ctx.zonePinned
+        ? { action: 'unpinZone', label: 'Unpin the zone' }
+        : { action: 'pinZone', label: 'Pin the zone to the top' },
+    )
     items.push({
       action: 'expireZone',
       label:
