@@ -39,7 +39,7 @@ import { loadFaces, stackFor } from '@/typeface.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { createGestureRail } from '@/nav/gesture.ts'
-import { directionFor, isForAControl } from '@/nav/keys.ts'
+import { directionFor, isForAControl, opensIn } from '@/nav/keys.ts'
 import { neighborOf } from '@/nav/neighbor.ts'
 import { zoneAt } from '@/nav/pick.ts'
 import { choose, makeGrid, mark, offscreen, score, type Box } from '@/nav/whitespace.ts'
@@ -768,6 +768,18 @@ function Wall({
     const onKey = (e: KeyboardEvent) => {
       if (isForAControl(e.target)) return
       if (e.key === 'Escape') return dispatch({ type: 'out' })
+      if (opensIn(e)) {
+        // Only from a focused pile: at the wall nothing has been chosen yet,
+        // and inside a card there is nowhere further in.
+        const zone = zoneOf(viewRef.current)
+        if (!zone || cardOf(viewRef.current)) return
+        const front = cardsByZone.current.get(zone)?.[0]
+        if (!front) return
+        // Space scrolls a document, and the canvas is one as far as the
+        // browser is concerned.
+        e.preventDefault()
+        return dispatch({ type: 'to', path: [zone, front] })
+      }
       const direction = directionFor(e)
       if (!direction) return
       const zone = zoneOf(viewRef.current)

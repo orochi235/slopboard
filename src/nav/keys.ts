@@ -38,6 +38,18 @@ export function directionFor(e: KeySample): Direction | null {
 }
 
 /**
+ * Whether a keystroke asks to go in. Enter and space both, because every list
+ * a person has ever opened a row in has meant one of them; the wall's Escape
+ * is the way back out.
+ *
+ * A modifier disqualifies it for the reason it disqualifies a direction.
+ */
+export function opensIn(e: KeySample): boolean {
+  if (e.metaKey || e.ctrlKey || e.altKey) return false
+  return e.key === 'Enter' || e.key === ' '
+}
+
+/**
  * Whether a keystroke was aimed at a control rather than at the wall. An arrow
  * steps a focused slider and a letter lands in a field; either way the wall
  * must not also move, which is the trap WASD walks into that the arrows only

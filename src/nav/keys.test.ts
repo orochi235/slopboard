@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { directionFor, isForAControl } from '@/nav/keys.ts'
+import { directionFor, isForAControl, opensIn } from '@/nav/keys.ts'
 
 describe('directionFor', () => {
   it('reads WASD as the arrows, so either hand navigates', () => {
@@ -29,6 +29,25 @@ describe('directionFor', () => {
     expect(directionFor({ key: 'q' })).toBeNull()
     expect(directionFor({ key: 'Escape' })).toBeNull()
     expect(directionFor({ key: ',' })).toBeNull()
+  })
+})
+
+describe('opensIn', () => {
+  it('opens on enter and on space, the two keys a list has always used', () => {
+    expect(opensIn({ key: 'Enter' })).toBe(true)
+    expect(opensIn({ key: ' ' })).toBe(true)
+  })
+
+  it('leaves a modified keystroke to whoever owns it', () => {
+    expect(opensIn({ key: 'Enter', metaKey: true })).toBe(false)
+    expect(opensIn({ key: ' ', ctrlKey: true })).toBe(false)
+    expect(opensIn({ key: 'Enter', altKey: true })).toBe(false)
+  })
+
+  it('is false for the keys that navigate and the one that climbs out', () => {
+    expect(opensIn({ key: 'ArrowRight' })).toBe(false)
+    expect(opensIn({ key: 'w' })).toBe(false)
+    expect(opensIn({ key: 'Escape' })).toBe(false)
   })
 })
 
