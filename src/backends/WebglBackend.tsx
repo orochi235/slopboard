@@ -42,6 +42,7 @@ import { createGestureRail } from '@/nav/gesture.ts'
 import { directionFor, isForAControl, opensIn, sortFor } from '@/nav/keys.ts'
 import { neighborOf } from '@/nav/neighbor.ts'
 import { zoneAt } from '@/nav/pick.ts'
+import { liftedHex, liftedTint } from '@/nav/zone-tint.ts'
 import { choose, makeGrid, mark, offscreen, score, type Box } from '@/nav/whitespace.ts'
 import { stepFromDrag } from '@/nav/step-drag.ts'
 import { stepToward } from '@/nav/step.ts'
@@ -215,20 +216,9 @@ function Wall({
   const huedMinLight = params.zones.huedMinLight
   const huedColors = useMemo(() => {
     const out = new Map<string, THREE.Color>()
-    const hsl = { h: 0, s: 0, l: 0 }
     for (const [zone, css] of Object.entries(zoneColors)) {
-      try {
-        const color = new THREE.Color(css)
-        // Lifted, not replaced: the hue is what identifies the project, and a
-        // `.hued` background chosen to sit behind text is often too dark to
-        // carry it here.
-        color.getHSL(hsl)
-        if (hsl.l < huedMinLight) color.setHSL(hsl.h, hsl.s, huedMinLight)
-        out.set(zone, color)
-      } catch {
-        // hued allows any CSS color name; anything three cannot read is
-        // simply a zone that keeps the palette.
-      }
+      const color = liftedTint(css, huedMinLight)
+      if (color) out.set(zone, color)
     }
     return out
   }, [zoneColors, huedMinLight])
@@ -1640,6 +1630,17 @@ export function WebglBackend(props: Props) {
   /** What the band counts: the pile you are inside, or the whole wall. The
    *  number is what paging the current scope would walk through, so it has to
    *  narrow with the view. */
+  // The plan's own copy of what the wall does with a project color, as
+  // something an SVG fill can take.
+  const planTints = useMemo(() => {
+    const out = new Map<string, string>()
+    for (const [zone, css] of Object.entries(props.zoneColors)) {
+      const hex = liftedHex(css, props.params.zones.huedMinLight)
+      if (hex) out.set(zone, hex)
+    }
+    return out
+  }, [props.zoneColors, props.params.zones.huedMinLight])
+
   const heldZoneNames = useMemo(
     () => new Set(Object.keys(props.pinnedZones)),
     [props.pinnedZones],
@@ -1787,6 +1788,8 @@ export function WebglBackend(props: Props) {
           <Minimap
             cells={plan.cells}
             focus={zoneOf(view)}
+            tints={planTints}
+            zones={props.params.zones}
             onFocus={(zone) => dispatch({ type: 'to', path: [zone] })}
           />
         }

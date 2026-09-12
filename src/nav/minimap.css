@@ -27,6 +27,19 @@
   fill: color-mix(in srgb, var(--muted) 30%, transparent);
 }
 
+/* A zone with a project color behind it wears it here too, in its frame as
+   well as its ground — the wall draws the same pile the same way. A hatched
+   backdrop arrives as a pattern on the `fill` attribute, which is why only the
+   stroke is set here. */
+.minimap__cell--hued {
+  fill: color-mix(in srgb, var(--tint) 22%, transparent);
+  stroke: color-mix(in srgb, var(--tint) 70%, transparent);
+}
+
+.minimap__cell--hued:hover {
+  stroke: var(--tint);
+}
+
 /* A click focuses the rect, and a UA focus ring on an SVG shape is drawn in
  * user units — the viewBox scales it ~110x, into a blue blob across the corner.
  * Keyboard focus keeps a visible indicator below, as WCAG 2.4.7 wants. */
@@ -38,7 +51,15 @@
   stroke: var(--ink);
 }
 
+/* The focused zone keeps its own ground and takes the accent for its frame:
+   which zone the camera is in is a different question from which project it
+   belongs to, so the two cues do not share a channel. */
 .minimap__cell--focus {
   fill: color-mix(in srgb, var(--accent) 32%, transparent);
   stroke: var(--accent);
+}
+
+.minimap__cell--hued.minimap__cell--focus {
+  stroke: var(--accent);
+  stroke-width: 2px;
 }
