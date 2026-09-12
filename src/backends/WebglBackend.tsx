@@ -1589,6 +1589,12 @@ export function WebglBackend(props: Props) {
     [dropFake],
   )
 
+  /** What the band counts: the pile you are inside, or the whole wall. The
+   *  number is what paging the current scope would walk through, so it has to
+   *  narrow with the view. */
+  const scope = zoneOf(view)
+  const countInScope = scope ? items.filter((i) => i.zone === scope).length : items.length
+
   /** The item the lightbox is showing. From `props.items` rather than the
    *  fake-flag overlay, so the meta line reports the wall, not the rehearsal. */
   const lit = card === null ? null : (props.items.find((i) => i.id === card) ?? null)
@@ -1700,7 +1706,7 @@ export function WebglBackend(props: Props) {
       <TopBar
         where={zoneOf(view)}
         arrangement={props.arrangement.name}
-        count={items.length}
+        count={countInScope}
         connected={props.connected}
         plan={
           <Minimap

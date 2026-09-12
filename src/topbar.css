@@ -78,6 +78,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Half the wall's own thumb: this track is a chart, and a thumb wide enough
+   to read as a control on a property row covers bars here. */
+.topbar__range {
+  --wzl-slider-thumb-size: 6px;
+  --rp-thumb-size: 6px;
+}
+
 .topbar__chart {
   margin-top: 4px;
 }
