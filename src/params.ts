@@ -199,8 +199,9 @@ export type StackParams = {
     /** A silence this long ends a wheel gesture. One gesture is worth one rung,
      *  so a flick's tail cannot walk the hierarchy behind the hand. */
     quietMs: number
-    /** The least time between rungs. The gate stops a tail; this stops a fast
-     *  roll of deliberate notches outrunning the camera. */
+    /** The least time between rungs — one rung per tick of the wheel, however
+     *  hard it is spun. The gate stops a flick's tail; this paces a sustained
+     *  stream and a pinch, which carries no tail to gate. */
     floorMs: number
     /** A drag begun on a card moves its pile instead of turning the wall.
      *  Turning still works from the sky and the gaps between piles. */
@@ -480,7 +481,7 @@ export const defaultParams: StackParams = {
     wheelThreshold: 60,
     pinchThreshold: 8,
     quietMs: 90,
-    floorMs: 320,
+    floorMs: 800,
     dragCardSetsStep: true,
     dragDepthPerNotch: 0.0006,
   },
