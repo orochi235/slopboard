@@ -1,0 +1,153 @@
+/*
+ * A titled panel, its name cut into its own border, and the rows inside it.
+ *
+ * Self-contained: the only things it takes from the host are the palette
+ * (`--accent`, `--ink`, `--muted`, `--bg`) and its type, which it inherits.
+ * `--band-line` is the host's own line color where it sets one, so a panel
+ * dropped into a band agrees with the band's other edges.
+ */
+
+.panel {
+  /* A fieldset, for the notch as much as the grouping: a legend cuts this
+     border rather than covering it, so a translucent ground shows no seam
+     where a masked line would. `margin` is the UA's, not ours. */
+  margin: 0;
+  min-width: 320px;
+  max-width: 520px;
+  flex: 1 1 380px;
+  padding: 2px 8px 7px;
+  border: 1px solid var(--band-line, color-mix(in srgb, var(--accent) 34%, transparent));
+  border-radius: 5px;
+}
+
+/* A panel that is only its contents — a list of keys needs no room to draw. */
+.panel--tight {
+  min-width: 0;
+  max-width: none;
+  flex: 0 0 auto;
+}
+
+.panel--pushed {
+  margin-left: auto;
+}
+
+.panel__name {
+  margin: 0;
+  font: inherit;
+  /* Uppercase stands taller than the lowercase it sits above, so matching the
+     contents means stepping the size down rather than leaving it equal. */
+  font-size: 0.85em;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  /* Down onto the border it breaks, until the middle stroke of an E sits on
+     the line. A transform, so the notch the fieldset cut stays where the
+     layout put it and only the word moves. */
+  transform: translateY(2.5px);
+}
+
+/* Centered in the border it breaks: a legend is laid out by its fieldset, so
+   the autos move it where `text-align` on either would not. Must stay after
+   `.panel__name`, whose `margin: 0` it is overriding. */
+.panel__legend {
+  margin-inline: auto;
+  /* Letter-spacing lands after the last glyph too, so equal padding leaves the
+     word sitting left of center and the border stub longer on one side than
+     the other. The extra on the left is that trailing space, put back. */
+  padding-inline: calc(6px + 0.1em) 6px;
+}
+
+/* The full width of the panel, so what it holds can take either end of the
+   top edge. `box-sizing` because the padding above would otherwise push it
+   past the border it is cut into. */
+.panel__legend--row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-inline: 0;
+  /* Nothing to center: this legend spans the panel and its title is held at
+     one end, so it takes the plain padding back. */
+  padding-inline: 6px;
+}
+
+.panel__rule {
+  flex: 1;
+  align-self: center;
+  border-top: 1px solid var(--band-line, color-mix(in srgb, var(--accent) 34%, transparent));
+}
+
+/* A list of rows, spread into the panel's own padding so a selected row's bar
+   runs almost to its border. Each row gives that padding back as its own, so
+   the labels stay where a row outside a list has them. */
+.panel__rows {
+  display: grid;
+  gap: 3px;
+  min-width: 96px;
+  margin-inline: -6px;
+}
+
+.panel__rows .panel__row {
+  padding: 0 6px;
+}
+
+.panel__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: none;
+  border-radius: 2px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  padding: 0;
+}
+
+button.panel__row {
+  cursor: pointer;
+}
+
+button.panel__row:hover {
+  color: var(--ink);
+}
+
+/* The row in force is the accent itself rather than an outline of it, so what
+   is live reads from across the room. */
+.panel__row--on {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* The kit's caps are built to sit in body text and stand a head taller than a
+   panel's type, so they are sized down here. Matched on `kbd`, the element the
+   component renders, because its own class is a hashed CSS-module name. */
+.keys {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.keys kbd {
+  height: 12px;
+  min-width: 12px;
+  padding: 0 3px;
+  font-size: 10px;
+  /* An even edge. The kit draws a heavier bottom border so a cap reads as a
+     keycap with a lip; at a third of that cap's height it reads as a box that
+     has been drawn wrong. */
+  border-width: 1px;
+}
+
+.keys kbd[data-kind='square'] {
+  width: 12px;
+  padding: 0;
+}
+
+/* A legend of more than one character — `F1` — takes the kit's wide cap, which
+   is sized for a real Tab or Enter key and three times what a panel needs. */
+.keys kbd[data-kind='wide'] {
+  min-width: 0;
+  padding: 0 3px;
+}

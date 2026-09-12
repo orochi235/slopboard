@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
-import { KeyCap, Slider } from '@weasel-js/ui'
+import { Slider } from '@weasel-js/ui'
+import { Panel, PanelRow, PanelRows } from '@/panel/index.ts'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'
@@ -75,15 +76,11 @@ export function TopBar({
 
   return (
     <header className="topbar" ref={band} aria-label="Wall filters">
-      <fieldset className="topbar__block">
-        {/* The whole top edge: the title holds one end and the keys the other,
-            both cut into the border rather than sitting under it. */}
-        <legend className="topbar__legend topbar__legend--row">
-          <span className="topbar__name">time</span>
-
-          {/* The run of border the legend displaces between the two ends. */}
-          <span className="topbar__rule" aria-hidden="true" />
-
+      {/* The whole top edge: the title holds one end and the buckets the
+          other, both cut into the border rather than sitting under it. */}
+      <Panel
+        name="time"
+        end={
           <div className="topbar__buckets topbar__buckets--end">
             {BUCKETS.map((bucket) => {
               const b = bucketRange(bucket.key, now)
@@ -101,8 +98,8 @@ export function TopBar({
               )
             })}
           </div>
-
-        </legend>
+        }
+      >
 
         <div className="topbar__chart">
           <Slider
@@ -151,34 +148,27 @@ export function TopBar({
           <span>{ago(now - span.from)} ago</span>
           <span>now</span>
         </div>
-      </fieldset>
+      </Panel>
 
       {/* One key, both places: the zones on the wall and the flag list in the
           sidebar. */}
-      <fieldset className="topbar__block topbar__block--tight">
-        <legend className="topbar__name topbar__legend">sort</legend>
-        <div className="topbar__sorts">
+      <Panel name="sort" tight>
+        <PanelRows>
           {SORTS.map((option, i) => (
-            <button
+            <PanelRow
               key={option.key}
-              type="button"
-              className={`topbar__sort ${sort === option.key ? 'topbar__sort--on' : ''}`}
-              aria-pressed={sort === option.key}
-              onClick={() => onSort(option.key)}
-            >
-              {option.label}
-              <span className="topbar__keys wzl-skin">
-                <KeyCap label={`F${i + 1}`} variant="minimal" />
-              </span>
-            </button>
+              label={option.label}
+              keys={[`F${i + 1}`]}
+              selected={sort === option.key}
+              onSelect={() => onSort(option.key)}
+            />
           ))}
-        </div>
-      </fieldset>
+        </PanelRows>
+      </Panel>
 
       {/* Where you are, held against the right edge and away from what you are
           filtering. */}
-      <fieldset className="topbar__block topbar__block--tight topbar__block--pushed">
-        <legend className="topbar__name topbar__legend">view</legend>
+      <Panel name="view" tight pushed>
         <div className="topbar__view">
           {/* A colour per zone cannot be a class, so the value rides in as a
               custom property and the stylesheet decides what to do with it. */}
@@ -190,30 +180,26 @@ export function TopBar({
           </span>
           {/* The keys are the only thing that says the arrangement can be
               swapped at all — there is no control to find. */}
-          <span className="topbar__arrangement">
-            {arrangement}
-            <span className="topbar__keys wzl-skin" title="[ and ] swap the arrangement">
-              <KeyCap label="[" variant="minimal" />
-              <KeyCap label="]" variant="minimal" />
-            </span>
-          </span>
+          <PanelRow
+            label={arrangement}
+            keys={['[', ']']}
+            keysTitle="[ and ] swap the arrangement"
+          />
           <span className="topbar__tally">
             <span className="topbar__count">{count}</span> {count === 1 ? 'item' : 'items'}
           </span>
           {!connected && <span className="topbar__offline">offline</span>}
         </div>
-      </fieldset>
+      </Panel>
       {plan && (
-        <fieldset className="topbar__block topbar__block--tight">
-          <legend className="topbar__name topbar__legend">map</legend>
+        <Panel name="map" tight>
           {plan}
-        </fieldset>
+        </Panel>
       )}
       {axes && (
-        <fieldset className="topbar__block topbar__block--tight">
-          <legend className="topbar__name topbar__legend">axes</legend>
+        <Panel name="axes" tight>
           {axes}
-        </fieldset>
+        </Panel>
       )}
     </header>
   )
