@@ -14,6 +14,7 @@ app:
   id: tech.michaelbaker.slopboard.menubar
   icon: rectangle.stack
   interval: 5s
+  sign: perch local signing
 
 watch:
   # launchd's side of `wall stat`: whether the two agents are installed, loaded
