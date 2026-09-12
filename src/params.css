@@ -47,3 +47,10 @@
   display: none;
 }
 
+
+/* A bare `Slider` has no width of its own — `SliderRow` was giving it one.
+   The readout sits after the track, so the track takes what is left. */
+.params__slider {
+  flex: 1;
+  min-width: 0;
+}

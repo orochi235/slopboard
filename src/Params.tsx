@@ -4,13 +4,15 @@ import {
   ColorRow,
   NumberRow,
   PropertyList,
+  PropertyRow,
   SelectRow,
-  SliderRow,
+  Slider,
 } from '@weasel-js/ui'
 import { controlsOf, formatStepped } from '@/params.controls.ts'
 import { groupControls } from '@/params.groups.ts'
 import { leafAt, setAt } from '@/params.paths.ts'
 import { defaultParams, type StackParams } from '@/params.ts'
+import { splitUnit } from '@/params.units.ts'
 import { fromText, toText } from '@/params.transfer.ts'
 import './params.css'
 
@@ -129,9 +131,12 @@ export function ParamsBody({
               const value = leafAt(params, control.path) ?? 0
               const set = (next: number | string | boolean) =>
                 onChange(setAt(params, control.path, next))
-              const label = control.path.startsWith(`${group.name}.`)
+              const leaf = control.path.startsWith(`${group.name}.`)
                 ? control.path.slice(group.name.length + 1)
                 : control.path
+              const { label, unit } = splitUnit(leaf)
+              // The kit takes a symbol unit as JSX so the browser raises it.
+              const unitNode = unit === '°' ? <sup>{unit}</sup> : unit
 
               switch (control.kind) {
                 case 'slider': {
@@ -139,17 +144,31 @@ export function ParamsBody({
                   // params.controls.ts. The sign never reaches the control.
                   const shown = control.invert ? -(value as number) : (value as number)
                   return (
-                    <SliderRow
-                      key={control.path}
-                      label={label}
-                      layout="inline"
-                      value={shown}
-                      min={control.min}
-                      max={control.max}
-                      step={control.step}
-                      format={(v) => formatStepped(v, control.step)}
-                      onChange={(next) => set(control.invert ? -next : next)}
-                    />
+                    // `PropertyRow` around a bare `Slider` rather than
+                    // `SliderRow`: the row puts its readout up beside the
+                    // label, and the readout belongs after the track it reads.
+                    <PropertyRow key={control.path} label={label} layout="inline">
+                      <Slider
+                        className="params__slider"
+                        thumbs={[{ value: shown }]}
+                        min={control.min}
+                        max={control.max}
+                        step={control.step}
+                        density="slim"
+                        readoutPlacement="inline-after"
+                        renderReadout={(thumb) => (
+                          <>
+                            {formatStepped(thumb.value, control.step)}
+                            {unitNode && <span className="params__unit">{unitNode}</span>}
+                          </>
+                        )}
+                        ariaLabel={label}
+                        onInput={(next) => {
+                          const v = next[0]?.value
+                          if (v !== undefined) set(control.invert ? -v : v)
+                        }}
+                      />
+                    </PropertyRow>
                   )
                 }
                 case 'choice':
@@ -188,6 +207,7 @@ export function ParamsBody({
                       key={control.path}
                       label={label}
                       layout="inline"
+                      unit={unitNode}
                       value={value as number}
                       onChange={(next) => {
                         if (Number.isFinite(next)) set(next)
