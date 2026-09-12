@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { Rect } from 'windease'
 import type { StackParams } from '@/params.ts'
+import { hatchRotation } from '@/nav/hatch-angle.ts'
 import { unionOf } from '@/nav/zone-cells.ts'
 import './minimap.css'
 
@@ -70,7 +71,7 @@ export function Minimap({
                 patternUnits="userSpaceOnUse"
                 width={pitch}
                 height={pitch}
-                patternTransform={`rotate(${zones.hatchAngleDeg})`}
+                patternTransform={`rotate(${hatchRotation(zones.hatchAngleDeg)})`}
               >
                 {/* The zone's ground, then its hatch over it: one fill has to
                     carry both, and a pattern is the only fill that can. */}
