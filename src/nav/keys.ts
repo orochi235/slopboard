@@ -1,4 +1,5 @@
 import type { Direction } from '@/nav/neighbor.ts'
+import { SORTS, type SortKey } from '@/nav/sort.ts'
 
 /**
  * WASD and the arrows are the same four directions. PageUp/PageDown page a
@@ -58,4 +59,18 @@ export function opensIn(e: KeySample): boolean {
 export function isForAControl(target: EventTarget | null): boolean {
   const el = target as Element | null
   return !!el?.closest?.('input, select, textarea, button, [contenteditable]')
+}
+
+/**
+ * The sort a function key asks for, by position in the band's own list — so a
+ * fourth sort gets F4 without a second place to remember. Function keys
+ * because the wall's letters are already WASD.
+ *
+ * A modifier disqualifies it for the reason it disqualifies a direction.
+ */
+export function sortFor(e: KeySample): SortKey | null {
+  if (e.metaKey || e.ctrlKey || e.altKey) return null
+  const at = /^F([1-9])$/.exec(e.key)
+  if (!at) return null
+  return SORTS[Number(at[1]) - 1]?.key ?? null
 }

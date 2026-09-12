@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
-import { Slider } from '@weasel-js/ui'
+import { KeyCap, Slider } from '@weasel-js/ui'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'
@@ -57,7 +57,6 @@ export function TopBar({
   const tallest = Math.max(1, ...bins)
 
   const value: [number, number] = [range?.from ?? span.from, range?.to ?? span.to]
-  const kept = range ? bornAts.filter((t) => t >= range.from && t <= range.to).length : bornAts.length
 
   // Everything else fixed to the top clears the band by `--band`, and the band
   // is as tall as its own type — so it publishes what it measures rather than
@@ -81,9 +80,6 @@ export function TopBar({
             both cut into the border rather than sitting under it. */}
         <legend className="topbar__legend topbar__legend--row">
           <span className="topbar__name">time</span>
-          <span className="topbar__count">
-            {kept}/{bornAts.length}
-          </span>
 
           {/* The run of border the legend displaces between the two ends. */}
           <span className="topbar__rule" aria-hidden="true" />
@@ -161,16 +157,19 @@ export function TopBar({
           sidebar. */}
       <fieldset className="topbar__block topbar__block--tight">
         <legend className="topbar__name topbar__legend">sort</legend>
-        <div className="topbar__buckets topbar__buckets--stack">
-          {SORTS.map((option) => (
+        <div className="topbar__sorts">
+          {SORTS.map((option, i) => (
             <button
               key={option.key}
               type="button"
-              className={`topbar__bucket ${sort === option.key ? 'topbar__bucket--on' : ''}`}
+              className={`topbar__sort ${sort === option.key ? 'topbar__sort--on' : ''}`}
               aria-pressed={sort === option.key}
               onClick={() => onSort(option.key)}
             >
               {option.label}
+              <span className="topbar__keys wzl-skin">
+                <KeyCap label={`F${i + 1}`} variant="minimal" />
+              </span>
             </button>
           ))}
         </div>
@@ -189,7 +188,15 @@ export function TopBar({
           >
             {where ?? 'wall'}
           </span>
-          <span className="topbar__arrangement">{arrangement}</span>
+          {/* The keys are the only thing that says the arrangement can be
+              swapped at all — there is no control to find. */}
+          <span className="topbar__arrangement">
+            {arrangement}
+            <span className="topbar__keys wzl-skin" title="[ and ] swap the arrangement">
+              <KeyCap label="[" variant="minimal" />
+              <KeyCap label="]" variant="minimal" />
+            </span>
+          </span>
           <span className="topbar__tally">
             <span className="topbar__count">{count}</span> {count === 1 ? 'item' : 'items'}
           </span>

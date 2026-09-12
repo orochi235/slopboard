@@ -33,7 +33,7 @@
   min-width: 320px;
   max-width: 520px;
   flex: 1 1 380px;
-  padding: 6px 8px 7px;
+  padding: 4px 8px 7px;
   border: 1px solid var(--band-line);
   border-radius: 5px;
 }
@@ -51,6 +51,10 @@
   color: var(--muted);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  /* Down onto the border it breaks, until the middle stroke of an E sits on
+     the line. A transform, so the notch the fieldset cut stays where the
+     layout put it and only the word moves. */
+  transform: translateY(2.5px);
 }
 
 /* Centered in the border it breaks: a legend is laid out by its fieldset, so
@@ -58,7 +62,10 @@
    `.topbar__name`, whose `margin: 0` it is overriding. */
 .topbar__legend {
   margin-inline: auto;
-  padding: 0 6px;
+  /* Letter-spacing lands after the last glyph too, so equal padding leaves the
+     word sitting left of centre and the border stub longer on one side than
+     the other. The extra on the left is that trailing space, put back. */
+  padding-inline: calc(6px + 0.1em) 6px;
 }
 
 /* The full width of the block, so what it holds can take either end of the
@@ -71,6 +78,9 @@
   width: 100%;
   box-sizing: border-box;
   margin-inline: 0;
+  /* Nothing to centre: this legend spans the block and its title is held at
+     one end, so it takes the plain padding back. */
+  padding-inline: 6px;
 }
 
 .topbar__count {
@@ -163,6 +173,84 @@
 .topbar__arrangement,
 .topbar__tally {
   color: var(--muted);
+}
+
+/* The keys sit at the row's right edge — the convention for a panel row that
+   pairs a value with the key that changes it. */
+.topbar__arrangement {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* The kit's caps are built to sit in body text and stand a head taller than
+   this band, so they are sized down here. Matched on `kbd`, the element the
+   component renders, because its own class is a hashed CSS-module name. */
+.topbar__keys {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.topbar__keys kbd {
+  height: 12px;
+  min-width: 12px;
+  padding: 0 3px;
+  font-size: 10px;
+  /* An even edge. The kit draws a heavier bottom border so a cap reads as a
+     keycap with a lip; at a third of that cap's height it reads as a box that
+     has been drawn wrong. */
+  border-width: 1px;
+}
+
+.topbar__keys kbd[data-kind='square'] {
+  width: 12px;
+  padding: 0;
+}
+
+/* A legend of more than one character — `F1` — takes the kit's wide cap, which
+   is sized for a real Tab or Enter key and three times what this band needs. */
+.topbar__keys kbd[data-kind='wide'] {
+  min-width: 0;
+  padding: 0 3px;
+}
+
+/* The sorts read as the view's rows do: a list of choices in the band's own
+   muted type, the live one in the accent. */
+.topbar__sorts {
+  display: grid;
+  gap: 3px;
+  min-width: 96px;
+  /* The bar runs almost to the block's own border: the list spreads into the
+     block's padding and each row gives it back as its own, so the labels stay
+     where the view's rows have them. */
+  margin-inline: -6px;
+}
+
+.topbar__sort {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: none;
+  border-radius: 2px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+.topbar__sort:hover {
+  color: var(--ink);
+}
+
+/* The live sort is the accent itself rather than an outline of it, so the one
+   in force reads from across the room. */
+.topbar__sort--on {
+  background: var(--accent);
+  color: var(--bg);
 }
 
 .topbar__offline {

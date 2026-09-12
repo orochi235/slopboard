@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { directionFor, isForAControl, opensIn } from '@/nav/keys.ts'
+import { directionFor, isForAControl, opensIn, sortFor } from '@/nav/keys.ts'
 
 describe('directionFor', () => {
   it('reads WASD as the arrows, so either hand navigates', () => {
@@ -70,5 +70,33 @@ describe('isForAControl', () => {
 
   it('survives a target with no closest, which is not an element', () => {
     expect(isForAControl({} as EventTarget)).toBe(false)
+  })
+})
+
+describe('sortFor', () => {
+  const key = (k: string, mods: Partial<Parameters<typeof sortFor>[0]> = {}) =>
+    sortFor({ key: k, ...mods })
+
+  it('takes the sorts in the order the band lists them', () => {
+    expect(key('F1')).toBe('project')
+    expect(key('F2')).toBe('severity')
+    expect(key('F3')).toBe('recency')
+  })
+
+  it('answers for no function key past the last sort', () => {
+    expect(key('F4')).toBeNull()
+    expect(key('F9')).toBeNull()
+  })
+
+  it('leaves an ordinary key alone', () => {
+    expect(key('f')).toBeNull()
+    expect(key('1')).toBeNull()
+    expect(key('ArrowLeft')).toBeNull()
+  })
+
+  it('gives a modified function key back to whatever owns it', () => {
+    expect(key('F1', { metaKey: true })).toBeNull()
+    expect(key('F1', { ctrlKey: true })).toBeNull()
+    expect(key('F1', { altKey: true })).toBeNull()
   })
 })
