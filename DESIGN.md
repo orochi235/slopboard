@@ -368,6 +368,13 @@ arranges in the space that's left. One rule that works for every arrangement,
 rather than an independent "reflow around a hole" packing problem per
 arrangement.
 
+### Inbox — not built
+
+The second arrangement, and the reason the registry cycles at all: every
+artifact on the wall at once, zones ignored, newest first. `stack` answers
+"what is this project doing"; inbox answers "what has arrived", which is the
+question a wall nobody has looked at for an hour actually raises.
+
 ## Ingest contract
 
 Agents write files to `~/slop/inbox/<zone>/`. That is the entire integration
