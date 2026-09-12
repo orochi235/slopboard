@@ -105,6 +105,10 @@ const DEG_PER_PX = 0.25
 /** Drawn as text, so it wears whatever colour emoji font the system has. */
 const PIN_GLYPH = '📌'
 
+/** What a card wears when its picture is one frame of several. The wall never
+ *  plays it; the chip is the invitation to open the lightbox, which does. */
+const PLAYS_GLYPH = '▶'
+
 const BADGE_LIFT = 0.002
 
 /** Movement past this is an orbit; anything less is the click it looks like. */
@@ -351,8 +355,10 @@ function Wall({
   const chips = useMemo(() => createChips(), [])
   const chipRamp = useRef(rampOf(1))
   const pins = useMemo(() => createChips(), [])
+  const plays = useMemo(() => createChips(), [])
   useEffect(() => () => chips.dispose(), [chips])
   useEffect(() => () => pins.dispose(), [pins])
+  useEffect(() => () => plays.dispose(), [plays])
 
   /** One line object per level rather than one per badge: a LineMaterial has a
    *  single color, and four draw calls is cheaper than one per flag. */
@@ -802,6 +808,7 @@ function Wall({
     // it fades, and a chip that froze with it would report the wrong day.
     const bornAt = new Map(current.items.map((i) => [i.id, i.bornAt]))
     const pinned = new Set(current.items.filter((i) => i.keptAt).map((i) => i.id))
+    const animated = new Set(current.items.filter((i) => i.frames).map((i) => i.id))
     // A chip annotates its subject, so it shrinks when the camera closes on
     // one: at wall distance the pile is small and the note has to carry, and
     // zoomed in the card is what grew. Ramped over the camera's own move, so
@@ -1319,6 +1326,42 @@ function Wall({
         }
       }
 
+      // The bottom-left corner, clear of both the age chip and the pin: an
+      // animated card can be the front of its pile and rescued at once.
+      const play = plays.byId.get(id)
+      const wearsPlay = animated.has(id)
+      if (play || wearsPlay) {
+        const held = plays.sync(
+          id,
+          `plays|${params.colors.chipFill}|${params.colors.chipInk}|${badgeFamily}|${fontsReady}`,
+          PLAYS_GLYPH,
+          {
+            fill: params.colors.chipFill,
+            ink: params.colors.chipInk,
+            family: badgeFamily,
+          },
+        )
+        held.plate.visible = wearsPlay
+        if (wearsPlay) {
+          const h = chipHeight
+          const w = h * held.aspect
+          held.plate.scale.set(w, h, 1)
+          held.plate.rotation.copy(mesh.rotation)
+          const inset = params.chips.inset
+          held.plate.position
+            .copy(mesh.position)
+            .add(
+              new THREE.Vector3(
+                -(drawnW * swell) / 2 + w / 2 + inset,
+                -(drawnH * swell) / 2 + h / 2 + inset,
+                BADGE_LIFT,
+              ).applyEuler(mesh.rotation),
+            )
+          const material = held.plate.material as THREE.MeshBasicMaterial
+          material.opacity = cut
+        }
+      }
+
       // Set here rather than in the memo, which cannot see a zone that arrived
       // since, and which does not know how far the card has faded.
       const edge = edges.byId.get(id)
@@ -1417,6 +1460,10 @@ function Wall({
       {live.map((id) => {
         const held = pins.byId.get(id)
         return held ? <primitive key={`pin-${id}`} object={held.plate} /> : null
+      })}
+      {live.map((id) => {
+        const held = plays.byId.get(id)
+        return held ? <primitive key={`plays-${id}`} object={held.plate} /> : null
       })}
       {[...leaders].map(([level, line]) => (
         <primitive key={`leader-${level}`} object={line} />

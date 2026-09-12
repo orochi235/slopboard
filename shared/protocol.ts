@@ -28,6 +28,10 @@ export type WallItem = {
   /** Absent for a picture, which is the ordinary case. `page` means `/orig`
    *  serves an HTML file the lightbox runs, and `url` is a shot of it. */
   kind?: 'page'
+  /** How many frames the artifact plays, for the one kind of card whose
+   *  picture is not the whole of it: the wall draws the first frame and the
+   *  lightbox plays all of them. Absent for a still. */
+  frames?: number
   /** What the pusher said the page may do, verbatim into the iframe's
    *  `sandbox` attribute. Absent means the wall's own default applies. */
   sandbox?: string

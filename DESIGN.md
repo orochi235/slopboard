@@ -432,6 +432,16 @@ retaken. `/orig` keeps serving the source file, so opening a page runs it live
 in an iframe rather than showing the shot larger — which is why an HTML
 artifact is worth holding at all.
 
+**An animated picture is a still on the wall and plays in the lightbox.** The
+cache thumbnail is the first frame — a card is a GPU texture, and a wall of
+them playing at once buys motion nobody is looking at — while `/orig` hands the
+whole file to an `<img>`, which plays it. So the card wears a `▶` chip in its
+bottom-left corner, clear of the age chip and the pin: without it the still
+reads as the whole artifact, and a loop that begins where it ends reads as a
+broken render. A multi-page TIFF is a still. Frames are counted only where the
+file also carries per-frame delays, which is what separates an animation from a
+scan.
+
 **Whoever pushes a page says what it may do.** `--sandbox` rides the sidecar
 and is applied verbatim to the iframe's `sandbox` attribute; `none` removes the
 attribute entirely. A page that says nothing gets `allow-scripts`: it runs, but

@@ -10,6 +10,7 @@ import { idFor } from './itemId.ts'
 import { kindOf } from './kind.ts'
 import { keptFrom, readStamp } from './sidecar.ts'
 import { orientedSize } from './sourceSize.ts'
+import { framesOf } from './frames.ts'
 import { shootPage } from './shoot.ts'
 import { parseAttention } from '@shared/attention.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
@@ -58,6 +59,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   // The artifact's own size, read before the resize that produces `info`.
   // `info` describes the cache thumbnail, and `/orig` hands out the original.
   let source: { w: number; h: number } | null = null
+  let frames: number | null = null
   // A page has no pixels of its own, so it gets some. Everything below this is
   // the picture pipeline unchanged, which is the point.
   const shotPath = join(config.cache, `${id}.shot.png`)
@@ -69,7 +71,9 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   const pixelPath = kind === 'page' ? shotPath : sourcePath
 
   try {
-    source = orientedSize(await sharp(pixelPath).metadata())
+    const meta = await sharp(pixelPath).metadata()
+    source = orientedSize(meta)
+    frames = framesOf(meta)
     info = await sharp(pixelPath)
       .rotate()
       .resize({
@@ -110,6 +114,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     ...(sidecar?.repo ? { repo: sidecar.repo } : {}),
     ...(sidecar?.sha ? { sha: sidecar.sha } : {}),
     ...(kind === 'page' ? { kind: 'page' as const } : {}),
+    ...(frames === null ? {} : { frames }),
     ...(kind === 'page' && sidecar?.sandbox ? { sandbox: sidecar.sandbox } : {}),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,
