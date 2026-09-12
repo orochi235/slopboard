@@ -17,7 +17,7 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
 
 describe('metaOf', () => {
   it("leads with the zone and the age, in the wall's own register", () => {
-    expect(metaOf(item(), 240_000)).toEqual(['slopboard', '4m', '1024×576'])
+    expect(metaOf(item(), 240_000)).toEqual(['slopboard', '4m', 'png', '1024×576'])
   })
 
   it('says the repo only when it is not already the zone', () => {
@@ -29,10 +29,33 @@ describe('metaOf', () => {
   })
 
   it('says nothing about provenance for a file dropped in by hand', () => {
-    expect(metaOf(item(), 0)).toEqual(['slopboard', '0s', '1024×576'])
+    expect(metaOf(item(), 0)).toEqual(['slopboard', '0s', 'png', '1024×576'])
   })
 
   it('marks a rescued item, since nothing else about it says so', () => {
     expect(metaOf(item({ keptAt: 5 }), 0)).toContain('kept')
+  })
+
+  it('names the format the original is in, not the thumbnail the card drew', () => {
+    expect(metaOf(item({ path: '/slop/inbox/z/a.ttl30m.gif' }), 0)).toContain('gif')
+    expect(metaOf(item({ path: '/slop/inbox/z/A.JPEG' }), 0)).toContain('jpeg')
+  })
+
+  it('calls a page a page, since its card is only a screenshot of one', () => {
+    expect(metaOf(item({ kind: 'page', path: '/slop/inbox/z/a.html' }), 0)).toContain('page')
+    expect(metaOf(item({ kind: 'page', path: '/slop/inbox/z/a.html' }), 0)).not.toContain('html')
+  })
+
+  it('counts the frames of an animation, which no still card can show', () => {
+    expect(metaOf(item({ path: '/slop/inbox/z/a.gif', frames: 88 }), 0)).toContain('88 frames')
+    expect(metaOf(item(), 0).some((p) => p.endsWith('frames'))).toBe(false)
+  })
+
+  it('says nothing about a format for a file expiry has already renamed', () => {
+    expect(metaOf(item({ path: '/slop/trash/abc123-slopboard' }), 0)).toEqual([
+      'slopboard',
+      '0s',
+      '1024×576',
+    ])
   })
 })
