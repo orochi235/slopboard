@@ -76,31 +76,7 @@ export function TopBar({
 
   return (
     <header className="topbar" ref={band} aria-label="Wall filters">
-      {/* The whole top edge: the title holds one end and the buckets the
-          other, both cut into the border rather than sitting under it. */}
-      <Panel
-        name="time"
-        end={
-          <div className="topbar__buckets topbar__buckets--end">
-            {BUCKETS.map((bucket) => {
-              const b = bucketRange(bucket.key, now)
-              const on = !!range && Math.abs(range.from - b.from) < 1000 && range.to >= b.to - 1000
-              return (
-                <button
-                  key={bucket.key}
-                  type="button"
-                  className={`topbar__bucket ${on ? 'topbar__bucket--on' : ''}`}
-                  aria-pressed={on}
-                  onClick={() => onRange(on ? null : b)}
-                >
-                  {bucket.label}
-                </button>
-              )
-            })}
-          </div>
-        }
-      >
-
+      <Panel name="time">
         <div className="topbar__chart">
           <Slider
             className="topbar__range wzl-skin"
@@ -147,6 +123,26 @@ export function TopBar({
         <div className="topbar__scale">
           <span>{ago(now - span.from)} ago</span>
           <span>now</span>
+        </div>
+
+        {/* Under the span they set, where a preset reads as a shortcut to a
+            range rather than as a filter of its own. */}
+        <div className="topbar__buckets">
+          {BUCKETS.map((bucket) => {
+            const b = bucketRange(bucket.key, now)
+            const on = !!range && Math.abs(range.from - b.from) < 1000 && range.to >= b.to - 1000
+            return (
+              <button
+                key={bucket.key}
+                type="button"
+                className={`topbar__bucket ${on ? 'topbar__bucket--on' : ''}`}
+                aria-pressed={on}
+                onClick={() => onRange(on ? null : b)}
+              >
+                {bucket.label}
+              </button>
+            )
+          })}
         </div>
       </Panel>
 
