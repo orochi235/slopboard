@@ -147,10 +147,17 @@
   min-width: 86px;
 }
 
-/* The accent the focused cell and the lightbox's own meta line already use
-   for a zone. */
+/* The accent stands for the wall itself, and for a zone with no project
+   colour behind it. */
 .topbar__where {
   color: var(--accent);
+}
+
+/* Lifted toward the ink, the way the wall lifts a zone's colour before it
+   draws with it: a `.hued` colour is picked to sit behind text and is often
+   too dark to be text. */
+.topbar__where--hued {
+  color: color-mix(in srgb, var(--where) 72%, var(--ink));
 }
 
 .topbar__arrangement,

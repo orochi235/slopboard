@@ -1704,7 +1704,8 @@ export function WebglBackend(props: Props) {
         <Sky settings={props.params.sky} colors={props.params.colors} />
       </Canvas>
       <TopBar
-        where={zoneOf(view)}
+        where={scope}
+        whereColor={scope ? props.zoneColors[scope] : undefined}
         arrangement={props.arrangement.name}
         count={countInScope}
         connected={props.connected}

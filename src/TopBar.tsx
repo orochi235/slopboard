@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Slider } from '@weasel-js/ui'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
@@ -21,6 +21,7 @@ export function TopBar({
   sort,
   onSort,
   where,
+  whereColor,
   arrangement,
   count,
   connected,
@@ -36,6 +37,9 @@ export function TopBar({
   onSort: (next: SortKey) => void
   /** The zone the view is inside, or null for the wall itself. */
   where: string | null
+  /** That zone's project colour, where it has one. The wall's own accent
+   *  stands for the wall itself and for a zone with no `.hued` behind it. */
+  whereColor?: string
   /** How the wall is laid out, and how many artifacts are on it. */
   arrangement: string
   count: number
@@ -177,7 +181,14 @@ export function TopBar({
       <fieldset className="topbar__block topbar__block--tight topbar__block--pushed">
         <legend className="topbar__name topbar__legend">view</legend>
         <div className="topbar__view">
-          <span className="topbar__where">{where ?? 'wall'}</span>
+          {/* A colour per zone cannot be a class, so the value rides in as a
+              custom property and the stylesheet decides what to do with it. */}
+          <span
+            className={`topbar__where ${whereColor ? 'topbar__where--hued' : ''}`}
+            style={whereColor ? ({ '--where': whereColor } as CSSProperties) : undefined}
+          >
+            {where ?? 'wall'}
+          </span>
           <span className="topbar__arrangement">{arrangement}</span>
           <span className="topbar__tally">
             <span className="topbar__count">{count}</span> {count === 1 ? 'item' : 'items'}
