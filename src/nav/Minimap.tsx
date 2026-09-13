@@ -48,7 +48,7 @@ export function Minimap({
   // same units, and at the size of this box it would lay down a hundred and
   // fifty lines — a flat tint with a cost. The angle is the wall's; the pitch
   // is whatever reads here.
-  const pitch = bounds.h / 9
+  const pitch = bounds.h / 18
 
   // Indexed rather than named: a zone is a directory name, and a URL reference
   // cannot carry everything one of those is allowed to hold.
