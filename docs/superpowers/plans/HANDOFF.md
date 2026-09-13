@@ -281,6 +281,25 @@ list, and each message carries the reasoning that is not in the diff.
   to 2.3% busy; `2546f70` has how that was measured.
 - **sharp is 0.35.4**, past the libvips and libheif advisories.
 
+Also from 2026-09-12: **zones can be pinned** from their right-click menu (kept
+in `pins.json`; see *Ordering the zones* in DESIGN.md), **a zone's label picks
+as the zone**, **the arrows drive a cursor from the wall**, and **the band's
+panels are components** in `src/panel/`.
+
+### The long list, Delete and undo — shipped
+
+2026-09-13. The spec is
+`docs/superpowers/specs/2026-09-13-long-list-and-delete-design.md`.
+
+- **`L`, or the band's `list` row, pages the whole wall as one list** in the
+  lightbox: piles chain in reading order, → past a pile's front opens the next
+  pile's deepest card, and every step reverses. Off by default, per browser.
+- **Shift + arrow** in the lightbox opens a neighboring pile's front card.
+- **Backspace / Delete** expires the open card and moves to the next one first.
+- **Undo is ten deep** and holds only deliberate expiries; a TTL running out no
+  longer overwrites it. `/api/undo` answers with the restored ids, and the wall
+  reopens a single restored card when one is open.
+
 ### Decisions made in conversation, in nobody's diff
 
 - **The wall's third dimension comes from the camera, not from a modifier.** A
@@ -320,8 +339,8 @@ list, and each message carries the reasoning that is not in the diff.
 
 ### The whole outstanding list
 
-The user's instruction is to work all of it, not just the head. Nothing left on
-it can be built without a word from the user first.
+The user's instruction is to work all of it, not just the head. Everything but
+the sort rows' focus needs a word from the user first.
 
 - **More band sections.** Time and sort are the first two; the band is built to
   take more blocks. Nothing is specified yet.
@@ -332,6 +351,16 @@ it can be built without a word from the user first.
 - **Kept cards do not move to a band of their own.** The decay freeze is all
   that marks one today. The reserved band is arrangement work.
 - **"also tomorrow"** — an unresolved fragment of a message. Ask before acting.
+- **A prefs window.** Asked for, not designed. `Prefs.tsx` is a dialog on `,`
+  sharing `ParamsBody` with the corner panel; its docstring says the tab strip
+  is for surfaces that are not parameters, such as which repos report to the
+  wall. Ask what it should hold before building it.
+- **A clicked sort row keeps focus and swallows the arrows.** The wall's key
+  handler skips any keystroke aimed at a button, so after clicking F1–F3 in the
+  band the arrows do nothing until focus moves. The `list` row blurs itself on
+  click; the sorts do not yet.
+- **`[` and `]` cycle a list of one.** The registry holds only `stack`; the
+  second arrangement is DESIGN.md's "Inbox — not built".
 
 ### Known-unjudged, deliberately
 
@@ -402,6 +431,21 @@ surprise is recognized rather than debugged.
   `data-*` — never on a class React toggles.
 - **`watchTree.test.ts`'s chokidar case times out on a loaded box** and passes
   run alone, so a full suite beside other work can show it red.
+  **`watchInbox.test.ts`** fails the same way, on `ENOTEMPTY` removing its temp
+  `.cache` — a teardown race against its own ingest, not a regression.
+- **A zone is hard to right-click.** A pile's card meshes cover nearly its whole
+  cell, so the pick reaches the zone only in a thin margin; the label is the
+  reliable target, for *Expire the zone* too.
+- **A presentation attribute loses to any stylesheet rule.** `fill` on an SVG
+  shape is one, which is why the plan's hatch rides in `style`.
+- **The params rows are `PropertyRow` + a bare `Slider`, not `SliderRow`**, whose
+  readout sits beside the label behind hashed CSS-module classes. `Slider`'s
+  `readoutPlacement="inline-after"` is the supported path.
+- **`clear` is gone from the TIME block** at the user's request: after dragging
+  the range thumbs, dragging them back out is the only way to the full span.
+- **A synthetic keydown on `window` drives the wall's keys** from a devtools
+  script — `new KeyboardEvent('keydown', { key, shiftKey, bubbles: true })` —
+  which is how the long list was checked without focusing the canvas.
 
 ### Stats in the bottom-left corner
 
@@ -480,7 +524,15 @@ running vite serves 504 "Outdated Optimize Dep" until it is re-optimized.
 To run against a daemon other than the one serving the real wall, set
 `SLOP_ROOT` and `SLOP_PORT` on both the daemon and the client — `vite.config.ts`
 points its proxy at `SLOP_PORT`. Without that the sim writes into `~/slop/inbox`
-and its cards show up on the real wall for a TTL.
+and its cards show up on the real wall for a TTL. A throwaway pair:
+
+```
+SLOP_ROOT=/tmp/probe SLOP_PORT=8788 node_modules/.bin/tsx server/index.ts
+SLOP_PORT=8788 SLOP_CLIENT_PORT=5187 node_modules/.bin/vite
+```
+
+Drop images into `/tmp/probe/inbox/<zone>/`. For zone colors, write
+`/tmp/probe/zones/<zone>.json` holding `{"root": "<dir with a .hued>"}`.
 
 ## Traps already paid for
 
