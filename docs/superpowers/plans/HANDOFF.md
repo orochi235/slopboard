@@ -142,8 +142,8 @@ the set. The design doc's arrangement table keeps the six as what was tried, so
 nobody re-proposes porting one.
 
 **Right-click, and the rescue under it.** A menu on the canvas — Open, Pin /
-Unpin, Dismiss the flag, Copy path, Expire now, and Undo last expiry (also
-Cmd-Z). Pinning writes `kept` to the sidecar, so it survives a restart, and
+Unpin, Dismiss the flag, Copy artifact, Copy path, Expire now, and Undo last
+expiry (also Cmd-Z). Pinning writes `kept` to the sidecar, so it survives a restart, and
 freezes the card's decay where it stood; expiry is undoable one deep and comes
 back with a fresh `bornAt`, since its old one is already past its TTL. The
 menu is a `delamin8r` parallax window in `window` mode — see the spec for why
@@ -161,7 +161,8 @@ All on `main`, 2026-09-06.
 layer and nothing else; the rows listing the layers read their Z back off
 `handle.planes`, so the card cannot describe a stack it is no longer in.
 
-**The page-wide sort is built** (`3fe3d64`). Three keys in the band, and the
+**The page-wide sort is built** (`3fe3d64`). Three keys in the band —
+`project`, `severity` (labeled "priority") and `recency` — and the
 sidebar's flag list reads the same one. The design note that sent it there was
 wrong: zone order is *not* the insertion order of `byZone` — `createZoneGrid`
 sorts the names it is handed and holds a slot per zone, so it discarded the
@@ -207,9 +208,8 @@ The rest of that day (`8c245a2..94c587d`):
 ### The wheel throttle and the arrow axis — shipped
 
 Built from [`2026-09-08-wheel-throttle.md`](2026-09-08-wheel-throttle.md),
-ticked through; `git log --oneline 6e87fda..12c7a2a` is the list. Everything
-here and above is pushed — `origin/main` is at `12c7a2a`. One physical gesture
-now buys one rung: the design is in `DESIGN.md` under **One rung per gesture**,
+ticked through; `git log --oneline 6e87fda..12c7a2a` is the list. One physical
+gesture now buys one rung: the design is in `DESIGN.md` under **One rung per gesture**,
 and `nav.cooldownMs` is gone, replaced by the quiet gate under `src/nav/`
 (`mergeStored` drops the old key on load). Defaults are `quietMs: 90`,
 `floorMs: 320`, measured across flicks, decaying tails and deliberate rolls.
@@ -259,6 +259,28 @@ opened it, and only on a fresh gesture — a roll that zooms out as far as fit
 stops there. The **page** lightbox is untouched: a wheel inside an iframe never
 reaches us, so the rule would only hold over the margin around the frame.
 
+### The band, the copy row and the idle wall — shipped
+
+All on `main`, 2026-09-12 and 13; `git log --oneline 5f441fa..HEAD` is the
+list, and each message carries the reasoning that is not in the diff.
+
+- **The filter band is a `delamin8r` window**, moving only while the pointer is
+  over it, tuned under `params.band`.
+- **Copy artifact** in the card menu: a picture goes on the clipboard as a PNG,
+  re-encoded when it is not one; a page as its HTML.
+- **A reshuffled grid glides** over `zoneGrid.moveMs` — a sort, a zone pin, an
+  arriving zone, and a window resize all go through it.
+- **Enter goes one rung in**, the inverse of Escape, and **the view rides in the
+  URL** (`#/zone/card`, written with `replaceState`). The prune that drops a
+  vanished zone waits for the daemon's snapshot, and now also drops a vanished
+  card back to its zone.
+- **The daemon beats every 5s**, and the client reconnects after 15s of silence,
+  so a daemon that dies behind vite's proxy no longer leaves the wall claiming
+  to be connected.
+- **The canvas draws on demand.** Idle, the page's main thread went from 15.6%
+  to 2.3% busy; `2546f70` has how that was measured.
+- **sharp is 0.35.4**, past the libvips and libheif advisories.
+
 ### Decisions made in conversation, in nobody's diff
 
 - **The wall's third dimension comes from the camera, not from a modifier.** A
@@ -281,14 +303,16 @@ reaches us, so the rule would only hold over the margin around the frame.
   font and re-types every label in the scene. Its components are painted
   entirely by `--wzl-*` custom properties; with those unset a control renders
   with correct geometry and fully transparent paint, which looks like a
-  component that failed to mount. The bridge for the slider is written out in
-  `src/topbar.css`, scoped to the band.
+  component that failed to mount. The bridge is `.wzl-skin` in
+  `src/weasel.css`, worn per params group and by `.topbar__range`. Two of its
+  tokens are percentages inside a `color-mix` rather than colors, and two have
+  no fallback, so an unset one means no height rather than a default.
 - **The wall does not wear weasel's themes** (2026-09-07). Neither the DOM
   chrome nor the scene follows them; slopboard keeps its cyan, and
   `params.colors` stays the only thing that sets the wall's palette.
   `spike/weasel-theme` is deleted — `8062c3a` in the reflog is the spike, and
   the only place `@weasel-js/theme` was ever installed. Weasel's *components* stay — the filter band's `RangeSlider` is
-  `@weasel-js/ui`, painted through the `--wzl-*` bridge in `src/topbar.css`.
+  `@weasel-js/ui`, painted through that bridge.
 - **A stored tuning outranks a changed default, forever.** `mergeStored` lays
   the stored blob over the defaults, so changing a default in `params.ts` does
   not reach anyone who has ever touched that control. Say so when handing over
@@ -296,61 +320,17 @@ reaches us, so the rule would only hold over the margin around the frame.
 
 ### The whole outstanding list
 
-The user's instruction is to work all of it, not just the head.
+The user's instruction is to work all of it, not just the head. Nothing left on
+it can be built without a word from the user first.
 
-**Another session is writing in `server/`.** Four untracked files appeared
-mid-session on 2026-09-08 — `watchTree.ts`, `watchTree.test.ts`,
-`inboxSweep.ts`, `inboxSweep.test.ts`, the chokidar reconcile sweep from the
-list below. `watchTree.test.ts` does not typecheck yet, so `tsc --noEmit` and
-`npm test` both report a failure that is theirs, not yours. Keep `git add`
-scoped to your own paths and do not "fix" those files.
-
-**The weasel control swap is finished.** Plan at
-`docs/superpowers/plans/2026-09-08-weasel-controls.md`, spec beside it. Tasks
-**all seven tasks are done and on `main`.** Full suite green at 69 files /
-485 tests on 2026-09-09, run once with nothing else on the box. Unpushed.
-
-The bridge now lives in `src/weasel.css` as `.wzl-skin`, worn per params group
-and by `.topbar__range`. Four tokens it was missing are why the rows first
-rendered invisible; two of them are **percentages inside a `color-mix`, not
-colors**, and two carry **no fallback**, so unset means no height rather than a
-default. All four are written up with the rest of the weasel friction in
-`~/src/weasel/todo.md` (uncommitted — that repo has unrelated work in its tree).
-
-Both of 2026-09-08's other asks landed too: a 📌 badge on a pinned card
-(`25a4e53`, its own corner opposite the age chip, ungated by `chips.cards`
-because a pin is state not decoration), and `zones.huedMinLight` (`8519829`),
-which lifts a near-black project colour — weasel's `#470013` is L 0.14 — while
-leaving hue and saturation alone.
 - **More band sections.** Time and sort are the first two; the band is built to
-  take more blocks. Nothing else is specified yet.
-
-**Then:**
-
+  take more blocks. Nothing is specified yet.
 - **The pin set has no cap.** `DESIGN.md` bounds it at twelve so that keeping
   costs something; the menu ships without the bound on purpose, because nothing
   had ever been kept when it was written. Revisit after living with it, and see
   `docs/superpowers/specs/2026-09-05-context-menu-and-rescue-design.md`.
 - **Kept cards do not move to a band of their own.** The decay freeze is all
   that marks one today. The reserved band is arrangement work.
-
-**Independent of all of the above:**
-
-- **The client cannot tell the daemon died.** Receive-only over a socket vite
-  proxies, so the browser end stays open when the upstream goes: the wall
-  reports itself connected and silently misses every arrival and expiry. Stable
-  ids mean this freezes the wall rather than blanking it. A boot id in the
-  snapshot that the client re-checks is the shape considered, not decided.
-- **The wall costs a core whenever it is open**, and a GPU's worth of memory
-  per copy. No `frameloop` prop, so r3f is on `always`. This is not theoretical:
-  parking one driven browser on `about:blank` mid-session took free RAM from
-  ~250MB to ~1.1GB on a machine deep in swap.
-- **Enter should descend a rung**, the inverse of Escape.
-- **View state in the URL hash**, so a reload keeps the view. It already
-  survives reloads somehow — find out how before adding a second mechanism.
-- **`sharp` has a high-severity libvips advisory**, pre-existing and unrelated
-  to this work. The fix is a breaking major bump and the daemon uses it for
-  thumbnails.
 - **"also tomorrow"** — an unresolved fragment of a message. Ask before acting.
 
 ### Known-unjudged, deliberately
@@ -401,12 +381,27 @@ surprise is recognized rather than debugged.
   daemon you start yourself with `npm run dev` does watch — editing anything
   under `shared/` or `server/` restarts it, and the worker pid
   (`pgrep -f preflight.cjs`) is how you confirm that, not the supervisor's,
-  which never changes.
+  which never changes. **A client newer than the daemon reconnects every 16s**:
+  it drops a socket after three missed beats, and a daemon from before the beat
+  sends none. After touching `shared/protocol.ts` or `server/`, `wall cycle`.
 - **The devtools browser is a different profile from the user's.** Its
   `localStorage` params are not theirs; state read there says nothing about what
   they see. Chasing that wasted a round of colour "bugs" that were never real.
-- **Every open copy of the wall costs a core**, so leaving a driven browser on
-  the page is not free.
+- **Every open copy of the wall still holds a WebGL context** and draws for
+  anything that moves, so point a driven browser at `about:blank` when done.
+- **The canvas draws on demand, so new motion has to ask for frames.** Anything
+  that animates must start from something `wake` already hears — props, input,
+  a texture landing — and finish inside its hold, or be added to the `moving`
+  check at the end of the frame loop. Otherwise it advances once a second.
+- **Inside an SVG, a CSS length on a shape is in viewBox units.** The plan's
+  viewBox is about 70px to the unit, so `stroke-width: 2px` painted a blue slab
+  over the whole minimap. Its cells take `vector-effect: non-scaling-stroke`;
+  anything else stroked in a small viewBox needs the same.
+- **React setting `className` strips `delamin8r`'s `dl-plane`.** State on
+  anything inside the band or the menu rides on an attribute — `aria-pressed`,
+  `data-*` — never on a class React toggles.
+- **`watchTree.test.ts`'s chokidar case times out on a loaded box** and passes
+  run alone, so a full suite beside other work can show it red.
 
 ### Stats in the bottom-left corner
 
