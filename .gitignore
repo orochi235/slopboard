@@ -3,3 +3,4 @@ dist
 *.log
 CLAUDE.local.md
 .playwright-mcp/
+.superpowers/
