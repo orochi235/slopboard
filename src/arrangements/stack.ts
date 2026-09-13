@@ -23,6 +23,22 @@ function hashUnit(id: string): number {
 
 const easeOut = (t: number) => 1 - (1 - t) ** 3
 
+type Glide = { from: Rect; to: Rect; at: number }
+
+const sameRect = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
+
+function glideAt(glide: Glide, now: number, ms: number): Rect {
+  const t = ms > 0 ? easeOut(Math.min(1, (now - glide.at) / ms)) : 1
+  const { from, to } = glide
+  return {
+    x: from.x + (to.x - from.x) * t,
+    y: from.y + (to.y - from.y) * t,
+    z: to.z,
+    w: from.w + (to.w - from.w) * t,
+    h: from.h + (to.h - from.h) * t,
+  }
+}
+
 /**
  * The two presence curves, swappable from code. Deliberately not parameters:
  * `StackParams` round-trips through localStorage and the clipboard as JSON, and
@@ -59,6 +75,22 @@ export function createStack(
   const { fade, distance } = { ...defaultCurves, ...curves }
   const ranksByZone = new Map<string, ReturnType<typeof createRanks>>()
   const zoneGrid = createZoneGrid()
+  const glides = new Map<string, Glide>()
+
+  /** Where a zone's pile stands now, on its way to the cell it was handed. A
+   *  new target starts from wherever the last move had got to, so a sort
+   *  changed twice mid-flight turns rather than jumping. */
+  const cellFor = (zone: string, to: Rect, now: number): Rect => {
+    const glide = glides.get(zone)
+    if (!glide) {
+      glides.set(zone, { from: to, to, at: now })
+      return to
+    }
+    if (!sameRect(glide.to, to)) {
+      glides.set(zone, { from: glideAt(glide, now, params.zoneGrid.moveMs), to, at: now })
+    }
+    return glideAt(glides.get(zone) ?? glide, now, params.zoneGrid.moveMs)
+  }
 
   const ranksFor = (zone: string) => {
     let ranks = ranksByZone.get(zone)
@@ -103,14 +135,18 @@ export function createStack(
           bucket.sort((a, b) => order(a) - order(b) || a.age01 - b.age01)
 
         const cells = zoneGrid([...byZone.keys()], container, params.zoneGrid, zoneOrder)
+        // A zone that empties and comes back arrives in place, not from the
+        // cell it held before it left.
+        for (const zone of glides.keys()) if (!cells.has(zone)) glides.delete(zone)
 
         const placements = new Map<string, Rect>()
         const channels = new Map<string, Record<string, number>>()
         const unplaced: string[] = []
 
         for (const [zone, bucket] of byZone) {
-          const cell = cells.get(zone)
-          if (!cell) continue
+          const target = cells.get(zone)
+          if (!target) continue
+          const cell = cellFor(zone, target, now)
           // The same relative point of the card meets that point of the cell,
           // so origin 0,0 hangs the pile corner-to-corner and 0.5,0.5 centres it.
           const originX = params.origin.x * (cell.w - params.side)

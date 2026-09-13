@@ -80,6 +80,22 @@ describe('stack', () => {
     expect(zMid).toBeGreaterThan(zEnd)
   })
 
+  it('glides a pile to its new cell when the zone order changes', () => {
+    const stack = createStack()
+    const ms = defaultParams.zoneGrid.moveMs
+    const given = (items: ReturnType<typeof item>[], now: number) =>
+      stack.strategy.layout({ items, container, state: undefined, options: { now, zones: 'given' } })
+    const before = given([item('a', 'one'), item('b', 'two')], 0).placements.get('a')!
+    const swapped = [item('b', 'two'), item('a', 'one')]
+    // The reorder is its own call, for the same reason a shove's arrival is.
+    given(swapped, 1000)
+    const mid = given(swapped, 1000 + ms / 2).placements.get('a')!
+    const after = given(swapped, 1000 + ms * 4).placements.get('a')!
+    expect(after.x).not.toBeCloseTo(before.x)
+    expect(mid.x).toBeGreaterThan(Math.min(before.x, after.x))
+    expect(mid.x).toBeLessThan(Math.max(before.x, after.x))
+  })
+
   it('fades with age at the front of the pile', () => {
     const stack = createStack()
     const out = run(stack, [item('young', 'z', 0), item('dying', 'z', 1)], 0)

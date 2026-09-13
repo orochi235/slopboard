@@ -170,6 +170,9 @@ export type StackParams = {
      *  and never renumbers a zone — a pile keeps the cell it has claimed. */
     reverseX: boolean
     reverseY: boolean
+    /** How long a pile takes to reach a new cell, when a sort, a pin or an
+     *  arriving zone reshuffles the grid. */
+    moveMs: number
   }
   camera: {
     projection: Projection
@@ -476,6 +479,7 @@ export const defaultParams: StackParams = {
     reverseX: false,
     reverseY: false,
     minCells: 4,
+    moveMs: 520,
   },
   camera: {
     projection: 'orthographic',

@@ -83,6 +83,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'zoneGrid.gap': [0, 1, 0.005],
   'zoneGrid.cols': [1, 12, 1],
   'zoneGrid.rows': [1, 12, 1],
+  'zoneGrid.moveMs': [0, 3000, 10],
   'camera.fovDeg': [5, 120, 1],
   'camera.standoff': [1, 60, 0.5],
   'camera.yawDeg': [-90, 90, 1],

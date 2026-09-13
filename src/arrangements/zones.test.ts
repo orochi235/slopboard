@@ -100,7 +100,7 @@ describe('createZoneGrid', () => {
 
 describe('reversing an axis', () => {
   const container = { w: 2, h: 1 }
-  const cfg = { gap: 0, orientation: 'wide' as const, reverseX: false, reverseY: false, minCells: 2 }
+  const cfg = { gap: 0, orientation: 'wide' as const, reverseX: false, reverseY: false, minCells: 2, moveMs: 0 }
   const place = (over: Partial<typeof cfg>) =>
     createZoneGrid()(['a', 'b'], container, { ...cfg, ...over })
 
