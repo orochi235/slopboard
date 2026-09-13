@@ -21,7 +21,7 @@
     "express": "^5.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "sharp": "^0.34.2",
+    "sharp": "^0.35.4",
     "three": "^0.169.0",
     "windease": "file:../windease",
     "ws": "^8.18.2"

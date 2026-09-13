@@ -1,4 +1,4 @@
-import sharp from 'sharp'
+import sharp, { type OutputInfo } from 'sharp'
 import { mkdir, rm, stat, rename, utimes, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, extname } from 'node:path'
 import { config } from './config.ts'
@@ -55,7 +55,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   const caption = captionFor(basename(sourcePath), sidecar)
   const xmp = buildXmp({ ...sidecar, zone, caption } satisfies Stamp)
 
-  let info: sharp.OutputInfo
+  let info: OutputInfo
   // The artifact's own size, read before the resize that produces `info`.
   // `info` describes the cache thumbnail, and `/orig` hands out the original.
   let source: { w: number; h: number } | null = null
