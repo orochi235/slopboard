@@ -28,10 +28,16 @@ export function onExpire(fn: (id: string) => void) {
 
 type Gone = { entry: Entry; dest: string }
 
-/** What the last expiry took, and where it put it. One step deep, however many
- *  artifacts that step took: undo is for watching something go and wanting it
- *  back, not for browsing the trash. A whole zone goes and comes back as one. */
-let lastExpired: Gone[] | null = null
+/** The expiries a person asked for, oldest first, each the artifacts one step
+ *  took — a whole zone goes and comes back as one. A TTL running out is never
+ *  a step: on a busy wall it would bury a deliberate expiry within the second. */
+const undoable: Gone[][] = []
+const UNDO_DEPTH = 10
+
+function remember(step: Gone[]) {
+  undoable.push(step)
+  if (undoable.length > UNDO_DEPTH) undoable.shift()
+}
 
 /** Expiry moves the source file to the trash; the wall never unlinks. */
 async function expire(entry: Entry): Promise<Gone> {
@@ -44,17 +50,16 @@ async function expire(entry: Entry): Promise<Gone> {
   return { entry, dest }
 }
 
-export function startSweeper() {
-  setInterval(() => {
+/** Returns the stop, for a test that must not leave a sweep running. */
+export function startSweeper(): () => void {
+  const timer = setInterval(() => {
     const now = Date.now()
     for (const entry of entries.values()) {
       if (entry.item.keptAt) continue
-      if (entry.item.bornAt < now - (entry.item.ttlMs ?? config.ttlMs))
-        void expire(entry).then((gone) => {
-          lastExpired = [gone]
-        })
+      if (entry.item.bornAt < now - (entry.item.ttlMs ?? config.ttlMs)) void expire(entry)
     }
   }, 1000)
+  return () => clearInterval(timer)
 }
 
 /** Expiry on demand. False when there is no such item, so the caller does not
@@ -62,7 +67,7 @@ export function startSweeper() {
 export async function expireNow(id: string): Promise<boolean> {
   const entry = entries.get(id)
   if (!entry) return false
-  lastExpired = [await expire(entry)]
+  remember([await expire(entry)])
   return true
 }
 
@@ -80,7 +85,7 @@ export async function expireZone(zone: string): Promise<string[]> {
   if (doomed.length === 0) return []
   const gone: Gone[] = []
   for (const entry of doomed) gone.push(await expire(entry))
-  lastExpired = gone
+  remember(gone)
   return gone.map((g) => g.entry.item.id)
 }
 
@@ -99,16 +104,15 @@ export async function keep(id: string, on: boolean): Promise<number | null | fal
 }
 
 /**
- * Puts the last expiry back, or null when there is nothing to put back.
+ * Puts the most recent step back, or nothing when there is none left.
  *
  * It returns with a fresh `bornAt`: restored at its old one it would be past
  * its TTL already and the sweeper would take it again within the second, which
  * looks exactly like undo not working.
  */
 export async function undoExpiry(): Promise<WallItem[]> {
-  const last = lastExpired
+  const last = undoable.pop()
   if (!last) return []
-  lastExpired = null
   const back: WallItem[] = []
   for (const gone of last) {
     try {

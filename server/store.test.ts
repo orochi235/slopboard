@@ -81,13 +81,59 @@ describe('expireNow and undoExpiry', () => {
     expect(back[0]?.bornAt).toBeGreaterThan(1000)
   })
 
-  it('holds one undo, and nothing to undo is empty rather than an error', async () => {
+  it('empties as it undoes, and nothing to undo is empty rather than an error', async () => {
     const store = await freshStore(root)
     expect(await store.undoExpiry()).toEqual([])
 
     store.add({ item: itemAt(source), sourcePath: source, cachePath: join(root, 'a.webp') })
     await store.expireNow('a1')
     expect(await store.undoExpiry()).toHaveLength(1)
+    expect(await store.undoExpiry()).toEqual([])
+  })
+
+  /** One file per id in the one zone, fresh enough that the sweeper leaves it. */
+  const seedFresh = async (store: Awaited<ReturnType<typeof freshStore>>, ids: string[]) => {
+    for (const id of ids) {
+      const path = join(root, 'inbox', 'slopboard', `${id}.png`)
+      await writeFile(path, 'png')
+      store.add({
+        item: itemAt(path, { id, bornAt: Date.now() }),
+        sourcePath: path,
+        cachePath: join(root, `${id}.webp`),
+      })
+    }
+  }
+
+  it('walks back through the last ten, newest first', async () => {
+    const store = await freshStore(root)
+    const ids = Array.from({ length: 11 }, (_, i) => `x${i}`)
+    await seedFresh(store, ids)
+    for (const id of ids) await store.expireNow(id)
+
+    const undone: string[] = []
+    for (;;) {
+      const back = await store.undoExpiry()
+      if (back.length === 0) break
+      undone.push(...back.map((i: WallItem) => i.id))
+    }
+    expect(undone).toEqual(ids.slice(1).reverse())
+  })
+
+  it('never lets a TTL running out take the place of a deliberate expiry', async () => {
+    const store = await freshStore(root)
+    await seedFresh(store, ['mine'])
+    await store.expireNow('mine')
+
+    // Born at 1000 against an eight-hour TTL: the first sweep takes it.
+    store.add({ item: itemAt(source), sourcePath: source, cachePath: join(root, 'a.webp') })
+    const stop = store.startSweeper()
+    try {
+      await vi.waitFor(() => expect(existsSync(source)).toBe(false), { timeout: 3000 })
+    } finally {
+      stop()
+    }
+
+    expect((await store.undoExpiry()).map((i: WallItem) => i.id)).toEqual(['mine'])
     expect(await store.undoExpiry()).toEqual([])
   })
 })

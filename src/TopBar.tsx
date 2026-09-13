@@ -31,6 +31,8 @@ export function TopBar({
   plan,
   axes,
   look,
+  listed,
+  onList,
 }: {
   items: readonly WallItem[]
   /** The daemon's clock, so the axis agrees with every age on the wall. */
@@ -55,6 +57,9 @@ export function TopBar({
   plan?: ReactNode
   axes?: ReactNode
   look: StackParams['band']
+  /** Whether the lightbox pages the whole wall as one list. */
+  listed: boolean
+  onList: () => void
 }) {
   const bornAts = useMemo(() => items.map((i) => i.bornAt), [items])
   const span = useMemo(() => spanOf(bornAts, now), [bornAts, now])
@@ -209,6 +214,13 @@ export function TopBar({
             label={arrangement}
             keys={['[', ']']}
             keysTitle="[ and ] swap the arrangement"
+          />
+          <PanelRow
+            label="list"
+            keys={['L']}
+            keysTitle="L pages the whole wall as one list"
+            selected={listed}
+            onSelect={onList}
           />
           <span className="topbar__tally">
             <span className="topbar__count">{count}</span> {count === 1 ? 'item' : 'items'}

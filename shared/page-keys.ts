@@ -10,7 +10,13 @@
 
 /** Up and down stay the page's: they scroll it, and the wall does nothing with
  *  them while a card is open. */
-export const FORWARDED_KEYS = ['Escape', 'ArrowLeft', 'ArrowRight'] as const
+export const FORWARDED_KEYS = [
+  'Escape',
+  'ArrowLeft',
+  'ArrowRight',
+  'Backspace',
+  'Delete',
+] as const
 
 /** Named, so a message from any other frame cannot be mistaken for one. */
 export const KEY_MESSAGE = 'slopboard:key'

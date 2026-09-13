@@ -32,6 +32,13 @@ describe('withKeyForwarder', () => {
     expect(out).not.toContain('ArrowDown')
   })
 
+  it('forwards the delete keys and the shift that turns an arrow into a jump', () => {
+    const out = withKeyForwarder('')
+    expect(out).toContain('"Backspace"')
+    expect(out).toContain('"Delete"')
+    expect(out).toContain('shiftKey: e.shiftKey')
+  })
+
   it('names its messages, so another frame cannot be mistaken for the page', () => {
     expect(withKeyForwarder('')).toContain(KEY_MESSAGE)
   })

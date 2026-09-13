@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { directionFor, isForAControl, opensIn, sortFor } from '@/nav/keys.ts'
+import {
+  deletes,
+  directionFor,
+  isForAControl,
+  opensIn,
+  sortFor,
+  togglesList,
+} from '@/nav/keys.ts'
 
 describe('directionFor', () => {
   it('reads WASD as the arrows, so either hand navigates', () => {
@@ -48,6 +55,34 @@ describe('opensIn', () => {
     expect(opensIn({ key: 'ArrowRight' })).toBe(false)
     expect(opensIn({ key: 'w' })).toBe(false)
     expect(opensIn({ key: 'Escape' })).toBe(false)
+  })
+})
+
+describe('deletes', () => {
+  it('takes both delete keys, since a Mac calls Backspace delete', () => {
+    expect(deletes({ key: 'Backspace' })).toBe(true)
+    expect(deletes({ key: 'Delete' })).toBe(true)
+  })
+
+  it('leaves a modified delete to whoever owns it', () => {
+    expect(deletes({ key: 'Backspace', metaKey: true })).toBe(false)
+    expect(deletes({ key: 'Delete', altKey: true })).toBe(false)
+  })
+
+  it('is false for any other key', () => {
+    expect(deletes({ key: 'Escape' })).toBe(false)
+    expect(deletes({ key: 'd' })).toBe(false)
+  })
+})
+
+describe('togglesList', () => {
+  it('answers to L in either case', () => {
+    expect(togglesList({ key: 'l' })).toBe(true)
+    expect(togglesList({ key: 'L' })).toBe(true)
+  })
+
+  it('leaves a modified L alone', () => {
+    expect(togglesList({ key: 'l', metaKey: true })).toBe(false)
   })
 })
 

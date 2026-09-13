@@ -8,7 +8,7 @@ const SCRIPT = `<script>
     // Text entry keeps its own keys; a focused button has no use for these.
     var el = e.target
     if (el && el.closest && el.closest('input, select, textarea, [contenteditable]')) return
-    try { parent.postMessage({ type: ${JSON.stringify(KEY_MESSAGE)}, key: e.key }, '*') } catch (_) {}
+    try { parent.postMessage({ type: ${JSON.stringify(KEY_MESSAGE)}, key: e.key, shiftKey: e.shiftKey }, '*') } catch (_) {}
   })
 })()
 </script>`

@@ -51,6 +51,23 @@ export function opensIn(e: KeySample): boolean {
 }
 
 /**
+ * Whether a keystroke asks to delete the open card. Both keys, because the one
+ * a Mac labels delete sends Backspace.
+ *
+ * A modifier disqualifies it for the reason it disqualifies a direction.
+ */
+export function deletes(e: KeySample): boolean {
+  if (e.metaKey || e.ctrlKey || e.altKey) return false
+  return e.key === 'Backspace' || e.key === 'Delete'
+}
+
+/** Whether a keystroke turns paging the wall as one list on or off. */
+export function togglesList(e: KeySample): boolean {
+  if (e.metaKey || e.ctrlKey || e.altKey) return false
+  return e.key.toLowerCase() === 'l'
+}
+
+/**
  * Whether a keystroke was aimed at a control rather than at the wall. An arrow
  * steps a focused slider and a letter lands in a field; either way the wall
  * must not also move, which is the trap WASD walks into that the arrows only

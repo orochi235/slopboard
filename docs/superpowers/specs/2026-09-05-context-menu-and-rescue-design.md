@@ -48,6 +48,10 @@ still one `rm` from gone; what it is safe from is the wall itself.
 
 ## Undo
 
+*Since 2026-09-13 undo is ten deep and holds only deliberate expiries — see
+`2026-09-13-long-list-and-delete-design.md`. What follows is the original
+one-step design.*
+
 The store holds **one** expiry — the entry and where in the trash it went.
 Undo renames the file back, brings the sidecar with it, and re-adds the item
 **with a fresh `bornAt`**. Restored at its old one it would already be past its

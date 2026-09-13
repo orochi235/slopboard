@@ -99,7 +99,7 @@ app.post('/api/items/:id/expire', async (req, res) => {
 app.post('/api/undo', async (_req, res) => {
   const items = await store.undoExpiry()
   for (const item of items) broadcast({ type: 'arrive', item })
-  res.json({ ok: items.length > 0, restored: items.length })
+  res.json({ ok: items.length > 0, restored: items.map((i) => i.id) })
 })
 
 // A whole zone, in one step. Guarded like the other writes — a wall on a

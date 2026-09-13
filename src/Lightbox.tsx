@@ -311,11 +311,11 @@ function PageLightbox({
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow) return
-      const key = (e.data as { type?: string; key?: string } | null)?.type === KEY_MESSAGE
-        ? (e.data as { key?: string }).key
-        : undefined
-      if (!key) return
-      window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }))
+      const data = e.data as { type?: string; key?: string; shiftKey?: boolean } | null
+      if (data?.type !== KEY_MESSAGE || !data.key) return
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: data.key, shiftKey: !!data.shiftKey, bubbles: true }),
+      )
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)

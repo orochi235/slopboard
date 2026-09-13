@@ -40,7 +40,15 @@ import { loadFaces, stackFor } from '@/typeface.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { createGestureRail } from '@/nav/gesture.ts'
-import { directionFor, isForAControl, opensIn, sortFor } from '@/nav/keys.ts'
+import {
+  deletes,
+  directionFor,
+  isForAControl,
+  opensIn,
+  sortFor,
+  togglesList,
+} from '@/nav/keys.ts'
+import { afterDelete, jumpFrom, pageFrom, readingOrder } from '@/nav/list.ts'
 import { neighborOf } from '@/nav/neighbor.ts'
 import { zoneAt } from '@/nav/pick.ts'
 import { liftedHex, liftedTint } from '@/nav/zone-tint.ts'
@@ -98,6 +106,10 @@ type WallProps = Props & {
   /** Excluded by the band's filters. Still drawn, still in rank — faded, so
    *  what was cut stays legible against what was kept. */
   dimmed: ReadonlySet<string>
+  /** Whether ← and → in the lightbox carry on past a pile into the next. */
+  listed: boolean
+  /** Delete with a card open. The view has already moved off it. */
+  onDelete: (id: string) => void
   /** Fraction of the canvas the sidebar covers. A ref, not a value: the framing
    *  reads it every frame and the panel opening must not re-render the wall. */
   sidebarInset: { current: number }
@@ -177,6 +189,8 @@ function Wall({
   onPlan,
   onMenu,
   dimmed,
+  listed,
+  onDelete,
   connected,
   sidebarInset,
   topInset,
@@ -467,6 +481,8 @@ function Wall({
   /** The deepest z each pile reaches, so its backdrop can sit behind it. */
   const viewRef = useRef(view)
   viewRef.current = view
+  const listedRef = useRef(listed)
+  listedRef.current = listed
 
   // Retargeted every frame rather than only on a level change: the cells are
   // not known until the first layout runs, and zones arrive and leave under a
@@ -830,9 +846,21 @@ function Wall({
         setCursor(null)
         return dispatch({ type: 'to', path: next })
       }
+      const zone = zoneOf(viewRef.current)
+      const card = cardOf(viewRef.current)
+      const order = () => (listedRef.current ? readingOrder(bases.current) : null)
+      if (zone && card && deletes(e)) {
+        e.preventDefault()
+        // Moved first, or the expiry the daemon broadcasts prunes the view off
+        // the card and the lightbox closes.
+        const next = afterDelete({ zone, card }, cardsByZone.current, order())
+        dispatch(next ? { type: 'to', path: next } : { type: 'out' })
+        onDelete(card)
+        return
+      }
+
       const direction = directionFor(e)
       if (!direction) return
-      const zone = zoneOf(viewRef.current)
       if (!zone) {
         // At the wall the arrows drive the cursor rather than the camera: the
         // first press shows it on the first cell, every press after walks it.
@@ -845,19 +873,15 @@ function Wall({
         return
       }
 
-      const card = cardOf(viewRef.current)
       if (card) {
-        // Inside a card the arrows page the pile it came from. Up and down have
-        // no second axis here, so they stay the zone grid's.
-        if (direction !== 'left' && direction !== 'right') return
-        const pile = cardsByZone.current.get(zone) ?? []
-        const from = pile.indexOf(card)
-        // A pile steps back and to the left as it deepens — `step.x` is
-        // negative — so left goes deeper into it and right comes forward
-        // toward the newest card, each arrow moving the way the cards lie.
-        // The ends clamp: a pile is a stack, not a carousel.
-        const next = pile[direction === 'left' ? from + 1 : from - 1]
-        if (from !== -1 && next) dispatch({ type: 'to', path: [zone, next] })
+        // Inside a card left and right page the pile, and shift jumps to a
+        // neighboring pile's front card in any direction.
+        const next = e.shiftKey
+          ? jumpFrom(zone, direction, cells.current, cardsByZone.current)
+          : direction === 'left' || direction === 'right'
+            ? pageFrom({ zone, card }, direction, cardsByZone.current, order())
+            : null
+        if (next) dispatch({ type: 'to', path: next })
         return
       }
 
@@ -866,7 +890,7 @@ function Wall({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [dispatch, cursor])
+  }, [dispatch, cursor, onDelete])
 
   useFrame((_state, delta) => {
     const current = latest.current
@@ -1584,6 +1608,7 @@ function Wall({
 
 export function WebglBackend(props: Props) {
   const [sidebarOpen, setSidebarOpen] = usePersistedFlag('slopboard.sidebar.open.v1', false)
+  const [listed, setListed] = usePersistedFlag('slopboard.list.v1', false)
   // The fraction of the canvas the panel covers, measured rather than assumed:
   // its width lives in CSS, and a constant here would drift from it silently.
   // Read on toggle and on resize, never per frame — it forces a layout.
@@ -1705,7 +1730,8 @@ export function WebglBackend(props: Props) {
     [props.pinnedZones],
   )
   const scope = zoneOf(view)
-  const countInScope = scope ? items.filter((i) => i.zone === scope).length : items.length
+  const countInScope =
+    scope && !(listed && card) ? items.filter((i) => i.zone === scope).length : items.length
 
   /** The item the lightbox is showing. From `props.items` rather than the
    *  fake-flag overlay, so the meta line reports the wall, not the rehearsal. */
@@ -1731,9 +1757,25 @@ export function WebglBackend(props: Props) {
   const menuItem =
     menuTarget?.kind === 'card' ? items.find((i) => i.id === menuTarget.id) : undefined
 
+  const viewNow = useRef(view)
+  viewNow.current = view
+  /** One card undone while a card is open, held until its `arrive` lands:
+   *  opened before then, the prune bounces the view off a card the wall lacks. */
+  const [reopen, setReopen] = useState<string | null>(null)
   const undo = useCallback(() => {
-    void fetch('/api/undo', { method: 'POST' }).catch(() => {})
+    void fetch('/api/undo', { method: 'POST' })
+      .then((r) => r.json() as Promise<{ restored?: string[] }>)
+      .then(({ restored }) => {
+        if (restored?.length === 1 && cardOf(viewNow.current)) setReopen(restored[0]!)
+      })
+      .catch(() => {})
   }, [])
+  useEffect(() => {
+    const item = reopen === null ? undefined : props.items.find((i) => i.id === reopen)
+    if (!item) return
+    setReopen(null)
+    dispatch({ type: 'to', path: [item.zone, item.id] })
+  }, [reopen, props.items])
 
   /** The menu row clicked once and waiting to be meant. Cleared with the menu,
    *  so arming never survives the gesture that armed it. */
@@ -1786,6 +1828,28 @@ export function WebglBackend(props: Props) {
     [menu, menuItem, dispatch, dismiss, undo, armed],
   )
 
+  const deleteCard = useCallback((id: string) => {
+    setExpired(true)
+    void fetch(`/api/items/${id}/expire`, { method: 'POST' }).catch(() => {})
+  }, [])
+
+  const toggleList = useCallback(() => {
+    setListed((on) => !on)
+    // Focus left on the row would claim the arrows it exists to change.
+    ;(document.activeElement as HTMLElement | null)?.blur?.()
+  }, [setListed])
+
+  // Guarded against fields only, like the sorts: a focused band row must not
+  // swallow its own key.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as Element | null)?.closest?.('input, select, textarea, [contenteditable]')) return
+      if (togglesList(e)) setListed((on) => !on)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [setListed])
+
   // The function keys pick a sort. No control guard, unlike the wall's own
   // keys: clicking a sort leaves its button focused, and a guard would then
   // swallow the key that row is labelled with.
@@ -1837,6 +1901,8 @@ export function WebglBackend(props: Props) {
           onPlan={setPlan}
           onMenu={onMenu}
           dimmed={dimmed}
+          listed={listed}
+          onDelete={deleteCard}
         />
         <Sky settings={props.params.sky} colors={props.params.colors} />
       </Canvas>
@@ -1845,6 +1911,8 @@ export function WebglBackend(props: Props) {
         whereColor={scope ? props.zoneColors[scope] : undefined}
         arrangement={props.arrangement.name}
         count={countInScope}
+        listed={listed}
+        onList={toggleList}
         connected={props.connected}
         look={props.params.band}
         plan={

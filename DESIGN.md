@@ -302,7 +302,11 @@ a pile with no cards in it too.
 
 **`camera.margins` holds one entry per rung**, the last serving every rung past
 it. Arrows are read by rung the same way: across the zone grid at a pile, and
-front to back through the pile itself inside a card, clamping at both ends.
+front to back through the pile itself inside a card, clamping at both ends —
+unless the band's `list` row (`L`) is on, which chains every pile into one row
+so paging carries across. Shift and an arrow jumps to a neighboring pile's
+front card. `docs/superpowers/specs/2026-09-13-long-list-and-delete-design.md`
+has the order and the landing rules.
 
 ### Entry behavior is a separate axis
 
@@ -566,7 +570,9 @@ click is not attention — you get the sediment folder back with extra steps.
 mode is being heads-down for 40 minutes, not glancing up as something dies; a
 10-minute trash catches almost none of those and only feels like a safety net.
 
-**The most recent expiry is undoable with a keystroke**, which covers the case
+**The last ten expiries a person asked for are undoable with a keystroke** —
+Delete in the lightbox, the menu's expiries — never a TTL running out, which
+would bury them within the second. That covers the case
 the trash doesn't: seeing it go and wanting it back immediately.
 
 **Hover pauses decay.** Otherwise things vanish while you're looking at them.
