@@ -45,3 +45,20 @@ export const depthOf = (state: ViewState): number => state.path.length
  *  the hierarchy is one file's problem. */
 export const zoneOf = (state: ViewState): string | null => state.path[0] ?? null
 export const cardOf = (state: ViewState): string | null => state.path[1] ?? null
+
+/**
+ * One rung in, the inverse of `out`: the wall goes to the pile the cursor is
+ * on, and a pile to its front card. Null where there is nothing to go into —
+ * the wall with no cursor, a pile with no cards, or a card already.
+ */
+export function descend(
+  path: readonly string[],
+  cursor: string | null,
+  frontOf: (zone: string) => string | undefined,
+): readonly string[] | null {
+  const [zone, card] = path
+  if (card !== undefined) return null
+  if (zone === undefined) return cursor ? [cursor] : null
+  const front = frontOf(zone)
+  return front ? [zone, front] : null
+}

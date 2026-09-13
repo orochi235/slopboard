@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardOf, depthOf, reduceView, type ViewState, WALL, zoneOf } from '@/view-state.ts'
+import { cardOf, depthOf, descend, reduceView, type ViewState, WALL, zoneOf } from '@/view-state.ts'
 
 const at = (...path: string[]): ViewState => ({ path })
 
@@ -59,5 +59,27 @@ describe('accessors', () => {
     expect(cardOf(at('weasel'))).toBeNull()
     expect(zoneOf(at('weasel', 'img-1'))).toBe('weasel')
     expect(cardOf(at('weasel', 'img-1'))).toBe('img-1')
+  })
+})
+
+describe('descend', () => {
+  const fronts: Record<string, string> = { weasel: 'img-1' }
+  const frontOf = (zone: string) => fronts[zone]
+
+  it('takes the wall to the pile the cursor is on, not past it', () => {
+    expect(descend([], 'weasel', frontOf)).toEqual(['weasel'])
+  })
+
+  it('does nothing at the wall without a cursor', () => {
+    expect(descend([], null, frontOf)).toBeNull()
+  })
+
+  it('takes a pile to its front card', () => {
+    expect(descend(['weasel'], null, frontOf)).toEqual(['weasel', 'img-1'])
+  })
+
+  it('stops at an empty pile and at a card', () => {
+    expect(descend(['empty'], null, frontOf)).toBeNull()
+    expect(descend(['weasel', 'img-1'], null, frontOf)).toBeNull()
   })
 })

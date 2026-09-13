@@ -55,6 +55,7 @@ import { createReveal } from '@/textures/reveal.ts'
 import {
   cardOf,
   depthOf,
+  descend,
   reduceView,
   type ViewAction,
   type ViewState,
@@ -789,17 +790,13 @@ function Wall({
         return dispatch({ type: 'out' })
       }
       if (opensIn(e)) {
-        // From a focused pile, or from the one the cursor is pointing at —
-        // which is the gesture that turns pointing into going.
-        const zone = zoneOf(viewRef.current) ?? cursor
-        if (!zone || cardOf(viewRef.current)) return
-        const front = cardsByZone.current.get(zone)?.[0]
-        if (!front) return
+        const next = descend(viewRef.current.path, cursor, (zone) => cardsByZone.current.get(zone)?.[0])
+        if (!next) return
         // Space scrolls a document, and the canvas is one as far as the
         // browser is concerned.
         e.preventDefault()
         setCursor(null)
-        return dispatch({ type: 'to', path: [zone, front] })
+        return dispatch({ type: 'to', path: next })
       }
       const direction = directionFor(e)
       if (!direction) return
