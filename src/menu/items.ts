@@ -18,6 +18,7 @@ export type Action =
   | 'unpinZone'
   | 'expire'
   | 'expireZone'
+  | 'copyArtifact'
   | 'copyPath'
   | 'dismiss'
   | 'undo'
@@ -65,6 +66,7 @@ export function menuFor(
         : { action: 'pin', label: 'Pin' },
     )
     if (ctx.item.attention) items.push({ action: 'dismiss', label: 'Dismiss the flag' })
+    items.push({ action: 'copyArtifact', label: 'Copy artifact' })
     items.push({ action: 'copyPath', label: 'Copy path' })
     items.push({ action: 'expire', label: 'Expire now', grave: true })
   }

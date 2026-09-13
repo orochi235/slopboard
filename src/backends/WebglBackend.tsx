@@ -22,6 +22,7 @@ import { targetOf, type Action } from '@/menu/items.ts'
 import { Sidebar } from '@/Sidebar.tsx'
 import { usePersistedFlag } from '@/usePersistedFlag.ts'
 import { TopBar } from '@/TopBar.tsx'
+import { copyArtifact } from '@/menu/copy.ts'
 import { keptBy, type Range } from '@/nav/time-filter.ts'
 import { fakeFlags, type FakeFlag } from '@/debug-flags.ts'
 import { Sky } from '@/backends/Sky.tsx'
@@ -1711,6 +1712,8 @@ export function WebglBackend(props: Props) {
       const id = target.id
       if (action === 'open') return void dispatch({ type: 'to', path: [target.zone, id] })
       if (action === 'dismiss') return dismiss(id)
+      if (action === 'copyArtifact' && menuItem)
+        return void copyArtifact(menuItem).catch((e) => console.warn('[menu] copy failed', e))
       if (action === 'copyPath' && menuItem)
         return void navigator.clipboard?.writeText(menuItem.path).catch(() => {})
       if (action === 'pin' || action === 'unpin') {

@@ -44,6 +44,11 @@ describe('menuFor', () => {
     ).toContain('dismiss')
   })
 
+  it('offers the artifact itself above its path', () => {
+    const menu = actions(targetOf(['slopboard', 'a']), { item: item(), canUndo: false })
+    expect(menu.indexOf('copyArtifact')).toBe(menu.indexOf('copyPath') - 1)
+  })
+
   it('puts the one destructive action last and marks it', () => {
     const menu = menuFor(targetOf(['slopboard', 'a']), { item: item(), canUndo: false })
     expect(menu.at(-1)?.action).toBe('expire')
