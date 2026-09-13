@@ -30,9 +30,9 @@ export function PanelRow({
   className?: string
   children?: ReactNode
 }) {
-  const classes = ['panel__row', selected ? 'panel__row--on' : '', className ?? '']
-    .filter(Boolean)
-    .join(' ')
+  // Selection rides on `aria-pressed` rather than a class, so the class list
+  // stays what a host like delamin8r may have added to it.
+  const classes = ['panel__row', className ?? ''].filter(Boolean).join(' ')
 
   const inside = (
     <>

@@ -116,7 +116,7 @@ button.panel__row:hover {
 
 /* The row in force is the accent itself rather than an outline of it, so what
    is live reads from across the room. */
-.panel__row--on {
+.panel__row[aria-pressed='true'] {
   background: var(--accent);
   color: var(--bg);
 }

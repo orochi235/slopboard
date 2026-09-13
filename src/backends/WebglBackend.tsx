@@ -1784,6 +1784,7 @@ export function WebglBackend(props: Props) {
         arrangement={props.arrangement.name}
         count={countInScope}
         connected={props.connected}
+        look={props.params.band}
         plan={
           <Minimap
             cells={plan.cells}

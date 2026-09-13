@@ -228,6 +228,18 @@ export type StackParams = {
     /** Degrees the deck turns at full deflection. `tilt` only. */
     tilt: number
   }
+  /** The filter band's parallax, handed to delamin8r. It moves only while the
+   *  pointer is over the band. */
+  band: {
+    parallax: boolean
+    /** Z between adjacent planes, px. */
+    step: number
+    /** px. delamin8r derives this from the band's width, which leaves a stack
+     *  this shallow barely moving. */
+    perspective: number
+    /** How far the viewpoint swings at full deflection, px. */
+    swing: number
+  }
   /** The faces text drawn into the scene wears. One per use rather than one
    *  for the wall: a zone name is a heading read at a distance and a badge is
    *  signage read up close, and the face that serves one need not serve the
@@ -490,6 +502,12 @@ export const defaultParams: StackParams = {
     step: 16,
     swing: 40,
     tilt: 12,
+  },
+  band: {
+    parallax: true,
+    step: 20,
+    perspective: 500,
+    swing: 80,
   },
   typeface: {
     label: 'oxanium',

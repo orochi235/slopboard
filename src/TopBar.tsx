@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Slider } from '@weasel-js/ui'
+import { delaminate } from 'delamin8r'
 import { Panel, PanelRow, PanelRows } from '@/panel/index.ts'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'
 import type { WallItem } from '@shared/protocol.ts'
+import type { StackParams } from '@/params.ts'
 import './topbar.css'
 
 const BINS = 64
@@ -28,6 +30,7 @@ export function TopBar({
   connected,
   plan,
   axes,
+  look,
 }: {
   items: readonly WallItem[]
   /** The daemon's clock, so the axis agrees with every age on the wall. */
@@ -51,6 +54,7 @@ export function TopBar({
    *  know about. */
   plan?: ReactNode
   axes?: ReactNode
+  look: StackParams['band']
 }) {
   const bornAts = useMemo(() => items.map((i) => i.bornAt), [items])
   const span = useMemo(() => spanOf(bornAts, now), [bornAts, now])
@@ -74,8 +78,32 @@ export function TopBar({
     return () => watch.disconnect()
   }, [])
 
+  // delamin8r reads its options once, so a tuning change unwraps the band and
+  // wraps it again. `window`, not `tilt`: a tilt injects a deck, and the flex
+  // row would be left laying out one child.
+  useEffect(() => {
+    const el = band.current
+    if (!el || !look.parallax) return
+    const handle = delaminate(el, {
+      mode: 'window',
+      step: look.step,
+      perspective: look.perspective,
+      swing: look.swing,
+      // Panels, what they hold, and the rows and buttons in that. Below is the
+      // slider's own machinery and the chart's bars.
+      maxDepth: 3,
+    })
+    if (import.meta.env.DEV) {
+      for (const { el: flat, cause } of handle.diagnose()) console.warn(`[band] flat: ${cause}`, flat)
+    }
+    return () => handle.destroy()
+  }, [look.parallax, look.step, look.perspective, look.swing])
+
   return (
     <header className="topbar" ref={band} aria-label="Wall filters">
+      {/* Classes in here are static and state rides on attributes: delamin8r
+          writes `dl-plane` onto these elements, and React setting `className`
+          strips it. */}
       <Panel name="time">
         <div className="topbar__chart">
           <Slider
@@ -135,7 +163,7 @@ export function TopBar({
               <button
                 key={bucket.key}
                 type="button"
-                className={`topbar__bucket ${on ? 'topbar__bucket--on' : ''}`}
+                className="topbar__bucket"
                 aria-pressed={on}
                 onClick={() => onRange(on ? null : b)}
               >
@@ -169,7 +197,8 @@ export function TopBar({
           {/* A colour per zone cannot be a class, so the value rides in as a
               custom property and the stylesheet decides what to do with it. */}
           <span
-            className={`topbar__where ${whereColor ? 'topbar__where--hued' : ''}`}
+            className="topbar__where"
+            data-hued={whereColor ? '' : undefined}
             style={whereColor ? ({ '--where': whereColor } as CSSProperties) : undefined}
           >
             {where ?? 'wall'}

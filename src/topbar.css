@@ -99,7 +99,7 @@
 /* Lifted toward the ink, the way the wall lifts a zone's colour before it
    draws with it: a `.hued` colour is picked to sit behind text and is often
    too dark to be text. */
-.topbar__where--hued {
+.topbar__where[data-hued] {
   color: color-mix(in srgb, var(--where) 72%, var(--ink));
 }
 
@@ -131,7 +131,7 @@
   border-color: var(--accent);
 }
 
-.topbar__bucket--on {
+.topbar__bucket[aria-pressed='true'] {
   color: var(--ink);
   background: color-mix(in srgb, var(--accent) 26%, transparent);
   border-color: var(--accent);
