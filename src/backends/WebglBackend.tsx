@@ -56,8 +56,10 @@ import {
   cardOf,
   depthOf,
   descend,
+  hashOfView,
   reduceView,
   type ViewAction,
+  viewFromHash,
   type ViewState,
   WALL,
   zoneOf,
@@ -171,6 +173,7 @@ function Wall({
   onPlan,
   onMenu,
   dimmed,
+  connected,
   sidebarInset,
   topInset,
 }: WallProps) {
@@ -406,8 +409,8 @@ function Wall({
   // A set because the order the zones were pinned in is not what sorts them;
   // only whether each is held.
   const heldZones = useMemo(() => new Set(Object.keys(pinnedZones)), [pinnedZones])
-  const latest = useRef({ items, ttlMs, clockOffset, sort, dimmed, heldZones })
-  latest.current = { items, ttlMs, clockOffset, sort, dimmed, heldZones }
+  const latest = useRef({ items, ttlMs, clockOffset, sort, dimmed, heldZones, connected })
+  latest.current = { items, ttlMs, clockOffset, sort, dimmed, heldZones, connected }
 
   const cells = useRef<Map<string, Rect>>(new Map())
   /** Each pile's front card. The zone chrome is drawn on this rather than on
@@ -1090,8 +1093,15 @@ function Wall({
 
     const liveZones = [...new Set(model.map((m) => m.zone))]
     const focused = zoneOf(view)
-    if (focused && !liveZones.includes(focused)) {
-      dispatch({ type: 'prune', live: liveZones })
+    const focusedCard = cardOf(view)
+    // Not before the daemon has answered: a view restored from the URL names a
+    // zone the empty wall of the first frames does not have yet.
+    if (
+      current.connected &&
+      ((focused && !liveZones.includes(focused)) ||
+        (focusedCard && !model.some((m) => m.id === focusedCard)))
+    ) {
+      dispatch({ type: 'prune', live: liveZones, cards: model.map((m) => m.id) })
     }
 
     const placed = [...result.placements.keys()]
@@ -1557,7 +1567,18 @@ export function WebglBackend(props: Props) {
     }
   }, [sidebarOpen])
 
-  const [view, dispatch] = useReducer(reduceView, WALL)
+  const [view, dispatch] = useReducer(reduceView, WALL, () => viewFromHash(location.hash))
+  // Replaced, not pushed: every wheel notch is a rung, and a history entry per
+  // notch would make Back useless.
+  useEffect(() => {
+    const hash = hashOfView(view)
+    if (location.hash !== hash) history.replaceState(null, '', hash || location.pathname + location.search)
+  }, [view])
+  useEffect(() => {
+    const onHash = () => dispatch({ type: 'to', path: viewFromHash(location.hash).path })
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
   const [plan, setPlan] = useState<Plan>({ cells: [] })
   // Flags the wall never received, merged in below. Held here rather than in
   // App so that a fake reaches the scene by exactly the route a real one does.

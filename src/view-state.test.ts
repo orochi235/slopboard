@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardOf, depthOf, descend, reduceView, type ViewState, WALL, zoneOf } from '@/view-state.ts'
+import { cardOf, depthOf, descend, hashOfView, viewFromHash, reduceView, type ViewState, WALL, zoneOf } from '@/view-state.ts'
 
 const at = (...path: string[]): ViewState => ({ path })
 
@@ -81,5 +81,35 @@ describe('descend', () => {
   it('stops at an empty pile and at a card', () => {
     expect(descend(['empty'], null, frontOf)).toBeNull()
     expect(descend(['weasel', 'img-1'], null, frontOf)).toBeNull()
+  })
+})
+
+describe('the view in the URL', () => {
+  it('round-trips a zone and a card, including names a URL has to escape', () => {
+    for (const path of [['weasel'], ['weasel', 'img-1'], ['a b#c', 'x/y%z']]) {
+      expect(viewFromHash(hashOfView({ path }))).toEqual({ path })
+    }
+  })
+
+  it('writes the wall as no fragment at all', () => {
+    expect(hashOfView(WALL)).toBe('')
+    expect(viewFromHash('')).toEqual(WALL)
+    expect(viewFromHash('#')).toEqual(WALL)
+    expect(viewFromHash('#/')).toEqual(WALL)
+  })
+
+  it('reads a fragment it cannot decode, or one too deep, as far as it can', () => {
+    expect(viewFromHash('#/%E0%A4%A')).toEqual(WALL)
+    expect(viewFromHash('#/weasel/img-1/extra')).toEqual({ path: ['weasel', 'img-1'] })
+  })
+})
+
+describe('pruning a card', () => {
+  it('drops a card that is gone back to its zone, and keeps a live one', () => {
+    const open: ViewState = { path: ['weasel', 'img-1'] }
+    expect(reduceView(open, { type: 'prune', live: ['weasel'], cards: ['img-2'] })).toEqual({
+      path: ['weasel'],
+    })
+    expect(reduceView(open, { type: 'prune', live: ['weasel'], cards: ['img-1'] })).toBe(open)
   })
 })

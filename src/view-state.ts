@@ -16,8 +16,9 @@ export type ViewAction =
   /** Land on a path outright. Descending is this too: `stepToward` owns the
    *  rule that a gesture moves one rung, so the reducer need not. */
   | { type: 'to'; path: readonly string[] }
-  /** The daemon owns item lifetime, so a zone can vanish under the camera. */
-  | { type: 'prune'; live: readonly string[] }
+  /** The daemon owns item lifetime, so a zone — or the card open in it — can
+   *  vanish under the camera. */
+  | { type: 'prune'; live: readonly string[]; cards?: readonly string[] }
 
 export const WALL: ViewState = { path: [] }
 
@@ -31,9 +32,11 @@ export function reduceView(state: ViewState, action: ViewAction): ViewState {
     case 'to':
       return same(state.path, action.path) ? state : { path: action.path }
     case 'prune': {
-      const zone = state.path[0]
+      const [zone, card] = state.path
       if (zone === undefined) return state
-      return action.live.includes(zone) ? state : WALL
+      if (!action.live.includes(zone)) return WALL
+      if (card !== undefined && action.cards && !action.cards.includes(card)) return { path: [zone] }
+      return state
     }
   }
 }
@@ -61,4 +64,21 @@ export function descend(
   if (zone === undefined) return cursor ? [cursor] : null
   const front = frontOf(zone)
   return front ? [zone, front] : null
+}
+
+/** The view as a URL fragment — `#/weasel/img-1`, or empty for the wall. */
+export function hashOfView(state: ViewState): string {
+  return state.path.length === 0 ? '' : `#/${state.path.map(encodeURIComponent).join('/')}`
+}
+
+/** The inverse of `hashOfView`. Anything it cannot read is the wall, and only
+ *  the rungs `zoneOf` and `cardOf` name are kept. */
+export function viewFromHash(hash: string): ViewState {
+  const body = hash.replace(/^#\/?/, '')
+  if (!body) return WALL
+  try {
+    return { path: body.split('/').filter(Boolean).slice(0, 2).map(decodeURIComponent) }
+  } catch {
+    return WALL
+  }
 }
