@@ -43,6 +43,10 @@ export type WallItem = {
   h: number
 }
 
+/** How often the daemon beats. A socket vite proxies stays open at the
+ *  browser's end when the daemon dies, so the wall listens for silence. */
+export const BEAT_MS = 5000
+
 export type ServerMessage =
   | {
       type: 'snapshot'
@@ -66,3 +70,5 @@ export type ServerMessage =
   /** A zone held at the top of the wall, or let back into the order.
    *  `pinnedAt` is null for the second. */
   | { type: 'zonePin'; zone: string; pinnedAt: number | null }
+  /** Nothing happened, and the daemon is still here to say so. */
+  | { type: 'beat' }

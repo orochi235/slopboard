@@ -12,7 +12,7 @@ import { zoneCounts } from './zoneCounts.ts'
 import { alert, debugItem } from './alert.ts'
 import { withKeyForwarder } from './page-keys.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
-import type { ServerMessage } from '@shared/protocol.ts'
+import { BEAT_MS, type ServerMessage } from '@shared/protocol.ts'
 
 await mkdir(config.inbox, { recursive: true })
 await mkdir(config.cache, { recursive: true })
@@ -28,6 +28,8 @@ function broadcast(msg: ServerMessage) {
   const payload = JSON.stringify(msg)
   for (const ws of clients) if (ws.readyState === ws.OPEN) ws.send(payload)
 }
+
+setInterval(() => broadcast({ type: 'beat' }), BEAT_MS).unref()
 
 wss.on('connection', (ws) => {
   clients.add(ws)

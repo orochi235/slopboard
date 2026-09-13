@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ALERTS } from '@shared/attention.ts'
-import type { ServerMessage, WallItem } from '@shared/protocol.ts'
+import { BEAT_MS, type ServerMessage, type WallItem } from '@shared/protocol.ts'
+import { createWatchdog, type Watchdog } from '@/watchdog.ts'
 
 export type Wall = {
   items: WallItem[]
@@ -29,21 +30,40 @@ export function useWall(): Wall {
 
   useEffect(() => {
     let socket: WebSocket | null = null
+    let watchdog: Watchdog | null = null
     let retry: ReturnType<typeof setTimeout>
     let closed = false
 
+    const retryLater = () => {
+      setConnected(false)
+      if (!closed) retry = setTimeout(connect, 1000)
+    }
+
     const connect = () => {
       const proto = location.protocol === 'https:' ? 'wss' : 'ws'
-      socket = new WebSocket(`${proto}://${location.host}/ws`)
+      const ws = new WebSocket(`${proto}://${location.host}/ws`)
+      socket = ws
 
-      socket.onopen = () => setConnected(true)
-      socket.onclose = () => {
-        setConnected(false)
-        if (!closed) retry = setTimeout(connect, 1000)
+      // A daemon that dies behind vite's proxy can leave this end open and
+      // quiet, so silence has to count as a close.
+      const dog = createWatchdog(BEAT_MS * 3, () => {
+        ws.onclose = null
+        ws.onmessage = null
+        ws.close()
+        retryLater()
+      })
+      watchdog = dog
+
+      ws.onclose = () => {
+        dog.stop()
+        retryLater()
       }
-      socket.onmessage = (ev) => {
+      ws.onmessage = (ev) => {
+        dog.feed()
         const msg: ServerMessage = JSON.parse(ev.data)
         if (msg.type === 'snapshot') {
+          // Connected once the daemon has answered, not when a socket opens.
+          setConnected(true)
           clockOffset.current = msg.now - Date.now()
           setTtlMs(msg.ttlMs)
           setItems(msg.items)
@@ -93,6 +113,7 @@ export function useWall(): Wall {
     return () => {
       closed = true
       clearTimeout(retry)
+      watchdog?.stop()
       socket?.close()
     }
   }, [])
