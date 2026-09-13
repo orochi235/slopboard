@@ -114,8 +114,6 @@ export function Minimap({
               y={box.y}
               width={box.w}
               height={box.h}
-              // Hairlines in a viewBox this small have to be sized in its units.
-              strokeWidth={bounds.h / 160}
               role="button"
               tabIndex={0}
               aria-label={zone}
