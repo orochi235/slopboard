@@ -6,7 +6,7 @@ import type { WallItem } from '@shared/protocol.ts'
  *  at the top. */
 export const SORTS = [
   { key: 'project', label: 'project' },
-  { key: 'severity', label: 'severity' },
+  { key: 'severity', label: 'priority' },
   { key: 'recency', label: 'recency' },
 ] as const
 
