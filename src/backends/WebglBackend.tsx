@@ -108,6 +108,10 @@ type WallProps = Props & {
  *  second keeps React out of the frame loop. */
 const PLAN_MS = 250
 
+/** How often an idle wall still draws. Ages, fades and the age chips move on
+ *  the clock with nothing to wake the canvas, and none of them reads finer. */
+const IDLE_MS = 1000
+
 /** How far the scene turns per pixel dragged. */
 const DEG_PER_PX = 0.25
 
@@ -182,7 +186,17 @@ function Wall({
    *  that has not been shown yet. Not the view: pointing at a pile is not
    *  going to it, and the camera stays where it is until Enter says so. */
   const [cursor, setCursor] = useState<string | null>(null)
-  const { gl, camera } = useThree()
+  const { gl, camera, invalidate } = useThree()
+  // The canvas draws on demand. Whatever can start motion calls `wake`, which
+  // keeps frames coming for as long as the longest animation it could start;
+  // motion that runs longer than that keeps them coming from the frame itself.
+  const holdMs = useRef(0)
+  holdMs.current = Math.max(params.shoveMs, params.zoneGrid.moveMs, params.camera.moveMs) + 120
+  const awakeUntil = useRef(0)
+  const wake = useCallback(() => {
+    awakeUntil.current = Math.max(awakeUntil.current, performance.now() + holdMs.current)
+    invalidate()
+  }, [invalidate])
   const cardEdges = params.overlay.cardEdges
   const cardEdgeColor = params.colors.cardEdge
   const labelFamily = stackFor(params.typeface.label)
@@ -242,8 +256,9 @@ function Wall({
           return { value: tex, bytes: edge * edge * 4 }
         },
         dispose: (tex) => tex.dispose(),
+        onLoad: wake,
       }),
-    [params.lod.budgetBytes],
+    [params.lod.budgetBytes, wake],
   )
 
   // A lost context invalidates every GPU handle; rebuilding from an empty store
@@ -411,6 +426,20 @@ function Wall({
   const heldZones = useMemo(() => new Set(Object.keys(pinnedZones)), [pinnedZones])
   const latest = useRef({ items, ttlMs, clockOffset, sort, dimmed, heldZones, connected })
   latest.current = { items, ttlMs, clockOffset, sort, dimmed, heldZones, connected }
+
+  // Each of these is a reason to draw, not an input the effect reads.
+  useEffect(() => wake(), [wake, items, params, view, sort, dimmed, zoneColors, pinnedZones, connected, cursor, fontsReady])
+  useEffect(() => {
+    const events = ['pointermove', 'pointerdown', 'pointerup', 'wheel', 'keydown', 'resize'] as const
+    for (const name of events) window.addEventListener(name, wake, { passive: true })
+    return () => {
+      for (const name of events) window.removeEventListener(name, wake)
+    }
+  }, [wake])
+  useEffect(() => {
+    const id = setInterval(invalidate, IDLE_MS)
+    return () => clearInterval(id)
+  }, [invalidate])
 
   const cells = useRef<Map<string, Rect>>(new Map())
   /** Each pile's front card. The zone chrome is drawn on this rather than on
@@ -841,6 +870,7 @@ function Wall({
 
   useFrame((_state, delta) => {
     const current = latest.current
+    let springing = false
     const now = Date.now() + current.clockOffset
     const model = inZoneOrder(
       toStackItems(current.items, { now, ttlMs: current.ttlMs }, current.dimmed),
@@ -1228,6 +1258,8 @@ function Wall({
             m.vy += ((hunted.dy - m.y) * k - m.vy * c) * dt
             m.x += m.vx * dt
             m.y += m.vy * dt
+            if (Math.abs(m.vx) + Math.abs(m.vy) + Math.abs(hunted.dx - m.x) + Math.abs(hunted.dy - m.y) > 1e-4)
+              springing = true
             eased = m
           }
           const shelfY =
@@ -1472,6 +1504,14 @@ function Wall({
       ortho.left = -halfHeight * aspect
       ortho.updateProjectionMatrix()
     }
+
+    const moving =
+      (move.current !== null && performance.now() - move.current.startedAt < move.current.durationMs) ||
+      now - chipRamp.current.startedAt < params.camera.moveMs ||
+      revealed.current < 1 ||
+      springing ||
+      (params.attention.pulse > 0 && flagged.size > 0)
+    if (moving || performance.now() < awakeUntil.current) invalidate()
   })
 
   // Held by reference so a plan republish reconciles nothing: React skips a
@@ -1784,6 +1824,7 @@ export function WebglBackend(props: Props) {
         orthographic={projection === 'orthographic'}
         camera={{ fov, position: [0, 0, props.params.camera.standoff], near: 0.01, far }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
+        frameloop="demand"
       >
         <Wall
           sidebarInset={sidebarInset}

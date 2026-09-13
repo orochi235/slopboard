@@ -15,6 +15,20 @@ function harness(budgetBytes = 4 * 1024 * 1024) {
 }
 
 describe('createTextureManager', () => {
+  it('says when a texture lands, and says nothing for a load that failed', async () => {
+    const landed = vi.fn()
+    const manager = createTextureManager<string>({
+      budgetBytes: 4 * 1024 * 1024,
+      urlFor: (id) => `/img/${id}`,
+      load: async (url, edge) => (url.endsWith('bad') ? null : { value: `tex-${edge}`, bytes: edge * edge * 4 }),
+      dispose: () => {},
+      onLoad: landed,
+    })
+    manager.sync(new Map([['good', 128], ['bad', 128]]))
+    await flush()
+    expect(landed).toHaveBeenCalledTimes(1)
+  })
+
   it('has nothing on the first frame and uploads for the next one', async () => {
     const { manager } = harness()
     expect(manager.textureFor('a')).toBeUndefined()

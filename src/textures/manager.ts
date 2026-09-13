@@ -18,6 +18,9 @@ export function createTextureManager<T>(opts: {
   urlFor: (id: string) => string
   load: (url: string, edge: number) => Promise<{ value: T; bytes: number } | null>
   dispose: (value: T) => void
+  /** A texture has landed. A canvas that draws on demand has nothing else to
+   *  tell it the card can now be drawn with its picture. */
+  onLoad?: () => void
 }): TextureManager<T> {
   const store = createTextureStore<T>({ budgetBytes: opts.budgetBytes, dispose: opts.dispose })
   const heldEdge = new Map<string, Edge>()
@@ -43,6 +46,7 @@ export function createTextureManager<T>(opts: {
           if (!loaded) return
           store.put(id, loaded.value, loaded.bytes)
           heldEdge.set(id, next)
+          opts.onLoad?.()
         })
       }
     },
