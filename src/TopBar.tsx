@@ -165,7 +165,7 @@ export function TopBar({
         <div className="topbar__buckets">
           {BUCKETS.map((bucket) => {
             const b = bucketRange(bucket.key)
-            const on = !!range && 'last' in range && 'last' in b && range.last === b.last
+            const on = !!range && range.fromAgo === b.fromAgo && range.toAgo === 0
             return (
               <button
                 key={bucket.key}

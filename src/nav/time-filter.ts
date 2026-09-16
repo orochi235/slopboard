@@ -1,18 +1,20 @@
 /** A closed interval of wall-clock time. Null is no filter at all. */
 export type Range = { from: number; to: number }
 
-/** What the band holds: a fixed interval, or the last `last` ms, which moves
- *  with the clock. Stored as timestamps, a window ending now would fall behind
- *  now and slide left along the growing axis. */
-export type Filter = Range | { last: number }
+/** What the band holds, as ages: how far before now each thumb sits. Timestamps
+ *  would slide along an axis that ends at a moving now. `toAgo: 0` is the right
+ *  endpoint and means now, always. */
+export type Filter = { fromAgo: number; toAgo: number }
 
 export const resolve = (filter: Filter | null, now: number): Range | null =>
-  filter === null ? null : 'last' in filter ? { from: now - filter.last, to: now } : filter
+  filter === null ? null : { from: now - filter.fromAgo, to: now - filter.toAgo }
 
 /** A drag's result. `span.to` is a render old by the time the thumb lands, so
- *  within one step of it counts as the end. */
-export const filterFrom = (from: number, to: number, span: Range, step: number): Filter =>
-  to >= span.to - step ? { last: span.to - from } : { from, to }
+ *  within one step of it counts as the endpoint. */
+export const filterFrom = (from: number, to: number, span: Range, step: number): Filter => ({
+  fromAgo: span.to - from,
+  toAgo: to >= span.to - step ? 0 : span.to - to,
+})
 
 export function sameIds(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
   if (a.size !== b.size) return false
@@ -35,7 +37,8 @@ export const BUCKETS = [
 export type BucketKey = (typeof BUCKETS)[number]['key']
 
 export const bucketRange = (key: BucketKey): Filter => ({
-  last: BUCKETS.find((b) => b.key === key)?.ms ?? HOUR,
+  fromAgo: BUCKETS.find((b) => b.key === key)?.ms ?? HOUR,
+  toAgo: 0,
 })
 
 /** Lengths the axis rounds up to. An axis ending at the oldest artifact

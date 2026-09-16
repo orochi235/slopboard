@@ -1678,7 +1678,7 @@ export function WebglBackend(props: Props) {
   // excluded artifact keeps a slot on the wall but gives up its place in the
   // pile, so narrowing the band brings what is still in range to the front.
   const range = useMemo(() => resolve(filter, now), [filter, now])
-  // A trailing window resolves afresh every tick; the scene wakes on a new set,
+  // The window resolves afresh every tick; the scene wakes on a new set,
   // so hand back the old one while membership holds.
   const lastDimmed = useRef<ReadonlySet<string>>(new Set())
   const dimmed = useMemo(() => {

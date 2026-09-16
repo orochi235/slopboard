@@ -58,11 +58,9 @@ describe('keptBy', () => {
 })
 
 describe('bucketRange', () => {
-  it('turns a named bucket into a window trailing now', () => {
-    expect(bucketRange('hour')).toEqual({ last: 3_600_000 })
-    const range = resolve(bucketRange('hour'), NOW)
-    expect(range?.to).toBe(NOW)
-    expect(NOW - (range?.from ?? 0)).toBe(3_600_000)
+  it('turns a named bucket into a window ending now', () => {
+    expect(bucketRange('hour')).toEqual({ fromAgo: 3_600_000, toAgo: 0 })
+    expect(resolve(bucketRange('hour'), NOW)).toEqual({ from: NOW - 3_600_000, to: NOW })
   })
 
   it('names every bucket it offers', () => {
@@ -73,19 +71,20 @@ describe('bucketRange', () => {
 describe('filterFrom', () => {
   const span = { from: NOW - 600_000, to: NOW }
 
-  it('trails now when the right thumb sits at the end of the axis, so the window moves with the clock', () => {
+  it('pins a thumb on the right endpoint to now, however long the clock runs', () => {
     const filter = filterFrom(NOW - 60_000, NOW, span, 1000)
-    expect(filter).toEqual({ last: 60_000 })
+    expect(filter).toEqual({ fromAgo: 60_000, toAgo: 0 })
     expect(resolve(filter, NOW + 5000)).toEqual({ from: NOW - 55_000, to: NOW + 5000 })
   })
 
-  it('holds still in time when the right thumb is set in the past', () => {
+  it('keeps every other thumb at its age, so it holds its place on the axis', () => {
     const filter = filterFrom(NOW - 60_000, NOW - 30_000, span, 1000)
-    expect(resolve(filter, NOW + 5000)).toEqual({ from: NOW - 60_000, to: NOW - 30_000 })
+    expect(filter).toEqual({ fromAgo: 60_000, toAgo: 30_000 })
+    expect(resolve(filter, NOW + 5000)).toEqual({ from: NOW - 55_000, to: NOW - 25_000 })
   })
 
-  it('counts a thumb within one step of the end as at the end, since the axis ticked during the drag', () => {
-    expect(filterFrom(NOW - 60_000, NOW - 999, span, 1000)).toEqual({ last: 60_000 })
+  it('snaps a thumb within one step of the end onto the endpoint, since the axis ticked during the drag', () => {
+    expect(filterFrom(NOW - 60_000, NOW - 999, span, 1000).toAgo).toBe(0)
   })
 })
 
