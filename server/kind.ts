@@ -12,6 +12,10 @@ export type Kind = 'image' | 'page'
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.tiff'])
 const PAGE_EXT = new Set(['.html', '.htm'])
 
+/** Every extension the wall holds. `bin/slop` refuses the rest at the send,
+ *  and `kind.test.ts` holds the two lists to each other. */
+export const HELD_EXT: readonly string[] = [...IMAGE_EXT, ...PAGE_EXT]
+
 export function kindOf(path: string): Kind | null {
   const ext = extname(path).toLowerCase()
   if (IMAGE_EXT.has(ext)) return 'image'

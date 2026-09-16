@@ -24,6 +24,11 @@
 # triggers on.
 set -eu
 
+# What the wall holds, matching server/kind.ts — held to it by kind.test.ts.
+# Anything else is never adopted, so accepting it here would produce exactly the
+# silently invisible artifact the ingest contract exists to prevent.
+held_ext="png jpg jpeg webp gif avif tiff html htm"
+
 zone=""
 ttl=""
 caption=""
@@ -54,6 +59,12 @@ if [ -z "$zone" ]; then
   # separator character and silently bind the repo to a second, adjacent zone.
   zone=$(printf '%s' "$repo" | tr -c 'A-Za-z0-9._-' '-')
 fi
+
+ext_of() {
+  e="${1##*.}"
+  case "$e" in "$1") e=png ;; esac
+  printf '%s' "$e" | tr 'A-Z' 'a-z'
+}
 
 # JSON string escaping, for a caption that may hold a quote or a backslash.
 json_escape() {
@@ -99,10 +110,19 @@ if [ $# -eq 0 ]; then
   exit 0
 fi
 
+# A whole pass before the first copy, so a bad argument at the end of the list
+# cannot leave the earlier ones half-sent.
 for f in "$@"; do
   [ -f "$f" ] || { echo "slop: no such file: $f" >&2; exit 1; }
-  ext="${f##*.}"
-  case "$ext" in "$f") ext=png ;; esac
+  ext=$(ext_of "$f")
+  case " $held_ext " in
+    *" $ext "*) ;;
+    *) echo "slop: the wall does not hold .$ext ($f). It holds: $held_ext" >&2; exit 1 ;;
+  esac
+done
+
+for f in "$@"; do
+  ext=$(ext_of "$f")
   dest="$dir/$(uuidgen)$suffix.$ext"
   # The destination name is a UUID, so without this the source name — the only
   # caption most renders have — is lost at the copy.

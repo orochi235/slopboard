@@ -408,6 +408,13 @@ some-generator | ~/src/slopboard/bin/slop --zone renders
 ~/src/slopboard/bin/slop --print-zone     # the one implementation of the rule
 ```
 
+`slop` refuses an extension the wall does not hold, and says which it does.
+The check belongs at the send for the same reason zones may not need
+registering: a file the daemon will never adopt is a silently invisible image,
+and it is worse than one, because nothing expires it either — only an adopted
+artifact is ever trashed. `server/kind.ts` is the list; a test holds the script
+to it.
+
 Ask `slop` for the zone rather than deriving it. A caller that sanitizes the
 repo name slightly differently binds the repo to a second, adjacent zone, and
 the wall shows the split without ever reporting an error.

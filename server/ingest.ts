@@ -179,7 +179,21 @@ export function watchInbox(onArrive: (item: WallItem) => void) {
     })
   }
 
-  const notAnArtifact = (p: string) => kindOf(p) === null
+  // Ignored silently, an unheld file is invisible twice over: never on the
+  // wall, and never expired either, since only an adopted file is trashed.
+  // Sidecars live in the inbox by design and are not the mistake this reports.
+  const unheld = new Set<string>()
+  const notAnArtifact = (p: string) => {
+    if (kindOf(p) !== null) return false
+    if (!p.endsWith('.slop.json') && !unheld.has(p)) {
+      unheld.add(p)
+      console.warn(
+        `[ingest] the wall does not hold ${extname(p) || 'that'}: ` +
+          `${basename(p)} stays in the inbox and never expires`,
+      )
+    }
+    return true
+  }
 
   const watcher = watchTree(config.inbox, {
     ignore: notAnArtifact,
