@@ -43,8 +43,11 @@ export function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // The usual key for preferences, and one the wall does not otherwise use.
-      if (e.key === ',') return setPrefs((open) => !open)
+      // Chrome opens its own settings on ⌘, unless the page cancels it first.
+      if (e.key === ',' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        return setPrefs((open) => !open)
+      }
       if (e.key !== '[' && e.key !== ']') return
       const step = e.key === ']' ? 1 : -1
       setIndex((i) => (i + step + arrangements.length) % arrangements.length)
