@@ -1,25 +1,60 @@
 ---
 name: slopboard
-description: Take one repo off the slopboard wall and back to Preview, put it back on, or give it a zone name other than its directory name. The wall is the default everywhere, so use this only for an exception. Triggers on "stop sending renders to the wall here", "open images in Preview in this repo", "put this repo back on the wall", "use a different zone for this repo", or checking what the current repo does.
+description: Wire slopboard into a Claude account or machine so renders reach the wall, diagnose why they are not, or make one repo an exception - back to Preview, or onto a zone that is not its directory name. Triggers on "install slopboard", "set up the wall on this account", "renders aren't reaching the wall", "agents keep writing images to /tmp", "stop sending renders to the wall here", "open images in Preview in this repo", "use a different zone for this repo", or checking what the current repo does.
 ---
 
-# Excepting a repo from the slopboard wall
+# Wiring slopboard to agents, and excepting a repo from it
 
 slopboard (`~/src/slopboard`) is a wall of generated images on a side monitor.
 Images arrive, live for a while, then expire unless rescued. An agent puts one
 there by writing a file into `~/slop/inbox/<zone>/` — that is the entire
 protocol. There is nothing to connect to and no client library.
 
-**The wall is the default in every repo.** Each harness `CLAUDE.md`
-(`~/.claude`, `~/.claude-msb`, `~/.claude-pw`) tells agents to send renders to
-`~/src/slopboard/bin/slop` and not to open them in Preview, so a new repo is on
-the wall the first time it renders, with nothing to install and nothing to
-register. This skill exists only for the exceptions below.
+**Per repo there is nothing to install.** Once an account is wired, a new repo
+is on the wall the first time it renders: no registration, no config file. The
+first section below wires an account; the rest are the per-repo exceptions.
 
 **Zones register themselves.** `bin/slop` writes `~/slop/zones/<zone>.json`
 recording which directory the renders came from, and the daemon reads that to
 find the project's `.hued` and color the zone. It is written on every send, so
 it is never something to maintain by hand.
+
+## Install on a new account or machine
+
+Run `~/src/slopboard/bin/wire`. It is idempotent — re-run it after any change
+here rather than reasoning about what is already in place. It reports each
+config directory as it goes, and puts three things in front of agents:
+
+- **The skill**, symlinked into every `~/.claude*/skills/`.
+- **The wall-nudge hook** (`hooks/wall-nudge.mjs`), registered as a
+  `PostToolUse` entry tagged `slopboard` in each `settings.json`. It fires when
+  an agent reads or creates an image that never reached the wall, and exits 2
+  with a one-line correction, which Claude Code feeds back to the model.
+- **`slop` on PATH**, symlinked into `~/.local/bin`. Without this, an agent that
+  half-remembers the rule types `slop chart.png`, gets `command not found`, and
+  falls back to reporting a path.
+
+`wire` also checks that some `CLAUDE.md` carries the rule and prints the bullet
+if none does. It does not write it: that file is hand-authored prose, and a tool
+that rewrites preferences fights their author. Add it by hand.
+
+**Running sessions keep their hook snapshot.** Only sessions started after
+`wire` pick the hook up — don't conclude from a live session that it failed.
+
+`wire --dry` says what would change; `wire --off` removes all three.
+
+## When renders still aren't reaching the wall
+
+In order, because each step rules out the one below:
+
+1. `slop --print-zone` in the repo. `command not found` means `wire` never ran
+   here, or `~/.local/bin` is not on this shell's PATH.
+2. Is the repo excepted? See **Status** below — a Preview block silences both
+   the rule and the hook.
+3. Was the session started before `wire`? Its hooks are a snapshot.
+4. `curl -s localhost:8787/api/health`. A down daemon is *not* the cause: files
+   written while it is down are picked up at its next start, provided they are
+   newer than the TTL. Renders that never got sent are the cause.
 
 ## Put Preview back for one repo
 
@@ -92,3 +127,6 @@ picked up at its next start, provided they are newer than the TTL.
   committed change.
 - **For one conversation only**, skip all of the above and pipe to
   `~/src/slopboard/bin/slop --zone <name>` directly; there is nothing to install.
+- **The hook is a backstop, not the rule.** It fires after an image has already
+  been missed. The `CLAUDE.md` bullet is what gets it right the first time, so a
+  missing rule is worth fixing even with the hook in place.
