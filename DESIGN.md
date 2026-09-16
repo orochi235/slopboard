@@ -722,4 +722,22 @@ the whole path an agent would — including the partial-write guard.
    arrival quieter rather than to mark it, and which of the two the wall wants
    is unsettled.
 
+8. **A `video` kind. Unbuilt.** `slop clip.mp4` is refused at the send today,
+   because the daemon would never adopt it. `page` already set the shape for a
+   thing with no wall pixels of its own: it gets shot once and rejoins the
+   picture pipeline unchanged. Video is the same trick with ffmpeg — a poster
+   frame for the card, a `<video>` where the lightbox has its `<img>`, duration
+   where `frames` goes. The hard part is not ingest but whether a card may
+   *move*: an animated GIF is already a still on the wall, since the cache
+   thumbnail is a non-animated webp and `createImageBitmap` takes frame one.
+   Forty looping videos is a different object from forty stills, and that call
+   should be made before the plumbing, not after.
+9. **A `mesh` kind. Unbuilt.** `.glb` / `.gltf` / `.stl`. Closer to home than
+   video: the renderer is already three, so a mesh need not be flattened to a
+   picture at all — the card can hold a real one, and the lightbox can orbit it.
+   That makes it the first artifact with genuine thickness, which is the
+   standing open question above arriving as a concrete case rather than a
+   hypothetical. Open: whether a mesh card is lit by the wall or carries its
+   own, and what stands in for `frames` in the meta line.
+
 Steps 1–3 are cheap and answer most of the open questions.
