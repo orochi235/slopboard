@@ -23,7 +23,7 @@ import { Sidebar } from '@/Sidebar.tsx'
 import { usePersistedFlag } from '@/usePersistedFlag.ts'
 import { TopBar } from '@/TopBar.tsx'
 import { copyArtifact } from '@/menu/copy.ts'
-import { keptBy, type Range } from '@/nav/time-filter.ts'
+import { keptBy, resolve, sameIds, type Filter } from '@/nav/time-filter.ts'
 import { fakeFlags, type FakeFlag } from '@/debug-flags.ts'
 import { Sky } from '@/backends/Sky.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
@@ -1648,7 +1648,7 @@ export function WebglBackend(props: Props) {
   // Flags the wall never received, merged in below. Held here rather than in
   // App so that a fake reaches the scene by exactly the route a real one does.
   const [fakes, setFakes] = useState<Record<string, FakeFlag>>({})
-  const [range, setRange] = useState<Range | null>(null)
+  const [filter, setFilter] = useState<Filter | null>(null)
   // Not persisted: severity and recency move a zone's cell as artifacts land,
   // and a wall that came back from a reload already reordered would read as
   // the arrangement having changed under it.
@@ -1677,10 +1677,15 @@ export function WebglBackend(props: Props) {
   // Dimmed rather than removed, and ranked last rather than left in place: an
   // excluded artifact keeps a slot on the wall but gives up its place in the
   // pile, so narrowing the band brings what is still in range to the front.
+  const range = useMemo(() => resolve(filter, now), [filter, now])
+  // A trailing window resolves afresh every tick; the scene wakes on a new set,
+  // so hand back the old one while membership holds.
+  const lastDimmed = useRef<ReadonlySet<string>>(new Set())
   const dimmed = useMemo(() => {
     const out = new Set<string>()
-    if (!range) return out
-    for (const i of items) if (!keptBy(i.bornAt, range)) out.add(i.id)
+    if (range) for (const i of items) if (!keptBy(i.bornAt, range)) out.add(i.id)
+    if (sameIds(out, lastDimmed.current)) return lastDimmed.current
+    lastDimmed.current = out
     return out
   }, [items, range])
 
@@ -1931,8 +1936,8 @@ export function WebglBackend(props: Props) {
         }
         items={items}
         now={now}
-        range={range}
-        onRange={setRange}
+        range={filter}
+        onRange={setFilter}
         sort={sort}
         onSort={setSort}
       />

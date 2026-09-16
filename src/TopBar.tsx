@@ -3,7 +3,7 @@ import { Slider } from '@weasel-js/ui'
 import { delaminate } from 'delamin8r'
 import { Panel, PanelRow, PanelRows } from '@/panel/index.ts'
 import { ago } from '@/age.ts'
-import { BUCKETS, bucketRange, histogram, spanOf, type Range } from '@/nav/time-filter.ts'
+import { BUCKETS, bucketRange, filterFrom, histogram, resolve, spanOf, type Filter } from '@/nav/time-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
@@ -37,8 +37,8 @@ export function TopBar({
   items: readonly WallItem[]
   /** The daemon's clock, so the axis agrees with every age on the wall. */
   now: number
-  range: Range | null
-  onRange: (next: Range | null) => void
+  range: Filter | null
+  onRange: (next: Filter | null) => void
   sort: SortKey
   onSort: (next: SortKey) => void
   /** The zone the view is inside, or null for the wall itself. */
@@ -66,7 +66,9 @@ export function TopBar({
   const bins = useMemo(() => histogram(bornAts, span, BINS), [bornAts, span])
   const tallest = Math.max(1, ...bins)
 
-  const value: [number, number] = [range?.from ?? span.from, range?.to ?? span.to]
+  const resolved = resolve(range, now)
+  const value: [number, number] = [resolved?.from ?? span.from, resolved?.to ?? span.to]
+  const step = Math.max(1000, Math.round((span.to - span.from) / 400))
 
   // Everything else fixed to the top clears the band by `--band`, and the band
   // is as tall as its own type — so it publishes what it measures rather than
@@ -116,13 +118,13 @@ export function TopBar({
             thumbs={[{ value: value[0] }, { value: value[1] }]}
             min={span.from}
             max={span.to}
-            step={Math.max(1000, Math.round((span.to - span.from) / 400))}
+            step={step}
             constraint="ordered"
             trackClick="move-nearest"
             trackHeight={34}
             readoutPlacement="none"
             ariaLabel="Time range"
-            onInput={(next) => onRange({ from: next[0].value, to: next[1].value })}
+            onInput={(next) => onRange(filterFrom(next[0].value, next[1].value, span, step))}
             renderTrack={() => (
               /* The shape of the day, so a burst is something you can see
                  before you go looking for it. Drawn inside the track rather
@@ -136,7 +138,7 @@ export function TopBar({
               >
                 {bins.map((n, i) => {
                   const start = span.from + ((span.to - span.from) * i) / BINS
-                  const inside = !range || (start >= range.from && start <= range.to)
+                  const inside = !resolved || (start >= resolved.from && start <= resolved.to)
                   return (
                     <rect
                       key={i}
@@ -162,8 +164,8 @@ export function TopBar({
             range rather than as a filter of its own. */}
         <div className="topbar__buckets">
           {BUCKETS.map((bucket) => {
-            const b = bucketRange(bucket.key, now)
-            const on = !!range && Math.abs(range.from - b.from) < 1000 && range.to >= b.to - 1000
+            const b = bucketRange(bucket.key)
+            const on = !!range && 'last' in range && 'last' in b && range.last === b.last
             return (
               <button
                 key={bucket.key}
