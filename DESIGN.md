@@ -223,13 +223,16 @@ clock for the same reason `age01` is, so a reload does not restart a hold.
 - **It wears a plate**, the note in the level's colour, and the halo takes the
   same colour so the two read as one thing. A pile's plates stand together as a
   ladder that steps the way the pile does, each plate level with its own card,
-  on one side of the pile, with a line back to the card's nearest edge. The
-  one plate of a front card rests on the card instead and needs no line.
-  Which side, and how far out, is solved for the whole wall at once
-  (`src/nav/ladder.ts`): plates pay for the cards they cover, for hanging off
-  screen, for their lines, for standing on another zone's cell, for lines that
-  lean away from the other lines in their pile and on the wall, and piles pay
-  for disagreeing about the side. The wall keeps the layout it has unless a
+  on one side of the pile, with a line from the center of the plate's facing
+  edge to the card's nearest border. The one plate of a front card rests on the
+  card instead and needs no line. Which side, and how far out, is solved for
+  the whole wall at once (`src/nav/ladder.ts`): plates pay for the cards they
+  cover, for hanging off the usable screen — the band and an open sidebar are
+  not room — for their lines, for standing on another zone's cell, for lines
+  that lean away from the other lines in their pile and on the wall; piles pay
+  for disagreeing about the side, for standing on a side where the deeper
+  cards' edges are buried under the front one, and for not lining up directly
+  above or below another ladder. The wall keeps the layout it has unless a
   new one beats it by a share of its score, so zooming, which scales every
   score together, never moves a plate by itself. The solve projects through
   the camera as it will stand when the current move lands, not where it is
@@ -395,7 +398,8 @@ against every arrangement.
 - **A plan view** in the corner names each zone, lights the one with focus, and
   zooms to a pile when clicked.
 - **The `zones` group** owns how a zone presents itself: outline, label, and a
-  backdrop filling its cell — a ruled hatch by default, drawn by a shader in
+  backdrop filling its cell — a ruled hatch by default, or crosshatch,
+  diamonds, bricks, dots, checks or a flat tint, all drawn by one shader in
   world space so it holds one density across the wall and costs the texture
   budget nothing. The backdrop sits a hair behind the zone outline rather than
   behind the pile: it writes no depth and draws ahead of the cards, so it never

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ladder, scoreLayout, solve, type Candidate, type Group, type Weights } from './ladder.ts'
+import { footOf, ladder, scoreLayout, solve, type Candidate, type Group, type Weights } from './ladder.ts'
 import type { Box } from './whitespace.ts'
 
 const box = (x0: number, y0: number, x1: number, y1: number): Box => ({ x0, y0, x1, y1 })
@@ -87,6 +87,8 @@ const weights: Weights = {
   mismatch: 80,
   parallel: 0,
   align: 0,
+  stack: 0,
+  exposed: 0,
   settle: 0.25,
 }
 
@@ -206,11 +208,11 @@ describe('solve', () => {
 
 describe('parallel lines', () => {
   // Two cards stacked, plates on the right flank. `level` puts each plate level
-  // with its card, so both lines run flat; `skew` slides the second plate up to
-  // its card's top edge, so its line leans while the first still runs flat.
-  // Neither covers anything and both touch their cards at the same distance.
+  // with its card, so both lines run flat; `skew` lifts the second plate above
+  // its card's top corner, so its line leans while the first still runs flat.
+  // Neither covers anything and both stand the same distance from their cards.
   const cards = [box(0.4, 0.4, 0.6, 0.6), box(0.4, 0.7, 0.6, 0.9)]
-  const skew = candidate('right', [plate(0.62, 0.48), plate(0.62, 0.7)], 1)
+  const skew = candidate('right', [plate(0.62, 0.48), plate(0.6, 0.64)], 1)
   const level = candidate('right', [plate(0.62, 0.48), plate(0.62, 0.78)], 2)
   const pile: Group = { zone: 'a', cards, candidates: [skew, level] }
 
@@ -239,5 +241,101 @@ describe('parallel lines', () => {
     const free = { ...weights, mismatch: 0 }
     expect(solve([], [], [flat, b], free).picks[1]?.side).toBe('above')
     expect(solve([], [], [flat, b], { ...free, align: 100 }).picks[1]?.side).toBe('right')
+  })
+})
+
+describe('ladder spacing', () => {
+  it('spaces each plate against everything placed so far, not only the plate before', () => {
+    // Cards that jitter back and forth in y: the third sits between the first
+    // two, and spacing against the second alone would land it on the first.
+    const cards = [
+      { x: 0, y: 0, hw: 0.5, hh: 0.5 },
+      { x: 0.01, y: 0.03, hw: 0.5, hh: 0.5 },
+      { x: 0.02, y: -0.02, hw: 0.5, hh: 0.5 },
+    ]
+    const plates = [
+      { w: 0.3, h: 0.1 },
+      { w: 0.3, h: 0.1 },
+      { w: 0.3, h: 0.1 },
+    ]
+    const out = ladder(cards, plates, 'left', 1, 0.02)
+    const ys = out.map((o, i) => (cards[i]?.y ?? 0) + o.dy)
+    expect(ys[0]).toBe(0)
+    expect(ys[1]).toBeCloseTo(-0.12)
+    expect(ys[2]).toBeCloseTo(-0.24)
+  })
+})
+
+describe('footOf', () => {
+  const card = box(0.4, 0.4, 0.6, 0.6)
+  it('leaves from the center of the edge facing the card', () => {
+    expect(footOf(plate(0.62, 0.48), card)).toEqual([0.62, 0.5])
+    expect(footOf(plate(0.28, 0.48), card)).toEqual([0.38, 0.5])
+    expect(footOf(plate(0.45, 0.34), card)).toEqual([0.5, 0.38])
+    expect(footOf(plate(0.45, 0.62), card)).toEqual([0.5, 0.62])
+  })
+  it('picks the edge by which axis the card lies further beyond', () => {
+    // Above and to the right, but further above: the bottom edge.
+    expect(footOf(plate(0.62, 0.3), card)[1]).toBeCloseTo(0.34)
+  })
+})
+
+describe('usable screen', () => {
+  const card = box(0.6, 0.4, 0.8, 0.6)
+  const pile: Group = {
+    zone: 'a',
+    cards: [card],
+    candidates: [candidate('right', [plate(0.82, 0.48)]), candidate('left', [plate(0.48, 0.48)])],
+  }
+  it('stands on the whole screen when nothing covers it', () => {
+    expect(solve([], [], [pile], weights).picks[0]?.side).toBe('right')
+  })
+  it('treats the part under the chrome as off screen', () => {
+    const under = box(0, 0, 0.8, 1)
+    expect(solve([], [], [pile], weights, under).picks[0]?.side).toBe('left')
+  })
+})
+
+describe('stacking ladders', () => {
+  // Pile a's ladder stands to the right of its card. Pile b, below it, can
+  // stand right — directly under a's ladder — or left, apart from it. Both
+  // stand the same distance from their cards and cover nothing.
+  const a: Group = {
+    zone: 'a',
+    cards: [box(0.5, 0.3, 0.7, 0.5)],
+    candidates: [candidate('right', [plate(0.72, 0.38)])],
+  }
+  const b: Group = {
+    zone: 'b',
+    cards: [box(0.5, 0.5, 0.7, 0.7)],
+    candidates: [candidate('left', [plate(0.38, 0.58)]), candidate('right', [plate(0.72, 0.58)])],
+  }
+  const free = { ...weights, mismatch: 0 }
+  it('is indifferent when the weight is zero', () => {
+    expect(solve([], [], [a, b], free).picks[1]?.side).toBe('left')
+  })
+  it('favors a ladder that lines up under another', () => {
+    expect(solve([], [], [a, b], { ...free, stack: 100 }).picks[1]?.side).toBe('right')
+  })
+})
+
+describe('exposed edges', () => {
+  // A pile stepping up and left: the deeper card shows its left edge and
+  // buries its right one under the front card. Either flank stands the same
+  // distance from each card.
+  const cards = [box(0.5, 0.5, 0.7, 0.7), box(0.48, 0.48, 0.68, 0.68)]
+  const pile: Group = {
+    zone: 'a',
+    cards,
+    candidates: [
+      candidate('right', [plate(0.72, 0.58), plate(0.7, 0.64)]),
+      candidate('left', [plate(0.38, 0.58), plate(0.36, 0.64)]),
+    ],
+  }
+  it('is indifferent when the weight is zero', () => {
+    expect(solve([], [], [pile], weights).picks[0]?.side).toBe('right')
+  })
+  it('favors the side where every card shows an edge', () => {
+    expect(solve([], [], [pile], { ...weights, exposed: 100 }).picks[0]?.side).toBe('left')
   })
 })

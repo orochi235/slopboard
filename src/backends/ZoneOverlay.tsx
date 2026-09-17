@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import type { Rect } from 'windease'
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { createBackdropMaterial } from '@/backends/hatch.ts'
+import { PATTERN_INDEX } from '@/backdrops.ts'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import type { StackParams } from '@/params.ts'
 import { rampAt, rampOf, rampTo } from '@/ramp.ts'
@@ -194,7 +195,7 @@ export function ZoneOverlay({
       u.uSpacing.value = Math.max(1e-4, settings.hatchSpacing)
       u.uWidth.value = settings.hatchWidth
       u.uAngle.value = angle
-      u.uSolid.value = settings.backdrop === 'solid' ? 1 : 0
+      u.uPattern.value = PATTERN_INDEX[settings.backdrop]
     }
 
     for (const [zone, line] of outlines) {

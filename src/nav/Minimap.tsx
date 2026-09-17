@@ -43,7 +43,11 @@ export function Minimap({
   if (!bounds || bounds.w <= 0 || bounds.h <= 0) return null
 
   const grounded = zones.huedBackdrop && zones.backdrop !== 'none'
-  const hatched = grounded && zones.backdrop === 'hatch'
+  // Any line art draws as the wall's hatch here, crossed where the wall's is;
+  // at this size the pattern is a texture, not a picture.
+  const hatched = grounded && zones.backdrop !== 'none' && zones.backdrop !== 'solid'
+  const crossed = zones.backdrop === 'crosshatch' || zones.backdrop === 'diamonds'
+  const turned = zones.backdrop === 'diamonds' ? 45 : 0
   // The plan is an icon, not a scale drawing. The wall's spacing is in these
   // same units, and at the size of this box it would lay down a hundred and
   // fifty lines — a flat tint with a cost. The angle is the wall's; the pitch
@@ -71,7 +75,7 @@ export function Minimap({
                 patternUnits="userSpaceOnUse"
                 width={pitch}
                 height={pitch}
-                patternTransform={`rotate(${hatchRotation(zones.hatchAngleDeg)})`}
+                patternTransform={`rotate(${hatchRotation(zones.hatchAngleDeg) + turned})`}
               >
                 {/* The zone's ground, then its hatch over it: one fill has to
                     carry both, and a pattern is the only fill that can. */}
@@ -85,6 +89,17 @@ export function Minimap({
                   strokeWidth={pitch / 5}
                   opacity={zones.backdropOpacity}
                 />
+                {crossed && (
+                  <line
+                    x1={0}
+                    y1={0}
+                    x2={pitch}
+                    y2={0}
+                    stroke={tint}
+                    strokeWidth={pitch / 5}
+                    opacity={zones.backdropOpacity}
+                  />
+                )}
               </pattern>
             ))}
           </defs>

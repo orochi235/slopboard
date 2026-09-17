@@ -1,5 +1,6 @@
 import { leafAt, leafPathsOf } from '@/params.paths.ts'
 import { TYPEFACES } from '@/typeface.ts'
+import { BACKDROPS } from '@/backdrops.ts'
 import type { StackParams } from '@/params.ts'
 
 export type Control =
@@ -83,6 +84,8 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'attention.seekMismatch': [0, 400, 5],
   'attention.seekParallel': [0, 300, 5],
   'attention.seekAlign': [0, 300, 5],
+  'attention.seekStack': [0, 300, 5],
+  'attention.seekExposed': [0, 300, 5],
   'attention.seekSettle': [0, 0.9, 0.01],
   'attention.seekStiffness': [1, 80, 1],
   'attention.seekDamping': [1, 40, 0.5],
@@ -129,7 +132,7 @@ const CHOICES: Record<string, readonly (number | string)[]> = {
   'typeface.badge': TYPEFACES,
   'typeface.chrome': TYPEFACES,
   'distance.combine': ['ceiling', 'min'],
-  'zones.backdrop': ['none', 'hatch', 'solid'],
+  'zones.backdrop': BACKDROPS,
   'camera.projection': ['orthographic', 'perspective'],
   'zoneGrid.orientation': ['wide', 'tall'],
   'menu.mode': ['window', 'tilt'],

@@ -38,7 +38,10 @@ export function ladder(
   // on that axis climbs, or runs right, so a spread never buries a plate.
   const along = flank ? (last?.y ?? 0) - (first?.y ?? 0) : (last?.x ?? 0) - (first?.x ?? 0)
   const dir = along === 0 ? 1 : Math.sign(along)
-  let prev: { at: number; half: number } | undefined
+  // The far edge of everything placed so far, measured along `dir`. Against
+  // all of it rather than the plate before: a pile whose cards jitter back
+  // and forth would otherwise let the third plate land back on the first.
+  let far: number | undefined
   for (let i = 0; i < cards.length; i++) {
     const card = cards[i]
     const plate = plates[i]
@@ -47,15 +50,14 @@ export function ladder(
     let dy = flank ? 0 : sign * (card.hh + plate.h / 2 + gap + stride)
     const half = flank ? plate.h / 2 : plate.w / 2
     let at = flank ? card.y + dy : card.x + dx
-    if (prev) {
-      const need = prev.half + half + gap
-      if (Math.abs(at - prev.at) < need) {
-        at = prev.at + dir * need
-        if (flank) dy = at - card.y
-        else dx = at - card.x
-      }
+    let along = dir * at
+    if (far !== undefined && along - half < far + gap) {
+      along = far + gap + half
+      at = dir * along
+      if (flank) dy = at - card.y
+      else dx = at - card.x
     }
-    prev = { at, half }
+    far = Math.max(far ?? -Infinity, along + half)
     out.push({ dx, dy })
   }
   return out
@@ -90,6 +92,13 @@ export type Weights = {
   parallel: number
   /** Per pile, for how far its lines lean away from the wall's. Same scale. */
   align: number
+  /** Per pile, for standing apart from every other ladder rather than directly
+   *  above or below one: 0 touching, 1 at eight plate heights or with no ladder
+   *  sharing any of its horizontal span. Same x is never asked for. */
+  stack: number
+  /** Per pile, for standing on a side where the deeper cards' edges are hidden
+   *  under the front card. Which sides show is read off the pile's step. */
+  exposed: number
   /** The share of its score a new layout must beat the held one by before the
    *  wall leaves it. A share rather than a sum so that zooming, which scales
    *  every score together, is never by itself a reason to move. */
@@ -137,6 +146,22 @@ const same = (a: Placement, b: Placement) => a.side === b.side && a.ring === b.r
 
 const clampTo = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
+const center = (b: Box): [number, number] => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2]
+
+/**
+ * Where a plate's line leaves it: the center of the edge that faces the card,
+ * chosen by which axis the card lies further beyond. The renderer draws its
+ * foot the same way.
+ */
+export const footOf = (plate: Box, card: Box): [number, number] => {
+  const [px, py] = center(plate)
+  const [cx, cy] = center(card)
+  const overX = Math.abs(cx - px) - (plate.x1 - plate.x0) / 2
+  const overY = Math.abs(cy - py) - (plate.y1 - plate.y0) / 2
+  if (overX > overY) return [cx > px ? plate.x1 : plate.x0, py]
+  return [px, cy > py ? plate.y1 : plate.y0]
+}
+
 /**
  * The lean of a plate's line as a unit vector at twice its angle, so a line
  * and its reverse — a plate on the left, a plate on the right — count as
@@ -145,12 +170,9 @@ const clampTo = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo,
  * Null when the two touch, which is no line at all.
  */
 const leanOf = (plate: Box, card: Box): [number, number] | null => {
-  const px = (plate.x0 + plate.x1) / 2
-  const py = (plate.y0 + plate.y1) / 2
-  const cx = (card.x0 + card.x1) / 2
-  const cy = (card.y0 + card.y1) / 2
-  const dx = clampTo(px, card.x0, card.x1) - clampTo(cx, plate.x0, plate.x1)
-  const dy = clampTo(py, card.y0, card.y1) - clampTo(cy, plate.y0, plate.y1)
+  const [fx, fy] = footOf(plate, card)
+  const dx = clampTo(fx, card.x0, card.x1) - fx
+  const dy = clampTo(fy, card.y0, card.y1) - fy
   if (Math.hypot(dx, dy) < 1e-6) return null
   const a = 2 * Math.atan2(dy, dx)
   return [Math.cos(a), Math.sin(a)]
@@ -172,11 +194,64 @@ const meanLean = (leans: readonly [number, number][]): [number, number] | null =
 /** 0 for parallel, 2 for perpendicular. */
 const spread = (lean: [number, number], mean: [number, number]) => 1 - (lean[0] * mean[0] + lean[1] * mean[1])
 
+const unionOf = (boxes: readonly Box[]): Box => ({
+  x0: Math.min(...boxes.map((b) => b.x0)),
+  y0: Math.min(...boxes.map((b) => b.y0)),
+  x1: Math.max(...boxes.map((b) => b.x1)),
+  y1: Math.max(...boxes.map((b) => b.y1)),
+})
+
+const heightOf = (boxes: readonly Box[]): number =>
+  boxes.reduce((sum, b) => sum + (b.y1 - b.y0), 0) / boxes.length
+
+/** How many plate heights of stacking count as "apart". */
+const STACK_REACH = 8
+
+/**
+ * How far a ladder is from reading as one list with another: the vertical gap
+ * to the nearest other ladder sharing some of its horizontal span, in plate
+ * heights over `STACK_REACH`, capped at 1. No such neighbor is 1.
+ */
+const stackCost = (a: { box: Box; h: number }, all: readonly { box: Box; h: number }[]): number => {
+  let nearest = Infinity
+  for (const b of all) {
+    if (b === a) continue
+    if (b.box.x1 <= a.box.x0 || b.box.x0 >= a.box.x1) continue
+    const gap = Math.max(0, Math.max(a.box.y0, b.box.y0) - Math.min(a.box.y1, b.box.y1))
+    if (gap < nearest) nearest = gap
+  }
+  if (!Number.isFinite(nearest) || a.h <= 0) return 1
+  return Math.min(1, nearest / (a.h * STACK_REACH))
+}
+
+/**
+ * 1 when the side hides the deeper cards' edges under the front one, else 0.
+ * The pile's step in screen space says which: cards stepping left show their
+ * left edges and bury their right ones. A step under a twentieth of a card is
+ * no step, and neither flank pays.
+ */
+const exposedCost = (cards: readonly Box[], side: Side | 'welded'): number => {
+  const first = cards[0]
+  const last = cards[cards.length - 1]
+  if (!first || !last || cards.length < 2 || side === 'welded') return 0
+  const [fx, fy] = center(first)
+  const [lx, ly] = center(last)
+  const dead = Math.max(first.x1 - first.x0, first.y1 - first.y0) / 20
+  const dx = lx - fx
+  const dy = ly - fy
+  if (side === 'left') return dx > dead ? 1 : 0
+  if (side === 'right') return dx < -dead ? 1 : 0
+  // Screen y grows downward: a pile stepping up has dy < 0 and shows its tops.
+  if (side === 'above') return dy > dead ? 1 : 0
+  return dy < -dead ? 1 : 0
+}
+
 /**
  * One number for the whole wall. Every plate pays for the cards it covers, for
  * hanging off screen, for its line and for standing on another zone's ground;
- * groups pay for covering each other and for disagreeing about which side of
- * their pile to stand on.
+ * groups pay for covering each other, for disagreeing about which side of
+ * their pile to stand on, for standing on a side that hides the cards' edges,
+ * and for not lining up under one another.
  */
 export function scoreLayout(
   obstacles: readonly Box[],
@@ -184,12 +259,16 @@ export function scoreLayout(
   groups: readonly Group[],
   picks: readonly number[],
   weights: Weights,
+  /** The part of the screen a plate may stand on: the whole of it, less
+   *  whatever chrome covers it. */
+  usable: Box = SCREEN,
 ): number {
   let total = 0
   const votes = new Map<Side, number>()
   let voting = 0
   const placed: Box[][] = []
   const pileLeans: [number, number][] = []
+  const ladders: { box: Box; h: number }[] = []
   for (let g = 0; g < groups.length; g++) {
     const group = groups[g]
     const candidate = group?.candidates[picks[g] ?? -1]
@@ -211,7 +290,7 @@ export function scoreLayout(
         const lean = leanOf(box, card)
         if (lean) leans.push(lean)
       }
-      total += (1 - coveredOf(box, SCREEN)) * OFFSCREEN
+      total += (1 - coveredOf(box, usable)) * OFFSCREEN
       for (const under of obstacles) total += coveredOf(box, under) * weights.cover
       if (candidate.side !== 'welded') {
         total += weights.line
@@ -227,9 +306,16 @@ export function scoreLayout(
       for (const lean of leans) total += spread(lean, mean) * weights.parallel
       pileLeans.push(mean)
     }
+    if (candidate.side !== 'welded' && candidate.boxes.length > 0) {
+      ladders.push({ box: unionOf(candidate.boxes), h: heightOf(candidate.boxes) })
+      total += exposedCost(group.cards, candidate.side) * weights.exposed
+    }
   }
   const wallLean = meanLean(pileLeans)
   if (wallLean) for (const lean of pileLeans) total += spread(lean, wallLean) * weights.align
+  if (weights.stack > 0 && ladders.length > 1) {
+    for (const a of ladders) total += stackCost(a, ladders) * weights.stack
+  }
   for (let a = 0; a < placed.length; a++) {
     for (let b = a + 1; b < placed.length; b++) {
       for (const pa of placed[a] ?? []) for (const pb of placed[b] ?? []) total += covered(pa, pb) * OVERLAP
@@ -253,8 +339,9 @@ export function solve(
   cells: readonly { zone: string; box: Box }[],
   groups: readonly Group[],
   weights: Weights,
+  usable: Box = SCREEN,
 ): { picks: Placement[]; score: number } {
-  const total = (picks: number[]) => scoreLayout(obstacles, cells, groups, picks, weights)
+  const total = (picks: number[]) => scoreLayout(obstacles, cells, groups, picks, weights, usable)
   const indexOf = (group: Group, want: Placement) =>
     group.candidates.findIndex((c) => same(c, want))
   const alone = (g: number): number => {

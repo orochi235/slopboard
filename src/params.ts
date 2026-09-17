@@ -1,5 +1,6 @@
 import type { Level } from '@shared/attention.ts'
 import type { Typeface } from '@/typeface.ts'
+import type { Backdrop } from '@/backdrops.ts'
 
 /** One LOD tier. `edge` of 0 means no texture — a flat quad in the average color. */
 export type LodTier = { maxRank: number; edge: 0 | 32 | 128 | 512 }
@@ -159,6 +160,16 @@ export type StackParams = {
     seekParallel: number
     /** The same, per pile, for leaning away from the wall's lines. */
     seekAlign: number
+    /** What a pile pays for its ladder standing apart from every other rather
+     *  than directly above or below one, so ladders read as one list down the
+     *  wall. Nothing when touching, all of it eight plate heights away or with
+     *  no ladder sharing any of its span. Same x is never asked for. */
+    seekStack: number
+    /** What a pile pays for standing its plates on a side where the deeper
+     *  cards' edges are hidden under the front card. A pile stepping up and
+     *  left shows every card's top and left edge, and that is where a plate
+     *  can point at the card it belongs to. Mild by default. */
+    seekExposed: number
     /** The share of its score a new layout must beat the held one by before
      *  the wall leaves it. A share rather than a sum: zooming scales every
      *  score together, so zoom alone is never a reason to move. */
@@ -319,7 +330,7 @@ export type StackParams = {
      *  the edge it climbs and across the pile. */
     labelAlign: number
     /** What fills a zone's cell behind its pile. */
-    backdrop: 'none' | 'hatch' | 'solid'
+    backdrop: Backdrop
     /** Borrow the colour of the project bound to a zone, where it has a
      *  `.hued`. Falls back to the palette for every zone that has none. */
     /** The zone's frame — its outline, its name and its count — in the color
@@ -488,6 +499,8 @@ export const defaultParams: StackParams = {
     seekMismatch: 80,
     seekParallel: 120,
     seekAlign: 40,
+    seekStack: 60,
+    seekExposed: 40,
     seekSettle: 0.25,
     seekStiffness: 26,
     seekDamping: 10,

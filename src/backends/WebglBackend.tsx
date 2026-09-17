@@ -1110,6 +1110,15 @@ function Wall({
         hw: ((mesh.userData.drawnW as number | undefined) ?? mesh.scale.x) / 2,
         hh: ((mesh.userData.drawnH as number | undefined) ?? mesh.scale.y) / 2,
       })
+      // Chrome is not plate room: the band across the top and the sidebar,
+      // when it is open, cover the canvas, and a plate under either is as
+      // unreadable as one off the edge.
+      const usable: Box = {
+        x0: 0,
+        y0: topInset.current,
+        x1: 1 - sidebarInset.current,
+        y1: 1,
+      }
       const scratch = new THREE.Vector3()
       const boxOfPlane = (
         position: THREE.Vector3,
@@ -1147,7 +1156,7 @@ function Wall({
         if (!mesh.visible) continue
         const { hw, hh } = halfOf(mesh)
         const box = boxOfPlane(mesh.position, mesh.rotation, hw, hh, 0, 0)
-        if (!offscreen(box)) obstacles.push(box)
+        if (!offscreen(box, usable)) obstacles.push(box)
       }
 
       const toScreen = (x: number, y: number): { x: number; y: number } => {
@@ -1230,8 +1239,10 @@ function Wall({
         mismatch: params.attention.seekMismatch,
         parallel: params.attention.seekParallel,
         align: params.attention.seekAlign,
+        stack: params.attention.seekStack,
+        exposed: params.attention.seekExposed,
         settle: params.attention.seekSettle,
-      })
+      }, usable)
       groupAt.current.clear()
       for (let g = 0; g < members.length; g++) {
         const pick = picks[g]
@@ -1464,8 +1475,12 @@ function Wall({
             const cy = rel.y
             const chw = (drawnW * swell * pulse) / 2
             const chh = (drawnH * swell * pulse) / 2
-            const fx = clamp(cx, -w / 2, w / 2)
-            const fy = clamp(cy, -h / 2, h / 2)
+            // The line leaves the center of the edge that faces the card,
+            // chosen by which axis the card lies further beyond. The solver's
+            // `footOf` is the same rule in screen space.
+            const sideways = Math.abs(cx) - w / 2 > Math.abs(cy) - h / 2
+            const fx = sideways ? Math.sign(cx) * (w / 2) : 0
+            const fy = sideways ? 0 : Math.sign(cy) * (h / 2)
             const points = leaderPoints.get(level) ?? []
             const at = (v: THREE.Vector3) =>
               points.push(
@@ -1478,7 +1493,6 @@ function Wall({
               // Leaves the plate square to the edge the card lies beyond, runs
               // to the card's span, and turns once onto its nearest border. A
               // plate level with its card needs no turn at all.
-              const sideways = Math.abs(cx) - w / 2 > Math.abs(cy) - h / 2
               let ex: number
               let ey: number
               let hx: number
@@ -1517,9 +1531,10 @@ function Wall({
               // the point of the card's border nearest the plate, so a plate on
               // the flank gets a short level line rather than a diagonal to the
               // top.
+              // The point of the card's border nearest the foot.
               const head = new THREE.Vector3(
-                cx + clamp(-cx, -chw, chw),
-                cy + clamp(-cy, -chh, chh),
+                cx + clamp(fx - cx, -chw, chw),
+                cy + clamp(fy - cy, -chh, chh),
                 rel.z,
               ).applyEuler(held.plate.rotation)
               at(foot)
