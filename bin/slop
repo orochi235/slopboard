@@ -177,5 +177,7 @@ for f in "$@"; do
   write_sidecar "$dest" "$own"
   cp "$f" "$dest"
   echo "$dest"
-  [ -n "$question" ] && await_answer "$dest"
+  # An if, not `[ -n ... ] &&`: as the loop's last command, a false test would
+  # be the script's exit status, and every send without --ask reported failure.
+  if [ -n "$question" ]; then await_answer "$dest"; fi
 done
