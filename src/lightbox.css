@@ -174,13 +174,13 @@
   cursor: default;
 }
 
-/* Above the caption, in the same chip treatment, and wider: a question is the
-   one thing in the surround that is waiting on the viewer. */
+/* Under the meta line, in the same chip treatment, and wider: a question is
+   the one thing in the surround that is waiting on the viewer. */
 .lightbox__ask {
   position: fixed;
   /* A sibling of `.lightbox` rather than inside it, so it clears that layer. */
   z-index: 101;
-  bottom: 52px;
+  top: 52px;
   left: 50%;
   transform: translateX(-50%);
   width: min(560px, calc(100vw - 32px));
