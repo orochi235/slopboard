@@ -1,5 +1,6 @@
 import { readFile, rename, writeFile } from 'node:fs/promises'
 import type { Stamp } from './xmp.ts'
+import type { Reply } from '@shared/protocol.ts'
 
 /**
  * `<image>.slop.json`, written by `bin/slop` beside the image it describes.
@@ -19,7 +20,7 @@ export function parseStamp(blob: unknown): Stamp {
   if (blob === null || typeof blob !== 'object' || Array.isArray(blob)) return {}
   const held = blob as Record<string, unknown>
   const out: Stamp = {}
-  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox'] as const) {
+  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox', 'reply', 'closed', 'closedAt'] as const) {
     const value = held[key]
     if (typeof value === 'string' && value !== '') out[key] = value
   }
@@ -66,18 +67,28 @@ export async function clearAttention(imagePath: string): Promise<void> {
   }
 }
 
-/** Drops the question and its flag, so a restart does not ask it again. */
-export async function clearQuestion(imagePath: string): Promise<void> {
+/** Records how a question closed and drops its flag, so a restart shows the
+ *  reply rather than asking again. */
+export async function closeQuestion(imagePath: string, reply: Reply): Promise<void> {
   const path = sidecarFor(imagePath)
   try {
     const blob = JSON.parse(await readFile(path, 'utf8')) as Record<string, unknown>
-    delete blob.question
-    delete blob.choices
     delete blob.attention
+    blob.closed = reply.status
+    blob.closedAt = new Date(reply.at).toISOString()
+    if (reply.text) blob.reply = reply.text
     await writeFile(path, `${JSON.stringify(blob)}\n`)
   } catch {
-    // No sidecar is no question on disk to clear.
+    // No sidecar is no question on disk to close.
   }
+}
+
+/** The reply a closed question carries, or null while it is open. */
+export function replyFrom(stamp: Stamp | null): Reply | null {
+  const status = stamp?.closed
+  if (status !== 'answered' && status !== 'dismissed' && status !== 'expired') return null
+  const at = Date.parse(stamp?.closedAt ?? '')
+  return { status, text: stamp?.reply ?? '', at: Number.isNaN(at) ? 0 : at }
 }
 
 /**

@@ -18,6 +18,10 @@ export type Stamp = {
    *  answer is free text. Sidecar only, like `kept`. */
   question?: string
   choices?: string[]
+  /** How the question closed, what it was answered with, and when (ISO). */
+  closed?: string
+  reply?: string
+  closedAt?: string
   /** When the wall rescued this, ISO. Wall state rather than provenance, so it
    *  stays in the sidecar and never reaches the XMP packet. */
   kept?: string

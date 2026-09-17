@@ -1,8 +1,8 @@
 import { rename, mkdir, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { config } from './config.ts'
-import { clearAttention, clearQuestion, setKept, trashStamp } from './sidecar.ts'
-import type { WallItem } from '@shared/protocol.ts'
+import { clearAttention, closeQuestion, setKept, trashStamp } from './sidecar.ts'
+import type { Reply, WallItem } from '@shared/protocol.ts'
 
 type Entry = { item: WallItem; sourcePath: string; cachePath: string }
 
@@ -41,7 +41,7 @@ function remember(step: Gone[]) {
 
 /** Expiry moves the source file to the trash; the wall never unlinks. */
 async function expire(entry: Entry): Promise<Gone> {
-  if (entry.item.question) await close(entry, 'expired', '')
+  await close(entry, 'expired', '')
   entries.delete(entry.item.id)
   const dest = join(config.trash, `${entry.item.id}-${entry.item.zone}`)
   await mkdir(config.trash, { recursive: true })
@@ -57,8 +57,11 @@ export function startSweeper(): () => void {
     const now = Date.now()
     for (const entry of entries.values()) {
       // An open question has someone waiting on it.
-      if (entry.item.keptAt || entry.item.question) continue
-      if (entry.item.bornAt < now - (entry.item.ttlMs ?? config.ttlMs)) void expire(entry)
+      if (entry.item.keptAt || isOpen(entry.item)) continue
+      // A question can stay open for longer than a TTL, so an answered card
+      // gets a whole life from its answer.
+      const from = Math.max(entry.item.bornAt, entry.item.reply?.at ?? 0)
+      if (from < now - (entry.item.ttlMs ?? config.ttlMs)) void expire(entry)
     }
   }, 1000)
   return () => clearInterval(timer)
@@ -141,33 +144,38 @@ export async function undoExpiry(): Promise<WallItem[]> {
 export async function dismiss(id: string, closeQuestion = false): Promise<boolean> {
   const entry = entries.get(id)
   // Opening a card dismisses its flag, and must not answer for the viewer.
-  if (entry?.item.question) return closeQuestion && close(entry, 'dismissed', '')
+  if (entry && isOpen(entry.item)) return closeQuestion && close(entry, 'dismissed', '')
   if (!entry?.item.attention) return false
   delete entry.item.attention
   await clearAttention(entry.sourcePath)
   return true
 }
 
-export type Closed = 'answered' | 'dismissed' | 'expired'
+export type Closed = Reply['status']
+
+const isOpen = (item: WallItem) => item.question !== undefined && item.reply === undefined
 
 /**
  * Ends a question: the answer file first, since `bin/slop --ask` is waiting on
  * it, then the flag and the sidecar. The file is the status line, then the
- * text — `bin/slop` is `sh` and has no JSON parser.
+ * text — `bin/slop` is `sh` and has no JSON parser. The question itself stays.
  */
 async function close(entry: Entry, status: Closed, text: string): Promise<boolean> {
-  if (!entry.item.question) return false
-  delete entry.item.question
-  delete entry.item.choices
+  if (!isOpen(entry.item)) return false
+  const reply: Reply = { status, text, at: Date.now() }
+  entry.item.reply = reply
   delete entry.item.attention
   await mkdir(config.answers, { recursive: true })
   const dest = join(config.answers, basename(entry.sourcePath))
   // Renamed into place, so the waiting reader never sees half a file.
   await writeFile(`${dest}.tmp`, `${status}\n${text}`)
   await rename(`${dest}.tmp`, dest)
-  await clearQuestion(entry.sourcePath)
+  await closeQuestion(entry.sourcePath, reply)
   return true
 }
+
+/** The reply a question closed with, for the caller to broadcast. */
+export const replyOf = (id: string) => entries.get(id)?.item.reply
 
 /** False when there is no such item or no open question on it. */
 export async function answer(id: string, status: Closed, text: string): Promise<boolean> {

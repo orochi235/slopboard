@@ -242,7 +242,13 @@ the background, so the answer arrives as the command finishing.
   flag. Only answering, the lightbox's dismiss, the flag row's × or expiring the
   card does. `/dismiss` closes a question only with `?question=close`, so an
   open wall on older code cannot answer for the viewer.
-- **An open question has no TTL.** Someone is waiting on it.
+- **An open question has no TTL.** Someone is waiting on it. An answered card
+  gets a whole TTL from its answer, since the question may have been open for
+  longer than one.
+- **A closed question stays on the card, inert, beside its reply**: a
+  half-strength badge reading `question → answer`, and the lightbox panel with
+  the chosen answer lit. Answering in the lightbox holds the reply on screen for
+  a second, then plays the lightbox out.
 - **One question, one answer.** With choices, the answer must be one of them,
   since the agent branches on the exact string.
 

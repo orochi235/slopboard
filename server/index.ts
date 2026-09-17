@@ -77,7 +77,9 @@ app.get('/page/:id', async (req, res) => {
 // that dismissing something already visible to the viewer costs nothing.
 app.post('/api/items/:id/dismiss', async (req, res) => {
   const cleared = await store.dismiss(req.params.id, req.query.question === 'close')
-  if (cleared) broadcast({ type: 'dismiss', id: req.params.id })
+  const reply = store.replyOf(req.params.id)
+  if (cleared && reply?.status === 'dismissed') broadcast({ type: 'reply', id: req.params.id, reply })
+  else if (cleared) broadcast({ type: 'dismiss', id: req.params.id })
   res.json({ ok: true, cleared })
 })
 
@@ -89,7 +91,8 @@ app.post('/api/items/:id/answer', express.json(), async (req, res) => {
   if (typeof text !== 'string' || text.trim() === '' || (item?.choices && !item.choices.includes(text)))
     return void res.status(400).json({ ok: false })
   const answered = await store.answer(req.params.id, 'answered', text)
-  if (answered) broadcast({ type: 'dismiss', id: req.params.id })
+  const reply = store.replyOf(req.params.id)
+  if (answered && reply) broadcast({ type: 'reply', id: req.params.id, reply })
   res.json({ ok: answered })
 })
 

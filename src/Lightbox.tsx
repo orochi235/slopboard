@@ -20,20 +20,43 @@ import './lightbox.css'
 /**
  * The agent's question, over whichever kind of lightbox is open. Choices are
  * buttons; no choices is a text box, where Enter sends and Shift+Enter breaks
- * the line.
+ * the line. Once it has a reply it stays, inert, showing what it got.
  */
 function Ask({
   item,
+  closing,
   onAnswer,
   onDismiss,
 }: {
   item: WallItem
+  closing: boolean
   onAnswer: (text: string) => void
   onDismiss: () => void
 }) {
   const [text, setText] = useState('')
   useEffect(() => setText(''), [item.id])
   if (!item.question) return null
+  const reply = item.reply
+  if (reply) {
+    return (
+      <div className="lightbox__ask" data-closed="" data-closing={closing ? '' : undefined}>
+        <p className="lightbox__question">{item.question}</p>
+        {item.choices && reply.status === 'answered' ? (
+          <div className="lightbox__answers">
+            {item.choices.map((choice) => (
+              <span className="lightbox__choice" key={choice} data-chosen={choice === reply.text ? '' : undefined}>
+                {choice}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="lightbox__reply lightbox__reply--closed">
+            {reply.status === 'answered' ? reply.text : reply.status}
+          </p>
+        )}
+      </div>
+    )
+  }
   const send = () => {
     if (text.trim() !== '') onAnswer(text)
   }
@@ -42,6 +65,7 @@ function Ask({
     // the lightbox, and `[` typed into the answer would change arrangement.
     <form
       className="lightbox__ask"
+      data-closing={closing ? '' : undefined}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => {
         if (e.key !== 'Escape') e.stopPropagation()
@@ -108,11 +132,13 @@ function ImageLightbox({
   item,
   now,
   quietMs,
+  closing,
   onClose,
 }: {
   item: WallItem
   now: number
   quietMs: number
+  closing: boolean
   onClose: () => void
 }) {
   const [loaded, setLoaded] = useState(false)
@@ -287,7 +313,13 @@ function ImageLightbox({
   }
 
   return (
-    <div className="lightbox" role="dialog" aria-modal="true" aria-label="Full resolution image">
+    <div
+      className="lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Full resolution image"
+      data-closing={closing ? '' : undefined}
+    >
       <div
         className="lightbox__port"
         ref={port}
@@ -356,10 +388,12 @@ function ImageLightbox({
 function PageLightbox({
   item,
   now,
+  closing,
   onClose,
 }: {
   item: WallItem
   now: number
+  closing: boolean
   onClose: () => void
 }) {
   const sandbox = sandboxFor(item.sandbox)
@@ -400,6 +434,7 @@ function PageLightbox({
       role="dialog"
       aria-modal="true"
       aria-label="Page"
+      data-closing={closing ? '' : undefined}
       // Every part of the surround, not just the margin: a click inside the
       // frame is delivered to the page's own document and never arrives here,
       // so anything that does arrive landed beside the page.
@@ -447,20 +482,23 @@ export function Lightbox(props: {
   item: WallItem
   now: number
   quietMs: number
+  /** Playing its way out, after a reply. The caller unmounts it once done. */
+  closing: boolean
   onClose: () => void
   onAnswer: (id: string, text: string) => void
   onDismiss: (id: string) => void
 }) {
-  const { quietMs, onAnswer, onDismiss, ...rest } = props
+  const { quietMs, onAnswer, onDismiss, closing, ...rest } = props
   return (
     <>
       {rest.item.kind === 'page' ? (
-        <PageLightbox {...rest} />
+        <PageLightbox {...rest} closing={closing} />
       ) : (
-        <ImageLightbox {...rest} quietMs={quietMs} />
+        <ImageLightbox {...rest} closing={closing} quietMs={quietMs} />
       )}
       <Ask
         item={rest.item}
+        closing={closing}
         onAnswer={(text) => onAnswer(rest.item.id, text)}
         onDismiss={() => onDismiss(rest.item.id)}
       />

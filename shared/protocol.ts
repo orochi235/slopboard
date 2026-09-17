@@ -1,5 +1,8 @@
 import type { Attention } from './attention.ts'
 
+/** How a question closed. `text` is empty unless it was answered. */
+export type Reply = { status: 'answered' | 'dismissed' | 'expired'; text: string; at: number }
+
 export type WallItem = {
   id: string
   url: string
@@ -21,10 +24,12 @@ export type WallItem = {
   path: string
   /** The badge a flagged item wears. Absent means it wears none. */
   note?: string
-  /** An open question the agent is waiting on. Gone once it is answered or
-   *  closed. `choices` absent means the answer is free text. */
+  /** A question the agent asked. Open while `reply` is absent; once closed it
+   *  stays on the card, inert, beside its reply. `choices` absent means the
+   *  answer is free text. */
   question?: string
   choices?: string[]
+  reply?: Reply
   /** What `bin/slop` saw when it ran: the repository and the short commit.
    *  Absent for anything dropped in by hand. */
   repo?: string
@@ -67,9 +72,10 @@ export type ServerMessage =
   | { type: 'zoneColors'; zoneColors: Record<string, string> }
   | { type: 'arrive'; item: WallItem }
   | { type: 'expire'; id: string }
-  /** The item is still on the wall; it has just stopped asking to be looked at,
-   *  and any question on it is closed. */
+  /** The item is still on the wall; it has just stopped asking to be looked at. */
   | { type: 'dismiss'; id: string }
+  /** A question closed. Its flag goes with it; the question stays. */
+  | { type: 'reply'; id: string; reply: Reply }
   /** Rescued, or let go again. `keptAt` is null for the second. */
   | { type: 'keep'; id: string; keptAt: number | null }
   /** A zone held at the top of the wall, or let back into the order.

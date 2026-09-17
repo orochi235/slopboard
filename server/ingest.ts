@@ -8,7 +8,7 @@ import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
 import { idFor } from './itemId.ts'
 import { kindOf } from './kind.ts'
-import { keptFrom, readStamp } from './sidecar.ts'
+import { keptFrom, readStamp, replyFrom } from './sidecar.ts'
 import { orientedSize } from './sourceSize.ts'
 import { framesOf } from './frames.ts'
 import { shootPage } from './shoot.ts'
@@ -104,8 +104,10 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   if (sidecar?.attention && !asked) {
     console.warn(`[ingest] unreadable attention "${sidecar.attention}" on ${basename(sourcePath)}`)
   }
-  // Someone is waiting on a question, so it always asks to be looked at.
-  const attention = asked ?? (question === null ? null : parseAttention('look'))
+  const reply = question === null ? null : replyFrom(sidecar)
+  // Someone is waiting on an open question, so it always asks to be looked at.
+  // A closed one asks for nothing.
+  const attention = reply !== null ? null : (asked ?? (question === null ? null : parseAttention('look')))
   const note = sidecar?.note ?? question
   const keptAt = keptFrom(sidecar)
   const item: WallItem = {
@@ -117,6 +119,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     ...(attention !== null && note ? { note } : {}),
     ...(question === null ? {} : { question }),
     ...(question !== null && sidecar?.choices ? { choices: sidecar.choices } : {}),
+    ...(reply === null ? {} : { reply }),
     ...(sidecar?.repo ? { repo: sidecar.repo } : {}),
     ...(sidecar?.sha ? { sha: sidecar.sha } : {}),
     ...(kind === 'page' ? { kind: 'page' as const } : {}),

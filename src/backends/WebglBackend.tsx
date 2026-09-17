@@ -235,11 +235,17 @@ function Wall({
   // Which artifacts are asking, and what their badges say. Off the items
   // rather than the channels: a level is a name and a note is a sentence,
   // and `SlopChannels` carries numbers.
+  // A closed question keeps a badge that no longer asks: the question and
+  // what it got, with no emphasis behind it.
   const flagged = useMemo(() => {
-    const out = new Map<string, { level: Level; note?: string }>()
+    const out = new Map<string, { level: Level; note?: string; inert?: true }>()
     for (const i of items) {
-      if (!i.attention) continue
-      out.set(i.id, { level: i.attention.level, ...(i.note ? { note: i.note } : {}) })
+      if (i.attention) {
+        out.set(i.id, { level: i.attention.level, ...(i.note ? { note: i.note } : {}) })
+      } else if (i.question && i.reply) {
+        const got = i.reply.status === 'answered' ? i.reply.text.split('\n')[0] : i.reply.status
+        out.set(i.id, { level: 'look', note: `${i.question} → ${got}`, inert: true })
+      }
     }
     return out
   }, [items])
@@ -1015,8 +1021,9 @@ function Wall({
       for (const ids of cardsByZone.current.values()) {
         let slot = 0
         for (const id of ids) {
-          if (!flagged.get(id)?.note) continue
-          if ((channels.get(id)?.emphasis ?? 0) <= 0) continue
+          const flag = flagged.get(id)
+          if (!flag?.note) continue
+          if (!flag.inert && (channels.get(id)?.emphasis ?? 0) <= 0) continue
           if (slot === 0 && id === ids[0]) noLeader.add(id)
           shelf.set(id, slot++)
         }
@@ -1222,7 +1229,7 @@ function Wall({
       mat.transparent = true
 
       const badge = badges.byId.get(id)
-      const wearsBadge = emphasis > 0 && !!flag?.note
+      const wearsBadge = (emphasis > 0 || !!flag?.inert) && !!flag?.note
       if (badge || wearsBadge) {
         const level = flag?.level ?? 'look'
         const fill = levelColors[level]
@@ -1300,7 +1307,8 @@ function Wall({
           held.plate.position.copy(mesh.position).add(offset)
           const plateMat = held.plate.material as THREE.MeshBasicMaterial
           plateMat.transparent = true
-          plateMat.opacity = cut
+          // Half strength once the question is closed: still legible, no longer asking.
+          plateMat.opacity = cut * (flag?.inert ? 0.5 : 1)
           // Down to the top of the card, so the line says which artifact is
           // asking even when the plate has climbed clear of the pile. Read off
           // the mesh rather than the rect: a flagged card stands `tier.lift`
@@ -1606,6 +1614,11 @@ function Wall({
   )
 }
 
+/** How long a reply shows before the lightbox goes, and how long it takes to
+ *  go — the second matches `lightbox-out` in lightbox.css. */
+const REPLY_HOLD_MS = 1000
+const REPLY_CLOSE_MS = 240
+
 export function WebglBackend(props: Props) {
   const [sidebarOpen, setSidebarOpen] = usePersistedFlag('slopboard.sidebar.open.v1', false)
   const [listed, setListed] = usePersistedFlag('slopboard.list.v1', false)
@@ -1709,14 +1722,6 @@ export function WebglBackend(props: Props) {
     void fetch(`/api/items/${card}/dismiss`, { method: 'POST' }).catch(() => {})
   }, [card, openedAsks, dropFake])
 
-  const answer = useCallback((id: string, text: string) => {
-    void fetch(`/api/items/${id}/answer`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    }).catch(() => {})
-  }, [])
-
   // The daemon has no record of a fabricated flag, so the row's × has to clear
   // it here; a real one still goes the one route that exists for it.
   const dismiss = useCallback(
@@ -1725,6 +1730,48 @@ export function WebglBackend(props: Props) {
       void fetch(`/api/items/${id}/dismiss?question=close`, { method: 'POST' }).catch(() => {})
     },
     [dropFake],
+  )
+
+  // Replying in the lightbox holds long enough to see the reply land, then
+  // plays the lightbox out. Called off if the viewer has moved on by then.
+  const [closing, setClosing] = useState<string | null>(null)
+  const openCard = useRef(card)
+  openCard.current = card
+  const leaving = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => () => leaving.current.forEach(clearTimeout), [])
+  const leaveAfterReply = useCallback((id: string) => {
+    leaving.current.forEach(clearTimeout)
+    leaving.current = [
+      setTimeout(() => {
+        if (openCard.current !== id) return
+        setClosing(id)
+        leaving.current.push(
+          setTimeout(() => {
+            setClosing(null)
+            if (openCard.current === id) dispatch({ type: 'out' })
+          }, REPLY_CLOSE_MS),
+        )
+      }, REPLY_HOLD_MS),
+    ]
+  }, [])
+
+  const answer = useCallback(
+    (id: string, text: string) => {
+      void fetch(`/api/items/${id}/answer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      }).catch(() => {})
+      leaveAfterReply(id)
+    },
+    [leaveAfterReply],
+  )
+  const dismissInLightbox = useCallback(
+    (id: string) => {
+      dismiss(id)
+      leaveAfterReply(id)
+    },
+    [dismiss, leaveAfterReply],
   )
 
   /** What the band counts: the pile you are inside, or the whole wall. The
@@ -1989,8 +2036,9 @@ export function WebglBackend(props: Props) {
           now={now}
           quietMs={props.params.nav.quietMs}
           onClose={() => dispatch({ type: 'out' })}
+          closing={closing === lit.id}
           onAnswer={answer}
-          onDismiss={dismiss}
+          onDismiss={dismissInLightbox}
         />
       )}
     </>

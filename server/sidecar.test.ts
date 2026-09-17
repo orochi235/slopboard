@@ -32,6 +32,14 @@ describe('parseStamp', () => {
     expect(parseStamp({ choices: [] })).toEqual({})
   })
 
+  it('takes the reply a closed question was given', () => {
+    expect(parseStamp({ reply: 'left', closed: 'answered', closedAt: '2026-09-16T12:00:00.000Z' })).toEqual({
+      reply: 'left',
+      closed: 'answered',
+      closedAt: '2026-09-16T12:00:00.000Z',
+    })
+  })
+
   it('is empty for anything that is not an object', () => {
     expect(parseStamp(null)).toEqual({})
     expect(parseStamp('caption')).toEqual({})
