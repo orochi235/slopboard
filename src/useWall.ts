@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ALERTS } from '@shared/attention.ts'
-import { BEAT_MS, type ServerMessage, type WallItem } from '@shared/protocol.ts'
+import { BEAT_MS, type Alert, type ServerMessage, type WallItem } from '@shared/protocol.ts'
 import { createWatchdog, type Watchdog } from '@/watchdog.ts'
 
 export type Wall = {
@@ -17,7 +17,15 @@ export type Wall = {
    *  fired so a wall that was closed does not open a queue of them at once —
    *  only the newest is still worth looking at. */
   announce: WallItem | null
+  /** Sounds the daemon has played that the wall has not yet explained, oldest
+   *  first. A toast exists for as long as its entry does. */
+  alerts: Alert[]
+  dismissAlert: (id: string) => void
 }
+
+/** More than this and the newest sound is what matters; the rest have been
+ *  heard and not read, and a column of them explains nothing. */
+const ALERTS_SHOWN = 4
 
 export function useWall(): Wall {
   const [items, setItems] = useState<WallItem[]>([])
@@ -26,7 +34,12 @@ export function useWall(): Wall {
   const [ttlMs, setTtlMs] = useState(300_000)
   const [connected, setConnected] = useState(false)
   const [announce, setAnnounce] = useState<WallItem | null>(null)
+  const [alerts, setAlerts] = useState<Alert[]>([])
   const clockOffset = useRef(0)
+  const dismissAlert = useCallback(
+    (id: string) => setAlerts((prev) => prev.filter((a) => a.id !== id)),
+    [],
+  )
 
   useEffect(() => {
     let socket: WebSocket | null = null
@@ -83,6 +96,8 @@ export function useWall(): Wall {
           setItems((prev) => [...prev, msg.item])
           const level = msg.item.attention?.level
           if (level && ALERTS[level].lightbox) setAnnounce(msg.item)
+        } else if (msg.type === 'alert') {
+          setAlerts((prev) => [...prev.filter((a) => a.id !== msg.alert.id), msg.alert].slice(-ALERTS_SHOWN))
         } else if (msg.type === 'expire') {
           setItems((prev) => prev.filter((i) => i.id !== msg.id))
         } else if (msg.type === 'keep') {
@@ -134,5 +149,7 @@ export function useWall(): Wall {
     clockOffset: clockOffset.current,
     connected,
     announce,
+    alerts,
+    dismissAlert,
   }
 }

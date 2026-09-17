@@ -9,7 +9,7 @@ import { watchInbox } from './ingest.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { readPins, setPinned } from './pins.ts'
 import { zoneCounts } from './zoneCounts.ts'
-import { alert, debugItem } from './alert.ts'
+import { alert, debugItem, toastFor } from './alert.ts'
 import { withKeyForwarder } from './page-keys.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import { BEAT_MS, type ServerMessage } from '@shared/protocol.ts'
@@ -146,7 +146,10 @@ app.post('/api/debug/alert/:level', (req, res) => {
   const level = req.params.level
   if (!(LEVELS as readonly string[]).includes(level))
     return void res.status(400).json({ ok: false, levels: LEVELS })
-  const plan = alert(debugItem(level as Level), clients.size > 0)
+  const item = debugItem(level as Level)
+  const plan = alert(item, clients.size > 0)
+  const toast = toastFor(item, plan)
+  if (toast) broadcast({ type: 'alert', alert: toast })
   console.log(`[alert] debug ${level} ${JSON.stringify(plan)}`)
   res.json({ ok: true, level, plan })
 })
@@ -184,6 +187,8 @@ watchInbox((item) => {
   // After the broadcast: a wall that is already open should be showing the
   // artifact by the time anything asks the screen for attention on its behalf.
   const plan = alert(item, clients.size > 0)
+  const toast = toastFor(item, plan)
+  if (toast) broadcast({ type: 'alert', alert: toast })
   if (plan.sound || plan.notify || plan.raise !== 'none')
     console.log(`[alert] ${item.attention?.level} ${JSON.stringify(plan)}`)
 })

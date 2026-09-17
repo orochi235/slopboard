@@ -7,13 +7,14 @@ import { Prefs } from '@/Prefs.tsx'
 import { layoutKeyOf } from '@/params.layout.ts'
 import { defaultParams } from '@/params.ts'
 import { loadParams, saveParams } from '@/params.store.ts'
+import { Toasts } from '@/Toasts.tsx'
 import { applyColors } from '@/theme.ts'
 import { stackFor } from '@/typeface.ts'
 import { useWall } from '@/useWall.ts'
 
 
 export function App() {
-  const { items, zoneColors, pinnedZones, ttlMs, clockOffset, connected, announce } =
+  const { items, zoneColors, pinnedZones, ttlMs, clockOffset, connected, announce, alerts, dismissAlert } =
     useWall()
   const [index, setIndex] = useState(0)
   const [prefs, setPrefs] = useState(false)
@@ -79,6 +80,7 @@ export function App() {
         connected={connected}
       />
       <ParallaxModal />
+      <Toasts alerts={alerts} onDismiss={dismissAlert} />
       {prefs && <Prefs params={params} onChange={setParams} onClose={() => setPrefs(false)} />}
     </>
   )

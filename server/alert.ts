@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { ALERTS, DEFAULT_HOLD, type Alerts, type Level } from '@shared/attention.ts'
 import { config } from './config.ts'
-import type { WallItem } from '@shared/protocol.ts'
+import type { Alert, WallItem } from '@shared/protocol.ts'
 
 /** What raising the wall means, which depends on whether it is running. */
 export type Raise = 'none' | 'front' | 'start'
@@ -47,6 +47,25 @@ export function debugItem(level: Level): WallItem {
     path: '',
     w: 0,
     h: 0,
+  }
+}
+
+/**
+ * What the wall shows for a sound it just heard: nothing for a plan with no
+ * sound, since a toast with no noise behind it is a second badge. The daemon
+ * says this rather than the wall deriving it, so the toast and the sound can
+ * never disagree about whether one happened.
+ */
+export function toastFor(item: WallItem, plan: Plan): Alert | null {
+  if (!plan.sound || !item.attention) return null
+  return {
+    id: item.id,
+    zone: item.zone,
+    level: item.attention.level,
+    asks: item.question ?? item.note ?? item.name,
+    name: item.name,
+    ...(item.repo ? { repo: item.repo } : {}),
+    ...(item.sha ? { sha: item.sha } : {}),
   }
 }
 

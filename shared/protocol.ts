@@ -1,4 +1,4 @@
-import type { Attention } from './attention.ts'
+import type { Attention, Level } from './attention.ts'
 
 /** How a question closed. `text` is empty unless it was answered. */
 export type Reply = { status: 'answered' | 'dismissed' | 'expired'; text: string; at: number }
@@ -56,6 +56,22 @@ export type WallItem = {
  *  browser's end when the daemon dies, so the wall listens for silence. */
 export const BEAT_MS = 5000
 
+/**
+ * Why the wall just made a noise. The daemon plays the sound, so only the
+ * daemon knows a sound was played; this is it saying so, with where the
+ * arrival came from and what it wants, for a toast on the wall.
+ */
+export type Alert = {
+  id: string
+  zone: string
+  level: Level
+  /** The question if there is one, else the note, else the item's name. */
+  asks: string
+  name: string
+  repo?: string
+  sha?: string
+}
+
 export type ServerMessage =
   | {
       type: 'snapshot'
@@ -81,5 +97,7 @@ export type ServerMessage =
   /** A zone held at the top of the wall, or let back into the order.
    *  `pinnedAt` is null for the second. */
   | { type: 'zonePin'; zone: string; pinnedAt: number | null }
+  /** The daemon played a sound for this arrival. */
+  | { type: 'alert'; alert: Alert }
   /** Nothing happened, and the daemon is still here to say so. */
   | { type: 'beat' }

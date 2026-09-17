@@ -232,6 +232,13 @@ clock for the same reason `age01` is, so a reload does not restart a hold.
   new one beats it by a share of its score, so zooming, which scales every
   score together, never moves a plate by itself.
 
+**Every sound comes with a toast.** The daemon is the thing that plays it, so
+the daemon says so: an `alert` message with the zone, the level, the repo and
+commit when `slop` knew them, and what the card wants — its question, else its
+note, else its name. The wall shows it bottom left until it is read or twelve
+seconds pass, and clicking it walks to the card. A sound with nothing on
+screen to explain it is a noise; this is what makes it a message.
+
 **A flag ends by being dismissed or by lapsing, never by the card expiring.**
 A hold of null holds until someone dismisses it; any other hold lapses on its
 own. Either way the card goes on living out its TTL as an ordinary card.

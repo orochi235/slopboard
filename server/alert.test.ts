@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ALERTS, LEVELS } from '@shared/attention.ts'
-import { debugItem, planFor } from './alert.ts'
+import { debugItem, planFor, toastFor } from './alert.ts'
 
 describe('planFor', () => {
   it('does nothing for an arrival that is not asking', () => {
@@ -37,5 +37,27 @@ describe('debugItem', () => {
   it('wears a note nobody mistakes for a real one', () => {
     expect(debugItem('problem').note).toMatch(/debug/)
     expect(debugItem('problem').zone).toBe('debug')
+  })
+})
+
+describe('toastFor', () => {
+  const item = { ...debugItem('urgent'), zone: 'renders', repo: 'slopboard', sha: 'abc1234' }
+
+  it('owes a toast for every sound, and none for a silent arrival', () => {
+    expect(toastFor(item, planFor('urgent', true))).not.toBeNull()
+    expect(toastFor({ ...item, attention: { level: 'look', holdMs: null } }, planFor('look', true))).toBeNull()
+    expect(toastFor({ ...item, attention: undefined }, planFor(null, true))).toBeNull()
+  })
+
+  it('says where the sound came from and what it wants', () => {
+    const toast = toastFor(item, planFor('urgent', true))
+    expect(toast).toMatchObject({ zone: 'renders', level: 'urgent', repo: 'slopboard', sha: 'abc1234' })
+    expect(toast?.asks).toBe(item.note)
+  })
+
+  it('leads with the question when there is one, and falls back to the name', () => {
+    expect(toastFor({ ...item, question: 'which crop?' }, planFor('urgent', true))?.asks).toBe('which crop?')
+    const { note: _none, ...bare } = item
+    expect(toastFor(bare, planFor('urgent', true))?.asks).toBe(item.name)
   })
 })
