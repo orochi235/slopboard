@@ -13,7 +13,7 @@ import * as THREE from 'three'
 import type { Rect } from 'windease'
 import type { Arrangement, SlopChannels } from '@/arrangements/index.ts'
 import { frontSlotOf, gridCells } from '@/arrangements/zones.ts'
-import { framePose, type Pose } from '@/camera/frame.ts'
+import { frameExtent, framePose, type Pose } from '@/camera/frame.ts'
 import { type Move, poseAt } from '@/camera/move.ts'
 import { orbitOffset } from '@/camera/orbit.ts'
 import { Lightbox } from '@/Lightbox.tsx'
@@ -34,7 +34,7 @@ import { toStackItems } from '@/model.ts'
 import { DEFAULT_SORT, inZoneOrder, zoneOrder, type SortKey } from '@/nav/sort.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
 import { Axes } from '@/nav/Axes.tsx'
-import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
+import { boxPositions, createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { badgeTexture } from '@/textures/badge.ts'
 import { createChips } from '@/textures/chip.ts'
@@ -116,6 +116,11 @@ type WallProps = Props & {
    *  reads it every frame and the panel opening must not re-render the wall. */
   sidebarInset: { current: number }
   topInset: { current: number }
+  /** One step out past the wall, framed with `camera.zoomOutSpace` of extra room. */
+  backedOff: boolean
+  onBackOff: (on: boolean) => void
+  /** Debug: draw the volume the camera can frame, and the default frame in it. */
+  showBounds: boolean
 }
 
 /** The plan view is a diagram, not an animation: republishing it a few times a
@@ -196,6 +201,9 @@ function Wall({
   connected,
   sidebarInset,
   topInset,
+  backedOff,
+  onBackOff,
+  showBounds,
 }: WallProps) {
   const meshes = useRef(new Map<string, THREE.Mesh>())
   /** The zone the arrows are pointing at from the wall, or null for a cursor
@@ -450,7 +458,7 @@ function Wall({
   latest.current = { items, ttlMs, clockOffset, sort, dimmed, heldZones, connected }
 
   // Each of these is a reason to draw, not an input the effect reads.
-  useEffect(() => wake(), [wake, items, params, view, sort, dimmed, zoneColors, pinnedZones, connected, cursor, fontsReady])
+  useEffect(() => wake(), [wake, items, params, view, sort, dimmed, zoneColors, pinnedZones, connected, cursor, fontsReady, backedOff, showBounds])
   useEffect(() => {
     const events = ['pointermove', 'pointerdown', 'pointerup', 'wheel', 'keydown', 'resize'] as const
     for (const name of events) window.addEventListener(name, wake, { passive: true })
@@ -496,6 +504,32 @@ function Wall({
   // not known until the first layout runs, and zones arrive and leave under a
   // camera that is already parked. A new move only starts when the target has
   // actually moved, so a steady wall is not re-eased every frame.
+  /** What the bounds overlay draws, in world space: the widest frame the camera
+   *  can reach and the default one. Written by `retarget` at the wall rung. */
+  const bounds = useRef<{ outer: ReturnType<typeof frameExtent>; inner: ReturnType<typeof frameExtent> } | null>(null)
+  const boundsLines = useMemo(() => {
+    const outer = createLoop()
+    const inner = createLoop()
+    for (const line of [outer, inner]) {
+      line.material.depthTest = false
+      line.material.depthWrite = false
+      line.renderOrder = CHROME_ORDER
+      line.material.linewidth = 1.5
+    }
+    outer.material.color.set(0xff40ff)
+    inner.material.color.set(0x40ffff)
+    return { outer, inner }
+  }, [])
+  useEffect(
+    () => () => {
+      for (const line of [boundsLines.outer, boundsLines.inner]) {
+        line.geometry.dispose()
+        line.material.dispose()
+      }
+    },
+    [boundsLines],
+  )
+
   const retarget = (depth: number, zone: string | null) => {
     const aspect = window.innerWidth / window.innerHeight
     // The front card of each pile, not the union of everything it draws. A
@@ -527,16 +561,26 @@ function Wall({
     const headroom =
       (params.zones.labels ? params.zones.labelSize * 1.6 : 0) + params.attention.badgeSize
     const box = withHeadroom(framed, headroom)
-    const margin = marginFor(params.camera.margins, depth)
-    const target = framePose(box, {
-      projection: params.camera.projection,
-      fovDeg: params.camera.fovDeg,
-      standoff: params.camera.standoff,
-      aspect,
-      margin,
-      insetRight: sidebarInset.current,
-      insetTop: topInset.current,
-    })
+    const frameAt = (margin: number) =>
+      framePose(box, {
+        projection: params.camera.projection,
+        fovDeg: params.camera.fovDeg,
+        standoff: params.camera.standoff,
+        aspect,
+        margin,
+        insetRight: sidebarInset.current,
+        insetTop: topInset.current,
+      })
+    const wallMargin = marginFor(params.camera.margins, 0)
+    const target = frameAt(
+      marginFor(params.camera.margins, depth) * (depth === 0 && backedOff ? params.camera.zoomOutSpace : 1),
+    )
+    if (depth === 0) {
+      bounds.current = {
+        outer: frameExtent(frameAt(wallMargin * params.camera.zoomOutSpace), aspect),
+        inner: frameExtent(frameAt(wallMargin), aspect),
+      }
+    }
 
     const held = move.current?.to
     const moved =
@@ -673,6 +717,10 @@ function Wall({
 
   const act = useRef({ chainAt, navigate, hoverAt, rankAt })
   act.current = { chainAt, navigate, hoverAt, rankAt }
+  const backOff = useRef(onBackOff)
+  backOff.current = onBackOff
+  const backedOffRef = useRef(backedOff)
+  backedOffRef.current = backedOff
 
   // Bound to the canvas, not to a mesh, so the empty space between piles turns
   // the scene. A press that never travels is a click, and picks a rung.
@@ -829,8 +877,11 @@ function Wall({
       }
       const step = rail.feed({ deltaY: e.deltaY, ctrlKey: e.ctrlKey }, e.timeStamp)
       if (!step) return
-      if (step === 'out') dispatch({ type: 'out' })
-      else act.current.navigate(act.current.chainAt(e.clientX, e.clientY))
+      // The wall has one more step out than the hierarchy: a little extra room.
+      const atWall = depthOf(viewRef.current) === 0
+      if (step === 'out') return atWall ? backOff.current(true) : dispatch({ type: 'out' })
+      if (atWall && backedOffRef.current) return backOff.current(false)
+      act.current.navigate(act.current.chainAt(e.clientX, e.clientY))
     }
     window.addEventListener('wheel', onWheel, { passive: false })
     return () => window.removeEventListener('wheel', onWheel)
@@ -1515,6 +1566,26 @@ function Wall({
     retarget(depthOf(view), zoneOf(view))
     if (move.current) pose.current = poseAt(move.current, performance.now())
 
+    const extent = showBounds ? bounds.current : null
+    boundsLines.outer.visible = boundsLines.inner.visible = extent !== null
+    if (extent) {
+      // Through the scene's depth, from the deepest card to the frontmost.
+      let z0 = 0
+      let z1 = 0
+      for (const mesh of meshes.current.values()) {
+        if (!mesh.visible) continue
+        z0 = Math.min(z0, mesh.position.z)
+        z1 = Math.max(z1, mesh.position.z)
+      }
+      const { outer, inner } = extent
+      boundsLines.outer.geometry.setPositions(boxPositions(outer.x0, outer.y0, z0, outer.x1, outer.y1, z1))
+      boundsLines.outer.geometry.instanceCount = 12
+      boundsLines.inner.geometry.setPositions(loopPositions(inner.x0, inner.y0, inner.x1, inner.y1, 0))
+      boundsLines.inner.geometry.instanceCount = 4
+      setResolution(boundsLines.outer.material, gl)
+      setResolution(boundsLines.inner.material, gl)
+    }
+
     const { x, y, distance, halfHeight } = pose.current
     const eye = orbitOffset(params.camera.yawDeg, params.camera.pitchDeg, distance)
     camera.position.set(x + eye.x, -y + eye.y, eye.z)
@@ -1589,6 +1660,8 @@ function Wall({
       {[...leaders].map(([level, line]) => (
         <primitive key={`leader-${level}`} object={line} />
       ))}
+      <primitive object={boundsLines.outer} />
+      <primitive object={boundsLines.inner} />
       <ZoneOverlay
         cells={bases}
         counts={zoneCounts}
@@ -1616,6 +1689,8 @@ const REPLY_CLOSE_MS = 240
 
 export function WebglBackend(props: Props) {
   const [sidebarOpen, setSidebarOpen] = usePersistedFlag('slopboard.sidebar.open.v1', false)
+  const [showBounds, setShowBounds] = usePersistedFlag('slopboard.debug.bounds.v1', false)
+  const [backedOff, setBackedOff] = useState(false)
   const [listed, setListed] = usePersistedFlag('slopboard.list.v1', false)
   // The fraction of the canvas the panel covers, measured rather than assumed:
   // its width lives in CSS, and a constant here would drift from it silently.
@@ -1641,6 +1716,12 @@ export function WebglBackend(props: Props) {
   }, [sidebarOpen])
 
   const [view, dispatch] = useReducer(reduceView, WALL, () => viewFromHash(location.hash))
+  // The extra room belongs to the wall rung; walking in and back out lands at
+  // the ordinary frame.
+  const depth = view.path.length
+  useEffect(() => {
+    if (depth > 0) setBackedOff(false)
+  }, [depth])
   // Replaced, not pushed: every wheel notch is a rung, and a history entry per
   // notch would make Back useless.
   useEffect(() => {
@@ -1760,6 +1841,7 @@ export function WebglBackend(props: Props) {
   cameraNow.current = props.params.camera
   const resetView = useCallback(() => {
     dispatch({ type: 'to', path: [] })
+    setBackedOff(false)
     cancelAnimationFrame(turning.current)
     const from = { yaw: cameraNow.current.yawDeg, pitch: cameraNow.current.pitchDeg }
     const start = performance.now()
@@ -1987,6 +2069,9 @@ export function WebglBackend(props: Props) {
           dimmed={dimmed}
           listed={listed}
           onDelete={deleteCard}
+          backedOff={backedOff}
+          onBackOff={setBackedOff}
+          showBounds={showBounds}
         />
         <Sky settings={props.params.sky} colors={props.params.colors} />
       </Canvas>
@@ -2034,6 +2119,8 @@ export function WebglBackend(props: Props) {
         onDismiss={dismiss}
         fakeCount={Object.keys(fakes).length}
         onGenerate={() => setFakes(fakeFlags(items.map((i) => i.id)))}
+        showBounds={showBounds}
+        onShowBounds={setShowBounds}
         onClearFakes={() => setFakes({})}
       />
       {menu && (

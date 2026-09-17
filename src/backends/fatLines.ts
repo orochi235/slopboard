@@ -37,6 +37,19 @@ export function loopPositions(
   ]
 }
 
+/** A box's twelve edges as endpoint pairs: the back face, the front face, and
+ *  the four edges joining them. */
+export function boxPositions(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): number[] {
+  return [
+    ...loopPositions(x0, y0, x1, y1, z0),
+    ...loopPositions(x0, y0, x1, y1, z1),
+    x0, y0, z0, x0, y0, z1,
+    x1, y0, z0, x1, y0, z1,
+    x1, y1, z0, x1, y1, z1,
+    x0, y1, z0, x0, y1, z1,
+  ]
+}
+
 /** Widths are in screen pixels, so every material needs the buffer size and
  *  needs it again whenever the canvas resizes. */
 export function setResolution(material: LineMaterial, gl: THREE.WebGLRenderer): void {

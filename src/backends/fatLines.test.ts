@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loopPositions } from '@/backends/fatLines.ts'
+import { boxPositions, loopPositions } from '@/backends/fatLines.ts'
 
 describe('loopPositions', () => {
   it('emits four segments as endpoint pairs, not as a path', () => {
@@ -15,5 +15,14 @@ describe('loopPositions', () => {
 
   it('carries a z, which the card outline needs and the zone outline does not', () => {
     expect(loopPositions(0, 0, 1, 1, -0.5).slice(0, 3)).toEqual([0, 0, -0.5])
+  })
+})
+
+describe('boxPositions', () => {
+  it('emits the twelve edges of a box: both faces and the four joining them', () => {
+    const p = boxPositions(0, 0, -1, 1, 1, 1)
+    expect(p).toHaveLength(12 * 2 * 3)
+    expect(p.slice(0, 24)).toEqual(loopPositions(0, 0, 1, 1, -1))
+    expect(p.slice(24, 48)).toEqual(loopPositions(0, 0, 1, 1, 1))
   })
 })

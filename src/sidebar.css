@@ -195,3 +195,12 @@
 .sidebar__flag--lapsed {
   opacity: 0.45;
 }
+
+.sidebar__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 2px;
+  color: var(--muted);
+  cursor: pointer;
+}

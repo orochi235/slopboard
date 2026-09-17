@@ -72,3 +72,15 @@ export function framePose(box: Pick<Rect, 'x' | 'y' | 'w' | 'h'>, view: FrameVie
     halfHeight,
   }
 }
+
+/** The world rectangle a pose shows on the wall plane: rect-space y flipped,
+ *  the way the camera looks at it. */
+export function frameExtent(pose: Pose, aspect: number): { x0: number; x1: number; y0: number; y1: number } {
+  const halfWidth = pose.halfHeight * aspect
+  return {
+    x0: pose.x - halfWidth,
+    x1: pose.x + halfWidth,
+    y0: -pose.y - pose.halfHeight,
+    y1: -pose.y + pose.halfHeight,
+  }
+}

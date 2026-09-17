@@ -195,6 +195,9 @@ export type StackParams = {
      *  it restores. A margin rather than a distance, because an orthographic
      *  camera's distance changes nothing you can see. */
     homeMargin: number
+    /** How much further out one wheel step past the wall frames it, as a
+     *  multiple of the wall's own margin. */
+    zoomOutSpace: number
     /** How long a level change takes. */
     moveMs: number
   }
@@ -507,6 +510,7 @@ export const defaultParams: StackParams = {
       1.12,
     ],
     homeMargin: 1.08,
+    zoomOutSpace: 1.25,
     moveMs: 520,
   },
   nav: {

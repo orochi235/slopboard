@@ -305,6 +305,13 @@ never arrives somewhere the eye did not watch it travel. Reachable mostly at the
 wall: once a pile has focus the framing leaves little of its neighbours on
 screen, which is what the arrows and the plan view are for.
 
+**The wall has one step further out than the hierarchy.** Outward at the wall
+backs the camera off to `camera.zoomOutSpace` times the wall's margin, and the
+next inward step comes back to the ordinary frame rather than into a pile. It is
+not a rung: it lives beside the path, so the URL and `reduceView` never see it,
+and walking into a pile forgets it. The sidebar's debug section draws the widest
+frame as a box through the scene's depth, and the default frame inside it.
+
 **A gesture is separated from its momentum by a gap, not a dead time.** A
 momentum tail keeps delivering for most of a second, so any cooldown lapses
 while the same flick is still arriving and buys a second rung. `nav.quietMs` is

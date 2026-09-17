@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { framePose, type FrameView } from '@/camera/frame.ts'
+import { frameExtent, framePose, type FrameView } from '@/camera/frame.ts'
 
 const FOV = 35
 const UNIT_Z = 0.5 / Math.tan((FOV * Math.PI) / 360)
@@ -148,5 +148,16 @@ describe('framePose with chrome across the top', () => {
     const absurd = framePose({ x: 0, y: 0, w: 1, h: 1 }, withTop(1))
     expect(Number.isFinite(absurd.halfHeight)).toBe(true)
     expect(Number.isFinite(absurd.y)).toBe(true)
+  })
+})
+
+describe('frameExtent', () => {
+  it('spans the pose half-height up and down and the aspect across, in world space', () => {
+    expect(frameExtent({ x: 2, y: 1, distance: 18, halfHeight: 0.5 }, 2)).toEqual({
+      x0: 1,
+      x1: 3,
+      y0: -1.5,
+      y1: -0.5,
+    })
   })
 })

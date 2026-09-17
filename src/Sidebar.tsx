@@ -188,6 +188,8 @@ export function Sidebar({
   fakeCount,
   onGenerate,
   onClearFakes,
+  showBounds,
+  onShowBounds,
   open,
   setOpen,
 }: {
@@ -204,6 +206,8 @@ export function Sidebar({
   fakeCount: number
   onGenerate: () => void
   onClearFakes: () => void
+  showBounds: boolean
+  onShowBounds: (on: boolean) => void
   /** Owned by the wall, which frames around the panel while it is up. */
   open: boolean
   setOpen: Dispatch<SetStateAction<boolean>>
@@ -281,6 +285,10 @@ export function Sidebar({
           fabricated in this tab only — the daemon never sees them
         </p>
         <AlertButtons items={items} onOpen={onOpen} />
+        <label className="sidebar__toggle">
+          <input type="checkbox" checked={showBounds} onChange={(e) => onShowBounds(e.target.checked)} />
+          camera bounds
+        </label>
       </Section>
 
       <Section name="params" storageKey="slopboard.sidebar.params.v1">
