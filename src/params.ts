@@ -136,10 +136,11 @@ export type StackParams = {
      *  artifact. Only the spot resting on the card needs none, so this is what
      *  keeps a plate welded unless moving buys more than the line costs. */
     seekLineCost: number
-    /** How much better a new spot has to score before a plate will leave the
-     *  one it is in. Without it two near-equal spots trade the plate back and
-     *  forth every pass, which reads as a twitch. */
-    seekHysteresis: number
+    /** What a plate pays per world unit it would travel from where it is now.
+     *  A move is made only when what it escapes outweighs the distance, so two
+     *  near-equal spots cannot trade a plate back and forth, and a long jump
+     *  needs a better reason than a short one. */
+    seekMove: number
     /** The spring pulling a plate toward the spot it has chosen. A plate is
      *  never moved outright: it is driven there, so a wall settling reads as
      *  motion rather than as a jump. */
@@ -442,7 +443,7 @@ export const defaultParams: StackParams = {
     seekPull: 90,
     seekPlateCost: 90,
     seekLineCost: 140,
-    seekHysteresis: 8,
+    seekMove: 600,
     seekStiffness: 26,
     seekDamping: 10,
     levels: {

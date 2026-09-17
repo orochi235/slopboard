@@ -83,3 +83,32 @@ export function choose(grid: Grid, candidates: readonly { box: Box; cost: number
   }
   return best
 }
+
+/** A place a plate could go, as an offset from its artifact in the card's own
+ *  plane. `welded` is the spot touching the card, the one needing no line. */
+export type Spot = { dx: number; dy: number; box: Box; welded: boolean }
+
+/**
+ * Where a plate goes next. Every spot pays for how busy it is, how far it is
+ * from the artifact, and a line if it needs one — and for how far the plate
+ * would travel from where it is now, so a move is only made when what it
+ * escapes outweighs the distance, and a long move needs a better reason than a
+ * short one.
+ */
+export function pickSpot(
+  grid: Grid,
+  spots: readonly Spot[],
+  at: { x: number; y: number },
+  costs: { pull: number; line: number; move: number },
+): number {
+  return choose(
+    grid,
+    spots.map((s) => ({
+      box: s.box,
+      cost:
+        Math.hypot(s.dx, s.dy) * costs.pull +
+        (s.welded ? 0 : costs.line) +
+        Math.hypot(s.dx - at.x, s.dy - at.y) * costs.move,
+    })),
+  )
+}

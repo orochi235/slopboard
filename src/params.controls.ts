@@ -77,7 +77,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'attention.seekPull': [0, 120, 2],
   'attention.seekPlateCost': [0, 300, 5],
   'attention.seekLineCost': [0, 400, 5],
-  'attention.seekHysteresis': [0, 60, 1],
+  'attention.seekMove': [0, 600, 5],
   'attention.seekStiffness': [1, 80, 1],
   'attention.seekDamping': [1, 40, 0.5],
   'zoneGrid.gap': [0, 1, 0.005],

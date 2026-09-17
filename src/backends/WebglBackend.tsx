@@ -52,7 +52,7 @@ import { afterDelete, jumpFrom, pageFrom, readingOrder } from '@/nav/list.ts'
 import { neighborOf } from '@/nav/neighbor.ts'
 import { zoneAt } from '@/nav/pick.ts'
 import { liftedHex, liftedTint } from '@/nav/zone-tint.ts'
-import { choose, makeGrid, mark, offscreen, score, type Box } from '@/nav/whitespace.ts'
+import { makeGrid, mark, offscreen, pickSpot, type Box, type Spot } from '@/nav/whitespace.ts'
 import { stepFromDrag } from '@/nav/step-drag.ts'
 import { stepToward } from '@/nav/step.ts'
 import { baseCellsOf, unionOf, withHeadroom, zoneCellsOf } from '@/nav/zone-cells.ts'
@@ -1095,51 +1095,44 @@ function Wall({
           const hw = mesh.scale.x / 2
           const hh = mesh.scale.y / 2
           const gap = params.attention.floatGap
-          const offsets: { dx: number; dy: number; ring: number; box: Box; cost: number }[] = []
+          const spots: (Spot & { ring: number })[] = []
           for (const [ux, uy] of SEEK_DIRS) {
             for (let d = 1; d <= params.attention.seekReach; d++) {
               const dx = (ux as number) * (hw + held.w / 2 + gap) * d
               const dy = (uy as number) * (hh + held.h / 2 + gap) * d
-              // Straight up and touching is the one spot that needs no line
-              // back to the artifact, so it is the only one that does not pay
-              // for one. A plate stays welded unless moving buys more.
-              const welded = (ux as number) === 0 && (uy as number) === 1 && d === 1
-              offsets.push({
+              spots.push({
                 dx,
                 dy,
                 ring: d,
                 box: boxOfPlane(mesh, held.w / 2, held.h / 2, dx, dy),
-                cost:
-                  Math.hypot(dx, dy) * params.attention.seekPull +
-                  (welded ? 0 : params.attention.seekLineCost),
+                // Straight up and touching needs no line back to the artifact.
+                welded: (ux as number) === 0 && (uy as number) === 1 && d === 1,
               })
             }
           }
-          const pick = choose(
-            grid,
-            offsets.map((o) => ({ box: o.box, cost: o.cost })),
-          )
-          const won = offsets[pick]
-          if (!won) continue
-
-          // What it would cost to stay put. A plate only moves for a spot that
-          // is better by a margin, so two near-equal spots cannot trade it back
-          // and forth every pass.
+          // The spot it holds is always on the list, even once a resized card
+          // or a rewrapped plate has moved the grid of spots out from under it.
           const holding = plateAt.current.get(id)
-          const holdBox = holding
-            ? boxOfPlane(mesh, held.w / 2, held.h / 2, holding.dx, holding.dy)
-            : null
-          const holdWelded = holding ? holding.ring === 1 && holding.dx === 0 && holding.dy > 0 : false
-          const holdCost =
-            holdBox && holding
-              ? score(grid, holdBox) +
-                Math.hypot(holding.dx, holding.dy) * params.attention.seekPull +
-                (holdWelded ? 0 : params.attention.seekLineCost)
-              : Infinity
-          const wonCost = score(grid, won.box) + won.cost
-          const moves = wonCost + params.attention.seekHysteresis < holdCost
-          if (moves || !holding) plateAt.current.set(id, { dx: won.dx, dy: won.dy, ring: won.ring })
-          mark(grid, moves || !holdBox ? won.box : holdBox, params.attention.seekPlateCost)
+          if (holding && !spots.some((s) => s.dx === holding.dx && s.dy === holding.dy)) {
+            spots.push({
+              ...holding,
+              box: boxOfPlane(mesh, held.w / 2, held.h / 2, holding.dx, holding.dy),
+              welded: holding.ring === 1 && holding.dx === 0 && holding.dy > 0,
+            })
+          }
+          // Where the plate is on screen right now — mid-glide, if it is
+          // moving — and a new plate from the welded spot it is born toward.
+          const at = plateMotion.current.get(id) ?? { x: 0, y: hh + held.h / 2 + gap }
+          const won = spots[
+            pickSpot(grid, spots, at, {
+              pull: params.attention.seekPull,
+              line: params.attention.seekLineCost,
+              move: params.attention.seekMove,
+            })
+          ]
+          if (!won) continue
+          plateAt.current.set(id, { dx: won.dx, dy: won.dy, ring: won.ring })
+          mark(grid, won.box, params.attention.seekPlateCost)
         }
       }
 

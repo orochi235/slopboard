@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { choose, makeGrid, mark, offscreen, score, type Box } from './whitespace.ts'
+import { choose, makeGrid, mark, offscreen, pickSpot, score, type Box } from './whitespace.ts'
 
 const box = (x0: number, y0: number, x1: number, y1: number): Box => ({ x0, y0, x1, y1 })
 
@@ -92,5 +92,38 @@ describe('offscreen', () => {
     // The same box marked without the guard is what the bug looked like.
     mark(grid, far)
     expect(Array.from(grid.cells).some((c) => c > 0)).toBe(true)
+  })
+})
+
+describe('pickSpot', () => {
+  const costs = { pull: 0, line: 0, move: 10 }
+  const spot = (dx: number, x0: number, welded = false) => ({ dx, dy: 0, box: box(x0, 0.4, x0 + 0.1, 0.5), welded })
+
+  it('stays where it is between two equally empty spots, however they are listed', () => {
+    const grid = makeGrid(16, 16)
+    expect(pickSpot(grid, [spot(3, 0.8), spot(0, 0.1)], { x: 0, y: 0 }, costs)).toBe(1)
+    expect(pickSpot(grid, [spot(0, 0.1), spot(3, 0.8)], { x: 3, y: 0 }, costs)).toBe(1)
+  })
+
+  it('takes the nearer of two empty spots when it has to leave a busy one', () => {
+    const grid = makeGrid(16, 16)
+    mark(grid, box(0, 0.4, 0.2, 0.5), 50)
+    expect(pickSpot(grid, [spot(0, 0.1), spot(4, 0.8), spot(1, 0.5)], { x: 0, y: 0 }, costs)).toBe(2)
+  })
+
+  it('moves only when what it escapes outweighs the distance', () => {
+    const grid = makeGrid(16, 16)
+    mark(grid, box(0, 0.4, 0.2, 0.5), 1)
+    const light = score(grid, box(0.1, 0.4, 0.2, 0.5))
+    // Escaping costs 10 per unit: a far empty spot is not worth a light overlap.
+    expect(pickSpot(grid, [spot(0, 0.1), spot(light, 0.8)], { x: 0, y: 0 }, costs)).toBe(0)
+    mark(grid, box(0, 0.4, 0.2, 0.5), 100)
+    expect(pickSpot(grid, [spot(0, 0.1), spot(light, 0.8)], { x: 0, y: 0 }, costs)).toBe(1)
+  })
+
+  it('measures from where the plate is now, not from its artifact', () => {
+    const grid = makeGrid(16, 16)
+    // Mid-flight at 2.8: the spot at 3 is nearly where it already is.
+    expect(pickSpot(grid, [spot(0, 0.1), spot(3, 0.8)], { x: 2.8, y: 0 }, costs)).toBe(1)
   })
 })
