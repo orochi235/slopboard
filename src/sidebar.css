@@ -11,7 +11,7 @@
   backdrop-filter: blur(6px);
   border-left: 1px solid color-mix(in srgb, var(--muted) 24%, transparent);
   color: var(--ink);
-  font: 500 calc(11px * var(--ui-type))/1.3 'Oxanium', ui-monospace, monospace;
+  font: 500 calc(11px * var(--ui-type))/1.3 var(--chrome-face);
 }
 
 .sidebar__head {

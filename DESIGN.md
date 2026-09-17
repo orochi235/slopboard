@@ -385,9 +385,16 @@ against every arrangement.
   `gl_FragColor` does neither, so `Color.set` renders several stops too dark.
   `srgb()` in `sky.ts` keeps the value raw. The zone hatch still uses
   `Color.set` and reads darker than its palette entry says.
-- **Preferences have two surfaces** — the corner panel and a modal on `,` —
+- **Preferences have two surfaces** — the corner panel and a sheet on `,` —
   rendering one `ParamsBody` so they cannot drift while prefs is still a copy
-  of params.
+  of params. The sheet's left column lists surfaces with the param groups
+  nested under `params`, built from the groups so it follows a consolidation;
+  `params` itself shows every group in columns. The sheet is a delamin8r
+  window, tuned by the `prefs` group.
+- **`typeface.chrome` is the face the DOM wears.** App publishes it to the root
+  as `--chrome-face`, and every panel, sheet and menu reads that rather than
+  naming a font. The `?` card's wordmark and crest keep their own faces; they
+  are a specimen.
 - **`colors` is the wall's whole palette**, ten entries driving both halves: the
   scene reads them as `THREE.Color`, and `applyColors` writes them to the root as
   custom properties for the DOM chrome. Alpha variants are `color-mix` in the

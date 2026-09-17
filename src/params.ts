@@ -248,11 +248,20 @@ export type StackParams = {
     /** How far the viewpoint swings at full deflection, px. */
     swing: number
   }
+  /** The prefs sheet's parallax, handed to delamin8r. `window` mode only: the
+   *  sheet is a form, and a deck that tilts moves what you are reaching for. */
+  prefs: {
+    parallax: boolean
+    /** Z between adjacent planes, px. */
+    step: number
+    /** How far the viewpoint swings at full deflection, px. */
+    swing: number
+  }
   /** The faces text drawn into the scene wears. One per use rather than one
    *  for the wall: a zone name is a heading read at a distance and a badge is
    *  signage read up close, and the face that serves one need not serve the
-   *  other. The DOM chrome keeps the system stack either way. */
-  typeface: { label: Typeface; badge: Typeface }
+   *  other. `chrome` is the DOM's: every panel, sheet and menu reads it. */
+  typeface: { label: Typeface; badge: Typeface; chrome: Typeface }
   /** Diagnostics drawn into the scene. Debug today, likely furniture later. */
   overlay: {
     /** Outline each card, so a slot's real extent is visible against its image. */
@@ -520,9 +529,15 @@ export const defaultParams: StackParams = {
     perspective: 500,
     swing: 80,
   },
+  prefs: {
+    parallax: true,
+    step: 14,
+    swing: 40,
+  },
   typeface: {
     label: 'oxanium',
     badge: 'oxanium',
+    chrome: 'oxanium',
   },
   overlay: {
     cardEdges: false,

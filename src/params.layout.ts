@@ -7,7 +7,7 @@ import type { StackParams } from '@/params.ts'
  * list of what to keep. Forgetting to drop one costs a reshuffle; forgetting to
  * keep one costs a parameter that silently does nothing.
  */
-const DISPLAY_ONLY = ['camera', 'overlay', 'zones', 'sky', 'colors', 'nav', 'attention', 'typeface'] as const
+const DISPLAY_ONLY = ['camera', 'overlay', 'zones', 'sky', 'colors', 'nav', 'attention', 'typeface', 'prefs'] as const
 
 /**
  * Leaves inside a group the arrangement *does* read. `lod` shapes the piles

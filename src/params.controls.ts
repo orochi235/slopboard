@@ -72,6 +72,8 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'band.step': [0, 40, 1],
   'band.perspective': [200, 1400, 10],
   'band.swing': [0, 200, 2],
+  'prefs.step': [0, 40, 1],
+  'prefs.swing': [0, 120, 2],
   'attention.seekMs': [60, 1000, 20],
   'attention.seekReach': [1, 6, 1],
   'attention.seekPull': [0, 120, 2],
@@ -120,6 +122,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
 const CHOICES: Record<string, readonly (number | string)[]> = {
   'typeface.label': TYPEFACES,
   'typeface.badge': TYPEFACES,
+  'typeface.chrome': TYPEFACES,
   'distance.combine': ['ceiling', 'min'],
   'zones.backdrop': ['none', 'hatch', 'solid'],
   'camera.projection': ['orthographic', 'perspective'],

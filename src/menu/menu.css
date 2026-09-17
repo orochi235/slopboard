@@ -30,7 +30,7 @@
   background: color-mix(in srgb, var(--scrim) 82%, var(--bg));
   box-shadow: 0 24px 60px -18px color-mix(in srgb, var(--scrim) 94%, transparent);
   color: var(--ink);
-  font: 500 calc(12px * var(--ui-type))/1.5 'Oxanium', ui-monospace, monospace;
+  font: 500 calc(12px * var(--ui-type))/1.5 var(--chrome-face);
 }
 
 .menu__deck:focus {

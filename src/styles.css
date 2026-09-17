@@ -47,6 +47,9 @@
      wall's own in-scene text is world-sized and answers to `typeface` and the
      size sliders instead. */
   --ui-type: 1.2;
+  /* The face the DOM chrome is set in. App writes it from `typeface.chrome`;
+     this is what the first paint wears before it does. */
+  --chrome-face: 'Oxanium', ui-monospace, monospace;
 }
 
 html,
@@ -56,7 +59,7 @@ body,
   margin: 0;
   overflow: hidden;
   background: var(--bg);
-  font: calc(12px * var(--ui-type))/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 500 calc(12px * var(--ui-type))/1.4 var(--chrome-face);
 }
 
 .scene {

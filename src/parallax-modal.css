@@ -111,14 +111,14 @@
   pointer-events: auto;
   padding: 104px 36px 30px;
   color: var(--ink);
-  font: 12px/1.6 'Fira Code', ui-monospace, monospace;
+  font: 500 12px/1.6 var(--chrome-face);
 }
 
 .pxm__lede {
   margin: 0 0 20px;
   max-width: 46ch;
   color: color-mix(in srgb, var(--ink) 82%, var(--muted));
-  font-family: 'Fira Sans Condensed', ui-sans-serif, sans-serif;
+  font-family: var(--chrome-face);
   font-size: 15px;
   line-height: 1.5;
 }
@@ -232,7 +232,7 @@
   border: 1px solid color-mix(in srgb, var(--muted) 34%, transparent);
   background: color-mix(in srgb, var(--muted) 12%, transparent);
   color: var(--muted);
-  font: 15px/1 ui-monospace, monospace;
+  font: 15px/1 var(--chrome-face);
   cursor: pointer;
 }
 

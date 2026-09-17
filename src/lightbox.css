@@ -95,7 +95,7 @@
   border-radius: 4px;
   background: color-mix(in srgb, var(--scrim) 70%, transparent);
   color: color-mix(in srgb, var(--ink) 72%, transparent);
-  font: calc(11px * var(--ui-type))/1.4 ui-monospace, monospace;
+  font: 500 calc(11px * var(--ui-type))/1.4 var(--chrome-face);
   letter-spacing: 0.04em;
   cursor: default;
 }
@@ -127,7 +127,7 @@
   border-radius: 4px;
   background: color-mix(in srgb, var(--scrim) 70%, transparent);
   color: var(--ink);
-  font: calc(12px * var(--ui-type))/1.4 ui-monospace, monospace;
+  font: 500 calc(12px * var(--ui-type))/1.4 var(--chrome-face);
   cursor: default;
 }
 
@@ -152,7 +152,7 @@
   /* Full ink where the meta chips are dimmed: this is the one part of the row
      that has to be found rather than read. */
   color: var(--ink);
-  font: calc(11px * var(--ui-type))/1.4 ui-monospace, monospace;
+  font: 500 calc(11px * var(--ui-type))/1.4 var(--chrome-face);
   letter-spacing: 0.04em;
   cursor: pointer;
 }
@@ -190,7 +190,7 @@
   outline: 1px solid var(--accent);
   background: color-mix(in srgb, var(--scrim) 88%, transparent);
   color: var(--ink);
-  font: calc(12px * var(--ui-type))/1.4 ui-monospace, monospace;
+  font: 500 calc(12px * var(--ui-type))/1.4 var(--chrome-face);
   cursor: default;
 }
 

@@ -109,21 +109,27 @@ export function ParamsBody({
   params,
   onChange,
   expanded = false,
+  only,
 }: {
   params: StackParams
   onChange: (next: StackParams) => void
   /** Every group open. The corner panel is a column beside the wall and stays
    *  folded; the modal has the room, and folded groups waste it. */
   expanded?: boolean
+  /** One group by name, open, and nothing else. The prefs sheet's tabs. */
+  only?: string
 }) {
+  const groups = groupControls(controlsOf(params)).filter(
+    (group) => only === undefined || group.name === only,
+  )
   return (
     <>
       <Transfer params={params} onChange={onChange} />
-      {groupControls(controlsOf(params)).map((group) => (
+      {groups.map((group) => (
         <details
           className="params__group wzl-skin"
           key={group.name}
-          open={expanded || group.name === 'wall'}
+          open={expanded || only !== undefined || group.name === 'wall'}
         >
           <summary className="params__groupName">{group.name}</summary>
           <PropertyList>

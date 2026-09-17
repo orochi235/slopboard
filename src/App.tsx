@@ -8,6 +8,7 @@ import { layoutKeyOf } from '@/params.layout.ts'
 import { defaultParams } from '@/params.ts'
 import { loadParams, saveParams } from '@/params.store.ts'
 import { applyColors } from '@/theme.ts'
+import { stackFor } from '@/typeface.ts'
 import { useWall } from '@/useWall.ts'
 
 
@@ -40,6 +41,10 @@ export function App() {
   useEffect(() => {
     applyColors(params.colors, document.documentElement)
   }, [params.colors])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--chrome-face', stackFor(params.typeface.chrome))
+  }, [params.typeface.chrome])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

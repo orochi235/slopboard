@@ -18,8 +18,8 @@
   /* Percentages, not colors: both are the second argument of a `color-mix`
      against `--wzl-accent`. A color here invalidates the whole expression and
      the part goes unpainted. */
-  --wzl-slider-track-tint: 30%;
-  --wzl-slider-thumb-tint: 100%;
+  --wzl-slider-track-mix: 30%;
+  --wzl-slider-thumb-mix: 100%;
   /* No fallback in the range's own CSS, so unset is a track and thumb of no
      height at all rather than a default size. */
   --wzl-slider-track-h: 4px;

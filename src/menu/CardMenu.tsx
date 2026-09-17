@@ -54,11 +54,6 @@ export function CardMenu({
   const box = useRef<HTMLDivElement>(null)
   const { ref, handle } = useDelaminate<HTMLDivElement>({
     mode: look.mode,
-    // Sibling rows are coplanar, and that is not a tuning: `fan` multiplies a
-    // row's own index into its depth, so any value but zero staircases a
-    // surface you read down. Stated here rather than left to the library's
-    // default, which is the same, so re-exposing it as a parameter cannot.
-    fan: 0,
     step: look.step,
     swing: look.swing,
     tilt: look.tilt,
