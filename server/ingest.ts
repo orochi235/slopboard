@@ -9,6 +9,7 @@ import { captionFor } from './captionName.ts'
 import { idFor } from './itemId.ts'
 import { kindOf } from './kind.ts'
 import { keptFrom, readStamp, replyFrom } from './sidecar.ts'
+import { ttlMs as wallTtlMs } from './settings.ts'
 import { orientedSize } from './sourceSize.ts'
 import { framesOf } from './frames.ts'
 import { shootPage } from './shoot.ts'
@@ -149,7 +150,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
 async function adopt(sourcePath: string): Promise<WallItem | null> {
   const { mtimeMs } = await stat(sourcePath)
   const rescued = keptFrom(await readStamp(sourcePath)) !== null
-  if (!rescued && Date.now() - mtimeMs > (ttlFromName(basename(sourcePath)) ?? config.ttlMs)) {
+  if (!rescued && Date.now() - mtimeMs > (ttlFromName(basename(sourcePath)) ?? wallTtlMs())) {
     await mkdir(config.trash, { recursive: true })
     await rename(sourcePath, join(config.trash, basename(sourcePath))).catch(() => {})
     return null
@@ -209,7 +210,7 @@ export function watchInbox(onArrive: (item: WallItem) => void) {
     onFile: take,
   })
   void watcher.ready.then(() => {
-    console.log(`[watch] ${config.inbox} (ttl ${config.ttlMs / 1000}s)`)
+    console.log(`[watch] ${config.inbox} (ttl ${wallTtlMs() / 1000}s)`)
   })
 
   // A watcher is allowed to miss; the wall is not. Anything the store never

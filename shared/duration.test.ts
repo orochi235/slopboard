@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseDuration } from './duration.ts'
+import { formatDuration, parseDuration } from './duration.ts'
 
 describe('parseDuration', () => {
   it('assumes seconds when no unit is given', () => {
@@ -26,5 +26,24 @@ describe('parseDuration', () => {
     for (const bad of ['', 'soon', '5x', '-1', 'm5', '5 m', 'NaN']) {
       expect(parseDuration(bad)).toBeNull()
     }
+  })
+})
+
+describe('formatDuration', () => {
+  it('writes the largest whole unit it fits, the way a person would', () => {
+    expect(formatDuration(90_000)).toBe('90s')
+    expect(formatDuration(300_000)).toBe('5m')
+    expect(formatDuration(28_800_000)).toBe('8h')
+    expect(formatDuration(172_800_000)).toBe('2d')
+  })
+
+  it('drops to the unit below rather than writing a fraction', () => {
+    expect(formatDuration(5_400_000)).toBe('90m')
+    expect(formatDuration(1500)).toBe('1500ms')
+  })
+
+  it('round-trips through parseDuration', () => {
+    for (const ms of [1000, 90_000, 300_000, 3_600_000, 28_800_000, 604_800_000])
+      expect(parseDuration(formatDuration(ms))).toBe(ms)
   })
 })

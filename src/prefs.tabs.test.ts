@@ -13,6 +13,7 @@ describe('prefsTabs', () => {
       ['params', 'params', 0, undefined],
       ['params.piles', 'piles', 1, 'piles'],
       ['params.zones', 'zones & sky', 1, 'zones'],
+      ['wall', 'wall', 0, undefined],
     ])
   })
 })
@@ -32,7 +33,8 @@ describe('stepTab', () => {
   const tabs = prefsTabs(two)
   it('moves by rows and wraps at both ends', () => {
     expect(stepTab(tabs, 'params', 1).id).toBe('params.piles')
-    expect(stepTab(tabs, 'params', -1).id).toBe('params.zones')
-    expect(stepTab(tabs, 'params.zones', 1).id).toBe('params')
+    expect(stepTab(tabs, 'params', -1).id).toBe('wall')
+    expect(stepTab(tabs, 'params.zones', 1).id).toBe('wall')
+    expect(stepTab(tabs, 'wall', 1).id).toBe('params')
   })
 })

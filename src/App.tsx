@@ -14,7 +14,7 @@ import { useWall } from '@/useWall.ts'
 
 
 export function App() {
-  const { items, zoneColors, pinnedZones, ttlMs, clockOffset, connected, announce, alerts, dismissAlert } =
+  const { items, zoneColors, pinnedZones, ttlMs, setTtlMs, clockOffset, connected, announce, alerts, dismissAlert } =
     useWall()
   const [index, setIndex] = useState(0)
   const [prefs, setPrefs] = useState(false)
@@ -81,7 +81,15 @@ export function App() {
       />
       <ParallaxModal />
       <Toasts alerts={alerts} onDismiss={dismissAlert} />
-      {prefs && <Prefs params={params} onChange={setParams} onClose={() => setPrefs(false)} />}
+      {prefs && (
+        <Prefs
+          params={params}
+          onChange={setParams}
+          ttlMs={ttlMs}
+          onTtl={setTtlMs}
+          onClose={() => setPrefs(false)}
+        />
+      )}
     </>
   )
 }

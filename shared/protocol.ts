@@ -99,5 +99,7 @@ export type ServerMessage =
   | { type: 'zonePin'; zone: string; pinnedAt: number | null }
   /** The daemon played a sound for this arrival. */
   | { type: 'alert'; alert: Alert }
+  /** How long an artifact lives from now on, as someone just set it. */
+  | { type: 'ttl'; ttlMs: number }
   /** Nothing happened, and the daemon is still here to say so. */
   | { type: 'beat' }

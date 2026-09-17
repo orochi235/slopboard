@@ -11,3 +11,14 @@ export function parseDuration(text: string): number | null {
   if (!match) return null
   return Number(match[1]) * (match[2] ? MS[match[2].toLowerCase()]! : 1000)
 }
+
+/** The inverse of `parseDuration`, in the largest unit that divides evenly —
+ *  what a person would have written. Anything under a second keeps its ms,
+ *  which `parseDuration` cannot read back; nothing writes one. */
+export function formatDuration(ms: number): string {
+  for (const unit of ['d', 'h', 'm', 's'] as const) {
+    const size = MS[unit]!
+    if (ms >= size && ms % size === 0) return `${ms / size}${unit}`
+  }
+  return `${ms}ms`
+}

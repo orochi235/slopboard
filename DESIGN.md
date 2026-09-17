@@ -640,6 +640,15 @@ costs the sound, never the arrival.
 
 ## Rescue, expiry, and the trash
 
+**How long an artifact lives is the daemon's, and the `wall` page of the prefs
+sheet sets it.** It is the one setting in that sheet that is not this browser's:
+everything else is drawing, saved per browser, while this decides when a file
+moves to the trash. It is held in `~/slop/settings.json` as a duration a person
+would write — the same `8h` `SLOP_TTL` takes — and the environment is only the
+fallback for a wall nobody has set. Bounded at a minute and ninety days, since
+either end empties the wall or freezes it. A card sent with its own `--ttl`, and
+a rescued one, ignore it.
+
 **Saving is capacity-bounded.** Not yet built — keeping is currently unbounded,
 and the bound waits on having watched a wall that can rescue at all. The keep
 set holds N (start at 12). Keeping
@@ -773,7 +782,8 @@ Base64-over-WebSocket hitches every time a render lands.
 npm install
 npm run dev                                   # daemon :8787 + client :5183
 npm run sim -- --rate=600 --count=40          # arrivals/hour; count 0 = forever
-SLOP_TTL=90 npm run dev                       # seconds; default 300
+SLOP_TTL=90 npm run dev                       # seconds; the fallback before
+                                              # the prefs sheet sets one
 ```
 
 `sim` writes real files into `~/slop/inbox/<zone>/` in chunks, so it exercises

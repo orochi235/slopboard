@@ -10,6 +10,9 @@ export type Wall = {
   /** The zones held at the top of the wall, each to when it was pinned. */
   pinnedZones: Record<string, number>
   ttlMs: number
+  /** Sets how long an artifact lives from now on. The daemon answers with the
+   *  `ttl` message every wall reads, so nothing is held optimistically here. */
+  setTtlMs: (ms: number) => void
   /** Add to Date.now() to get the daemon's clock. Keeps decay server-anchored. */
   clockOffset: number
   connected: boolean
@@ -40,6 +43,14 @@ export function useWall(): Wall {
     (id: string) => setAlerts((prev) => prev.filter((a) => a.id !== id)),
     [],
   )
+
+  const postTtl = useCallback((ms: number) => {
+    void fetch('/api/settings/ttl', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ms }),
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     let socket: WebSocket | null = null
@@ -82,6 +93,8 @@ export function useWall(): Wall {
           setItems(msg.items)
           setZoneColors(msg.zoneColors ?? {})
           setPinnedZones(msg.pinnedZones ?? {})
+        } else if (msg.type === 'ttl') {
+          setTtlMs(msg.ttlMs)
         } else if (msg.type === 'zoneColors') {
           setZoneColors(msg.zoneColors)
         } else if (msg.type === 'zonePin') {
@@ -146,6 +159,7 @@ export function useWall(): Wall {
     zoneColors,
     pinnedZones,
     ttlMs,
+    setTtlMs: postTtl,
     clockOffset: clockOffset.current,
     connected,
     announce,

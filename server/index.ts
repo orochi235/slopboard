@@ -8,12 +8,14 @@ import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { readPins, setPinned } from './pins.ts'
+import * as settings from './settings.ts'
 import { zoneCounts } from './zoneCounts.ts'
 import { alert, debugItem, toastFor } from './alert.ts'
 import { withKeyForwarder } from './page-keys.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import { BEAT_MS, type ServerMessage } from '@shared/protocol.ts'
 
+await settings.load()
 await mkdir(config.inbox, { recursive: true })
 await mkdir(config.cache, { recursive: true })
 
@@ -37,7 +39,7 @@ wss.on('connection', (ws) => {
   const hello: ServerMessage = {
     type: 'snapshot',
     now: Date.now(),
-    ttlMs: config.ttlMs,
+    ttlMs: settings.ttlMs(),
     items: store.snapshot(),
     zoneColors,
     pinnedZones,
@@ -85,6 +87,17 @@ app.post('/api/items/:id/dismiss', async (req, res) => {
 
 // Answers the question on a card. Where the agent offered choices, the answer
 // has to be one of them: the agent branches on the exact string.
+// How long an artifact lives when it carries no TTL of its own. The daemon's,
+// not the browser's: it decides when a file moves to the trash.
+app.post('/api/settings/ttl', express.json(), async (req, res) => {
+  const ms = Number((req.body as { ms?: unknown } | undefined)?.ms)
+  const held = await settings.setTtl(ms)
+  if (held === null) return void res.status(400).json({ ok: false, ttlMs: settings.ttlMs() })
+  console.log(`[settings] ttl ${held / 1000}s`)
+  broadcast({ type: 'ttl', ttlMs: held })
+  res.json({ ok: true, ttlMs: held })
+})
+
 app.post('/api/items/:id/answer', express.json(), async (req, res) => {
   const text = (req.body as { text?: unknown } | undefined)?.text
   const item = store.snapshot().find((i) => i.id === req.params.id)
@@ -160,7 +173,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     items: store.snapshot().length,
-    ttlMs: config.ttlMs,
+    ttlMs: settings.ttlMs(),
     inbox: config.inbox,
     trash: config.trash,
   })

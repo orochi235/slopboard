@@ -4,7 +4,8 @@ import { ParamsBody } from '@/Params.tsx'
 import { controlsOf } from '@/params.controls.ts'
 import { categoriesFor } from '@/params.tabs.ts'
 import type { StackParams } from '@/params.ts'
-import { prefsTabs, resolveTab, stepTab } from '@/prefs.tabs.ts'
+import { prefsTabs, resolveTab, stepTab, WALL } from '@/prefs.tabs.ts'
+import { WallBody } from '@/WallBody.tsx'
 import './prefs.css'
 
 const TAB_KEY = 'slopboard.prefs.tab.v1'
@@ -26,10 +27,15 @@ const readTab = (): string | null => {
 export function Prefs({
   params,
   onChange,
+  ttlMs,
+  onTtl,
   onClose,
 }: {
   params: StackParams
   onChange: (next: StackParams) => void
+  /** The wall's own lifetime, which lives on the daemon rather than in here. */
+  ttlMs: number
+  onTtl: (ms: number) => void
   onClose: () => void
 }) {
   const tabs = useMemo(
@@ -136,7 +142,11 @@ export function Prefs({
           role="tabpanel"
           data-dl-lift="1"
         >
-          <ParamsBody params={params} onChange={onChange} expanded only={tab.category} />
+          {tab.id === WALL ? (
+            <WallBody ttlMs={ttlMs} onTtl={onTtl} />
+          ) : (
+            <ParamsBody params={params} onChange={onChange} expanded only={tab.category} />
+          )}
         </div>
       </div>
     </div>

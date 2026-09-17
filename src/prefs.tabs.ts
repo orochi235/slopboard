@@ -10,11 +10,12 @@ export type PrefsTab = {
 }
 
 export const ALL = 'params'
+export const WALL = 'wall'
 
 /**
- * The sheet's tab list: the surfaces, and under `params` one tab per area of
- * the wall. Built from the categories the leaves actually land in, so a tab
- * with nothing in it is not offered.
+ * The sheet's tab list: the surfaces — `params`, with one nested tab per area
+ * of the wall, then `wall` — built from the categories the leaves actually land
+ * in, so a tab with nothing in it is not offered.
  */
 export function prefsTabs(categories: readonly Category[]): PrefsTab[] {
   return [
@@ -22,6 +23,9 @@ export function prefsTabs(categories: readonly Category[]): PrefsTab[] {
     ...categories.map(
       (c): PrefsTab => ({ id: `${ALL}.${c.id}`, label: c.label, depth: 1, category: c.id }),
     ),
+    // The daemon's own settings, under the browser's: what the wall is, rather
+    // than how this browser draws it.
+    { id: WALL, label: WALL, depth: 0 },
   ]
 }
 

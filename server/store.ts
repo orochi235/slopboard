@@ -2,6 +2,7 @@ import { rename, mkdir, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { config } from './config.ts'
 import { clearAttention, closeQuestion, setKept, trashStamp } from './sidecar.ts'
+import { ttlMs as wallTtlMs } from './settings.ts'
 import type { Reply, WallItem } from '@shared/protocol.ts'
 
 type Entry = { item: WallItem; sourcePath: string; cachePath: string }
@@ -61,7 +62,7 @@ export function startSweeper(): () => void {
       // A question can stay open for longer than a TTL, so an answered card
       // gets a whole life from its answer.
       const from = Math.max(entry.item.bornAt, entry.item.reply?.at ?? 0)
-      if (from < now - (entry.item.ttlMs ?? config.ttlMs)) void expire(entry)
+      if (from < now - (entry.item.ttlMs ?? wallTtlMs())) void expire(entry)
     }
   }, 1000)
   return () => clearInterval(timer)

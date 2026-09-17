@@ -271,3 +271,26 @@ describe('questions', () => {
     expect(existsSync(source)).toBe(true)
   })
 })
+
+describe('the wall lifetime as the panel sets it', () => {
+  it('sweeps against the live setting rather than what the daemon started with', async () => {
+    process.env.SLOP_TTL = '8h'
+    const store = await freshStore(root)
+    const settings = await import('./settings.ts')
+    await settings.load()
+    await settings.setTtl(60_000)
+    // Two minutes old against the minute it was just given.
+    store.add({
+      item: itemAt(source, { bornAt: Date.now() - 120_000 }),
+      sourcePath: source,
+      cachePath: join(root, 'a.webp'),
+    })
+    const stop = store.startSweeper()
+    try {
+      await vi.waitFor(() => expect(existsSync(source)).toBe(false), { timeout: 3000 })
+    } finally {
+      stop()
+      delete process.env.SLOP_TTL
+    }
+  })
+})
