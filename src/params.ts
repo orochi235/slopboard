@@ -115,32 +115,40 @@ export type StackParams = {
     floatGap: number
     /** Width of the line back to the artifact, in screen pixels. */
     leaderWidth: number
-    /** Plates hunt for the emptiest part of the screen near their artifact
-     *  rather than always standing on the zone's top border. */
+    /** Each pile's plates stand together as a ladder that steps the way the
+     *  pile does, on whichever side of it the whole wall scores best, rather
+     *  than stacking on the zone's top border. */
     seek: boolean
     /** How often the hunt runs, in ms. Not every frame: the answer would
      *  change under a moving camera and the plates would crawl. */
     seekMs: number
-    /** How many plate-widths out a plate may go looking. */
+    /** How many plate-widths out from its pile a group may stand. */
     seekReach: number
-    /** What a plate pays per world unit of distance from its artifact, against
-     *  the busyness it saves by moving. Zero makes it take the emptiest spot on
-     *  screen however far away that is. */
+    /** What a plate pays for standing wholly over a card; a partial cover
+     *  pays its share, and every card under it charges. This is what
+     *  whitespace is worth, and what a leader line is traded against. */
+    seekCover: number
+    /** What a plate pays per screen height of leader line, against the
+     *  cover it saves by standing further out. Zero lets a group stand
+     *  anywhere empty however far that is from its pile. */
     seekPull: number
-    /** What one plate already placed costs a later one that would overlap it.
-     *  Well above `seekLineCost`, because two plates on top of each other
-     *  leaves neither readable, where a plate over a picture is merely untidy.
-     *  This is what decides that a plate moves at all. */
-    seekPlateCost: number
-    /** What a plate pays for any placement that needs a line back to its
-     *  artifact. Only the spot resting on the card needs none, so this is what
-     *  keeps a plate welded unless moving buys more than the line costs. */
+    /** What a plate pays for needing a line back to its artifact at all. Only
+     *  the lone plate of a front card can rest on it and need none, so this is
+     *  what keeps that one welded unless standing off buys more than the line
+     *  costs. */
     seekLineCost: number
-    /** What a plate pays per world unit it would travel from where it is now.
-     *  A move is made only when what it escapes outweighs the distance, so two
-     *  near-equal spots cannot trade a plate back and forth, and a long jump
-     *  needs a better reason than a short one. */
-    seekMove: number
+    /** What a plate pays for standing wholly on another zone's cell, empty or
+     *  not; a partial cover pays its share. Another zone's ground is not
+     *  whitespace, but it beats covering a picture. */
+    seekForeign: number
+    /** What a pile pays for standing its plates on a side the other piles do
+     *  not. This is what makes the wall read as one layout rather than as a
+     *  handful of piles each solving for itself. */
+    seekMismatch: number
+    /** The share of its score a new layout must beat the held one by before
+     *  the wall leaves it. A share rather than a sum: zooming scales every
+     *  score together, so zoom alone is never a reason to move. */
+    seekSettle: number
     /** The spring pulling a plate toward the spot it has chosen. A plate is
      *  never moved outright: it is driven there, so a wall settling reads as
      *  motion rather than as a jump. */
@@ -456,10 +464,12 @@ export const defaultParams: StackParams = {
     seek: true,
     seekMs: 220,
     seekReach: 3,
+    seekCover: 300,
     seekPull: 90,
-    seekPlateCost: 90,
     seekLineCost: 140,
-    seekMove: 600,
+    seekForeign: 200,
+    seekMismatch: 80,
+    seekSettle: 0.25,
     seekStiffness: 26,
     seekDamping: 10,
     levels: {

@@ -220,6 +220,17 @@ clock for the same reason `age01` is, so a reload does not restart a hold.
   card is exactly as still as it ever was. This costs nothing extra: the canvas
   has no `frameloop` prop, so r3f is on `always` and the wall already redraws
   every frame.
+- **It wears a plate**, the note in the level's colour, and the halo takes the
+  same colour so the two read as one thing. A pile's plates stand together as a
+  ladder that steps the way the pile does, each plate level with its own card,
+  on one side of the pile, with a line back to the card's nearest edge. The
+  one plate of a front card rests on the card instead and needs no line.
+  Which side, and how far out, is solved for the whole wall at once
+  (`src/nav/ladder.ts`): plates pay for the cards they cover, for hanging off
+  screen, for their lines, for standing on another zone's cell, and piles pay
+  for disagreeing about the side. The wall keeps the layout it has unless a
+  new one beats it by a share of its score, so zooming, which scales every
+  score together, never moves a plate by itself.
 
 **A flag ends by being dismissed or by lapsing, never by the card expiring.**
 A hold of null holds until someone dismisses it; any other hold lapses on its
