@@ -191,6 +191,10 @@ export type StackParams = {
      *  last entry serves every rung past it, so a deeper hierarchy costs no new
      *  parameter. 1 is exactly framed. */
     margins: number[]
+    /** How far out the reset button frames the wall: the wall rung's margin
+     *  it restores. A margin rather than a distance, because an orthographic
+     *  camera's distance changes nothing you can see. */
+    homeMargin: number
     /** How long a level change takes. */
     moveMs: number
   }
@@ -493,6 +497,7 @@ export const defaultParams: StackParams = {
       1.08,
       1.12,
     ],
+    homeMargin: 1.08,
     moveMs: 520,
   },
   nav: {
