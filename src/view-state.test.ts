@@ -20,7 +20,8 @@ describe('reduceView', () => {
   it('knows nothing about what a rung is, so a deeper hierarchy needs no new case', () => {
     // The reducer is the half of the navigation that generalizes for free. What
     // a rung means — a box to frame, an overlay to raise — is the renderer's.
-    const deep = reduceView(at('a', 'b'), { type: 'to', path: ['a', 'b', 'c', 'd'] })
+    const c = reduceView(at('a', 'b'), { type: 'to', path: ['a', 'b', 'c'] })
+    const deep = reduceView(c, { type: 'to', path: ['a', 'b', 'c', 'd'] })
     expect(deep).toEqual(at('a', 'b', 'c', 'd'))
     expect(reduceView(deep, { type: 'out' })).toEqual(at('a', 'b', 'c'))
   })
@@ -111,5 +112,41 @@ describe('pruning a card', () => {
       path: ['weasel'],
     })
     expect(reduceView(open, { type: 'prune', live: ['weasel'], cards: ['img-1'] })).toBe(open)
+  })
+})
+
+describe('a jump that skips a rung', () => {
+  const wall = reduceView(WALL, { type: 'to', path: [] })
+  it('returns to the wall when a badge opened a card straight from it', () => {
+    const card = reduceView(wall, { type: 'to', path: ['weasel', 'img-1'] })
+    expect(card.path).toEqual(['weasel', 'img-1'])
+    expect(reduceView(card, { type: 'out' }).path).toEqual([])
+  })
+  it('returns to the pile you were in, not the pile the card lives in', () => {
+    const pile = reduceView(wall, { type: 'to', path: ['astv'] })
+    const card = reduceView(pile, { type: 'to', path: ['weasel', 'img-1'] })
+    expect(reduceView(card, { type: 'out' }).path).toEqual(['astv'])
+  })
+  it('keeps the return point while paging sideways in the lightbox', () => {
+    const card = reduceView(wall, { type: 'to', path: ['weasel', 'img-1'] })
+    const next = reduceView(card, { type: 'to', path: ['weasel', 'img-2'] })
+    const over = reduceView(next, { type: 'to', path: ['astv', 'img-9'] })
+    expect(reduceView(over, { type: 'out' }).path).toEqual([])
+  })
+  it('forgets it once you have climbed, so the next out is a plain rung', () => {
+    const card = reduceView(wall, { type: 'to', path: ['weasel', 'img-1'] })
+    const back = reduceView(card, { type: 'out' })
+    expect(back.from).toBeUndefined()
+    const down = reduceView(reduceView(back, { type: 'to', path: ['weasel'] }), { type: 'to', path: ['weasel', 'img-1'] })
+    expect(reduceView(down, { type: 'out' }).path).toEqual(['weasel'])
+  })
+  it('forgets it on a jump to somewhere shallower, like the minimap focusing a pile', () => {
+    const card = reduceView(wall, { type: 'to', path: ['weasel', 'img-1'] })
+    const pile = reduceView(card, { type: 'to', path: ['astv'] })
+    expect(pile.from).toBeUndefined()
+  })
+  it('puts you back when the card expires under you, rather than on its pile', () => {
+    const card = reduceView(wall, { type: 'to', path: ['weasel', 'img-1'] })
+    expect(reduceView(card, { type: 'prune', live: ['weasel'], cards: [] }).path).toEqual([])
   })
 })

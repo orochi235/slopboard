@@ -8,7 +8,13 @@
  * stays with the renderer, which is where a new rung's geometry has to be
  * taught anyway.
  */
-export type ViewState = { path: readonly string[] }
+export type ViewState = {
+  path: readonly string[]
+  /** Where the view was before a jump that skipped a rung — the wall when a
+   *  badge opens a card straight from it. `out` returns here rather than to
+   *  the rung above, so leaving a card puts you back where you were. */
+  from?: readonly string[]
+}
 
 export type ViewAction =
   /** Climb one rung. At the wall there is nowhere further out. */
@@ -28,14 +34,28 @@ const same = (a: readonly string[], b: readonly string[]) =>
 export function reduceView(state: ViewState, action: ViewAction): ViewState {
   switch (action.type) {
     case 'out':
+      if (state.from) return { path: state.from }
       return state.path.length === 0 ? state : { path: state.path.slice(0, -1) }
-    case 'to':
-      return same(state.path, action.path) ? state : { path: action.path }
+    case 'to': {
+      if (same(state.path, action.path)) return state
+      // A step down the rung below is the ordinary descent. Any other move
+      // deeper is a jump — past a rung, or into another pile's card — and
+      // remembers its start; a step sideways at the same depth, paging the
+      // lightbox, keeps it; a climb forgets it.
+      const steps =
+        action.path.length === state.path.length + 1 && same(action.path.slice(0, -1), state.path)
+      if (steps) return { path: action.path }
+      if (action.path.length > state.path.length) return { path: action.path, from: state.path }
+      if (state.from && action.path.length === state.path.length) return { path: action.path, from: state.from }
+      return { path: action.path }
+    }
     case 'prune': {
       const [zone, card] = state.path
       if (zone === undefined) return state
       if (!action.live.includes(zone)) return WALL
-      if (card !== undefined && action.cards && !action.cards.includes(card)) return { path: [zone] }
+      if (card !== undefined && action.cards && !action.cards.includes(card)) {
+        return state.from ? { path: state.from } : { path: [zone] }
+      }
       return state
     }
   }

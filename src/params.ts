@@ -115,6 +115,13 @@ export type StackParams = {
     floatGap: number
     /** Width of the line back to the artifact, in screen pixels. */
     leaderWidth: number
+    /** A badge faces the camera, whatever its card does. Off, it lies in its
+     *  card's own plane and turns with the wall, reading as a face of the
+     *  artifact rather than a label on it. */
+    billboard: boolean
+    /** A leader line turns only at right angles: it leaves its plate straight
+     *  and takes one bend to reach the card, rather than running diagonally. */
+    leaderElbow: boolean
     /** Each pile's plates stand together as a ladder that steps the way the
      *  pile does, on whichever side of it the whole wall scores best, rather
      *  than stacking on the zone's top border. */
@@ -145,6 +152,13 @@ export type StackParams = {
      *  not. This is what makes the wall read as one layout rather than as a
      *  handful of piles each solving for itself. */
     seekMismatch: number
+    /** What a plate pays for a line that leans away from the lines of the
+     *  other plates in its pile: nothing parallel, twice this perpendicular.
+     *  Lines that run the same way read as one gesture; a fan of them reads
+     *  as a tangle. */
+    seekParallel: number
+    /** The same, per pile, for leaning away from the wall's lines. */
+    seekAlign: number
     /** The share of its score a new layout must beat the held one by before
      *  the wall leaves it. A share rather than a sum: zooming scales every
      *  score together, so zoom alone is never a reason to move. */
@@ -459,6 +473,8 @@ export const defaultParams: StackParams = {
     hoverScale: 1.07,
     hoverEdge: 1.8,
     float: true,
+    billboard: true,
+    leaderElbow: false,
     floatLift: 0,
     floatGap: 0.012,
     leaderWidth: 1.5,
@@ -470,6 +486,8 @@ export const defaultParams: StackParams = {
     seekLineCost: 140,
     seekForeign: 200,
     seekMismatch: 80,
+    seekParallel: 120,
+    seekAlign: 40,
     seekSettle: 0.25,
     seekStiffness: 26,
     seekDamping: 10,

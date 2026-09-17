@@ -469,6 +469,9 @@ function Wall({
   const zoneById = useRef<Map<string, string>>(new Map())
   const move = useRef<Move | null>(null)
   const pose = useRef<Pose>({ x: 0, y: 0, distance: 2, halfHeight: 0.5 })
+  /** The camera the plate hunt projects through: the live one's twin, posed
+   *  where the current move lands rather than where it is mid-ease. */
+  const seekCamera = useMemo(() => camera.clone(), [camera])
 
   const [live, setLive] = useState<string[]>([])
   const liveRef = useRef<string[]>([])
@@ -1085,9 +1088,32 @@ function Wall({
       nowMs - seekAt.current > params.attention.seekMs
     ) {
       seekAt.current = nowMs
+      // Solved for the frame the camera is heading to, not the one it is
+      // passing through: a spot picked mid-move is wrong the moment the move
+      // lands, and the hysteresis then charges the plate for leaving it.
+      seekCamera.copy(camera)
+      applyPose(seekCamera, move.current?.to ?? pose.current, params.camera, window.innerWidth / window.innerHeight)
+      seekCamera.updateMatrixWorld(true)
+      // A plate lies in its card's plane or faces the camera; its spots are
+      // measured in whichever frame it is drawn in.
+      const plateFrame = (card: THREE.Object3D): THREE.Euler =>
+        params.attention.billboard ? seekCamera.rotation : card.rotation
+      // The ladder spaces plates along the pile in the plate's frame, so the
+      // cards have to be measured in that frame too: a pile's depth step shows
+      // up as a sideways step once the wall is turned and the plates are not.
+      const unturn = seekCamera.quaternion.clone().invert()
+      const inFrame = (card: THREE.Object3D): { x: number; y: number } =>
+        params.attention.billboard ? card.position.clone().applyQuaternion(unturn) : card.position
+      // The drawn size, without the pulse or the hover swell: a spot chosen
+      // against a card mid-breath is a spot that moves with the breath.
+      const halfOf = (mesh: THREE.Object3D): { hw: number; hh: number } => ({
+        hw: ((mesh.userData.drawnW as number | undefined) ?? mesh.scale.x) / 2,
+        hh: ((mesh.userData.drawnH as number | undefined) ?? mesh.scale.y) / 2,
+      })
       const scratch = new THREE.Vector3()
       const boxOfPlane = (
-        object: THREE.Object3D,
+        position: THREE.Vector3,
+        rotation: THREE.Euler,
         hw: number,
         hh: number,
         dx: number,
@@ -1100,9 +1126,9 @@ function Wall({
         for (const [ox, oy] of CORNERS) {
           scratch
             .set((ox as number) * hw + dx, (oy as number) * hh + dy, 0)
-            .applyEuler(object.rotation)
-            .add(object.position)
-            .project(camera)
+            .applyEuler(rotation)
+            .add(position)
+            .project(seekCamera)
           const sx = (scratch.x + 1) / 2
           const sy = (1 - scratch.y) / 2
           if (sx < x0) x0 = sx
@@ -1119,12 +1145,13 @@ function Wall({
       const obstacles: Box[] = []
       for (const mesh of meshes.current.values()) {
         if (!mesh.visible) continue
-        const box = boxOfPlane(mesh, mesh.scale.x / 2, mesh.scale.y / 2, 0, 0)
+        const { hw, hh } = halfOf(mesh)
+        const box = boxOfPlane(mesh.position, mesh.rotation, hw, hh, 0, 0)
         if (!offscreen(box)) obstacles.push(box)
       }
 
       const toScreen = (x: number, y: number): { x: number; y: number } => {
-        scratch.set(x, y, 0).project(camera)
+        scratch.set(x, y, 0).project(seekCamera)
         return { x: (scratch.x + 1) / 2, y: (1 - scratch.y) / 2 }
       }
       // Every zone's cell, so a group standing on another zone's ground pays
@@ -1162,15 +1189,17 @@ function Wall({
         for (const id of plated) {
           const mesh = meshes.current.get(id)!
           const held = badges.byId.get(id)!
-          cards.push({ x: mesh.position.x, y: mesh.position.y, hw: mesh.scale.x / 2, hh: mesh.scale.y / 2 })
+          const { hw, hh } = halfOf(mesh)
+          const { x, y } = inFrame(mesh)
+          cards.push({ x, y, hw, hh })
           sizes.push({ w: held.w, h: held.h })
-          cardBoxes.push(boxOfPlane(mesh, mesh.scale.x / 2, mesh.scale.y / 2, 0, 0))
+          cardBoxes.push(boxOfPlane(mesh.position, mesh.rotation, hw, hh, 0, 0))
         }
         const project = (offsets: { dx: number; dy: number }[]) =>
           offsets.map((o, i) => {
             const mesh = meshes.current.get(plated[i]!)!
             const size = sizes[i]!
-            return boxOfPlane(mesh, size.w / 2, size.h / 2, o.dx, o.dy)
+            return boxOfPlane(mesh.position, plateFrame(mesh), size.w / 2, size.h / 2, o.dx, o.dy)
           })
         const offsets = new Map<string, { dx: number; dy: number }[]>()
         const candidates: Group['candidates'][number][] = []
@@ -1199,6 +1228,8 @@ function Wall({
         line: params.attention.seekLineCost,
         foreign: params.attention.seekForeign,
         mismatch: params.attention.seekMismatch,
+        parallel: params.attention.seekParallel,
+        align: params.attention.seekAlign,
         settle: params.attention.seekSettle,
       })
       groupAt.current.clear()
@@ -1221,6 +1252,38 @@ function Wall({
         plateAt.current.delete(id)
         plateMotion.current.delete(id)
       }
+    }
+
+    // A badge lies in its card's plane, turning with the wall, or faces the
+    // camera whatever the wall does. Its offsets are measured in the same frame
+    // it is drawn in, so the two agree from every angle.
+    const unturn = new THREE.Quaternion()
+    const orient = (plate: THREE.Object3D, card: THREE.Object3D): void => {
+      if (params.attention.billboard) plate.quaternion.copy(camera.quaternion)
+      else plate.rotation.copy(card.rotation)
+    }
+    // Billboarded badges all stand on one plane, just in front of the nearest
+    // card, so no badge is ever behind a card from another pile. Moved along
+    // its own line of sight, which leaves it where it was on screen. Reads the
+    // meshes and the camera as the last frame left them.
+    const viewDir = camera.getWorldDirection(new THREE.Vector3())
+    let frontDepth = Infinity
+    if (params.attention.billboard) {
+      for (const m of meshes.current.values()) {
+        if (!m.visible) continue
+        const d = m.position.x * viewDir.x + m.position.y * viewDir.y + m.position.z * viewDir.z
+        if (d < frontDepth) frontDepth = d
+      }
+    }
+    const eyeDepth = camera.position.dot(viewDir)
+    const planeDepth = frontDepth - BADGE_LIFT - eyeDepth
+    const toPlane = (p: THREE.Vector3): void => {
+      if (!params.attention.billboard || !Number.isFinite(planeDepth)) return
+      const d = p.dot(viewDir) - eyeDepth
+      if (d <= 1e-6 || planeDepth <= 1e-6) return
+      if ((camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
+        p.sub(camera.position).multiplyScalar(planeDepth / d).add(camera.position)
+      } else p.addScaledVector(viewDir, planeDepth - d)
     }
 
     const liveZones = [...new Set(model.map((m) => m.zone))]
@@ -1268,6 +1331,8 @@ function Wall({
       // In place, so hovering never reorders what is in front of what.
       const swell = hovered.current === id && emphasis > 0 ? params.attention.hoverScale : 1
       mesh.scale.set(drawnW * pulse * swell, drawnH * pulse * swell, 1)
+      mesh.userData.drawnW = drawnW
+      mesh.userData.drawnH = drawnH
       // A rect's x/y is its top-left, three positions a plane by its center, and
       // windease's rect space grows y downward where three's world grows it up.
       // All three corrections happen here and nowhere else.
@@ -1331,12 +1396,7 @@ function Wall({
         if (wearsBadge && slot !== undefined && base) {
           const { w, h } = held
           held.plate.scale.set(w, h, 1)
-          // Coplanar with its card, always. The shelf moves the plate for
-          // legibility, but it moves it *within* the card's own plane: the
-          // offset is measured flat and then turned by the card's rotation, so
-          // the plate reads as a face of the artifact rather than as a sticker
-          // floating in front of the wall.
-          held.plate.rotation.copy(mesh.rotation)
+          orient(held.plate, mesh)
           // Where the solve put it, if it ran. Otherwise the shelf: plates
           // stacked on the zone's top border, left edges flush with the zone's.
           const solved = params.attention.seek ? plateAt.current.get(id) : undefined
@@ -1372,8 +1432,9 @@ function Wall({
                   shelfY - mesh.position.y,
                   BADGE_LIFT,
                 )
-          ).applyEuler(mesh.rotation)
+          ).applyEuler(held.plate.rotation)
           held.plate.position.copy(mesh.position).add(offset)
+          toPlane(held.plate.position)
           const plateMat = held.plate.material as THREE.MeshBasicMaterial
           plateMat.transparent = true
           // Half strength once the question is closed: still legible, no longer asking.
@@ -1388,40 +1449,90 @@ function Wall({
           // off the card gets one, however it got there.
           const resting = solved ? solved.welded : noLeader.has(id)
           if (!resting) {
-            // Between the two nearest edges: the edge of the plate that faces
-            // its card, so the line never crosses the plate it comes from, and
-            // the point of the card's border nearest the plate, so a plate on
-            // the flank gets a short level line rather than a diagonal to the
-            // top. Read off the meshes rather than the rects: a flagged card
-            // stands `tier.lift` forward of its rank, and a line drawn to the
-            // rect's own z lands behind the card it points at.
-            const foot = new THREE.Vector3(
-              clamp(mesh.position.x - held.plate.position.x, -w / 2, w / 2),
-              clamp(mesh.position.y - held.plate.position.y, -h / 2, h / 2),
-              0,
-            ).applyEuler(held.plate.rotation)
-            const head = new THREE.Vector3(
-              clamp(held.plate.position.x - mesh.position.x, -(drawnW * swell * pulse) / 2, (drawnW * swell * pulse) / 2),
-              clamp(held.plate.position.y - mesh.position.y, -(drawnH * swell * pulse) / 2, (drawnH * swell * pulse) / 2),
-              0,
-            ).applyEuler(mesh.rotation)
+            // Read off the meshes rather than the rects: a flagged card stands
+            // `tier.lift` forward of its rank, and a line drawn to the rect's
+            // own z lands behind the card it points at.
+            // Everything in the plate's own frame: the card's plane when the
+            // plate lies in it, the screen when it faces the camera. Depth
+            // between the two falls out onto the frame's z, so a plate pulled
+            // forward to the badge plane still measures its card where it is.
+            const rel = mesh.position
+              .clone()
+              .sub(held.plate.position)
+              .applyQuaternion(unturn.copy(held.plate.quaternion).invert())
+            const cx = rel.x
+            const cy = rel.y
+            const chw = (drawnW * swell * pulse) / 2
+            const chh = (drawnH * swell * pulse) / 2
+            const fx = clamp(cx, -w / 2, w / 2)
+            const fy = clamp(cy, -h / 2, h / 2)
             const points = leaderPoints.get(level) ?? []
-            points.push(
-              held.plate.position.x + foot.x,
-              held.plate.position.y + foot.y,
-              held.plate.position.z + foot.z,
-              mesh.position.x + head.x,
-              mesh.position.y + head.y,
-              mesh.position.z + head.z,
-            )
+            const at = (v: THREE.Vector3) =>
+              points.push(
+                held.plate.position.x + v.x,
+                held.plate.position.y + v.y,
+                held.plate.position.z + v.z,
+              )
+            const foot = new THREE.Vector3(fx, fy, 0).applyEuler(held.plate.rotation)
+            if (params.attention.leaderElbow) {
+              // Leaves the plate square to the edge the card lies beyond, runs
+              // to the card's span, and turns once onto its nearest border. A
+              // plate level with its card needs no turn at all.
+              const sideways = Math.abs(cx) - w / 2 > Math.abs(cy) - h / 2
+              let ex: number
+              let ey: number
+              let hx: number
+              let hy: number
+              if (sideways) {
+                ey = fy
+                if (Math.abs(fy - cy) <= chh) {
+                  ex = hx = cx - Math.sign(cx) * chw
+                  hy = fy
+                } else {
+                  ex = hx = clamp(fx, cx - chw, cx + chw)
+                  hy = cy - Math.sign(cy - fy) * chh
+                }
+              } else {
+                ex = fx
+                if (Math.abs(fx - cx) <= chw) {
+                  ey = hy = cy - Math.sign(cy) * chh
+                  hx = fx
+                } else {
+                  ey = hy = clamp(fy, cy - chh, cy + chh)
+                  hx = cx - Math.sign(cx - fx) * chw
+                }
+              }
+              const elbow = new THREE.Vector3(ex, ey, 0).applyEuler(held.plate.rotation)
+              const head = new THREE.Vector3(hx, hy, rel.z).applyEuler(held.plate.rotation)
+              const bends = Math.abs(ex - hx) + Math.abs(ey - hy) > 1e-6
+              at(foot)
+              if (bends) {
+                at(elbow)
+                at(elbow)
+              }
+              at(head)
+            } else {
+              // Between the two nearest edges: the edge of the plate that faces
+              // its card, so the line never crosses the plate it comes from, and
+              // the point of the card's border nearest the plate, so a plate on
+              // the flank gets a short level line rather than a diagonal to the
+              // top.
+              const head = new THREE.Vector3(
+                cx + clamp(-cx, -chw, chw),
+                cy + clamp(-cy, -chh, chh),
+                rel.z,
+              ).applyEuler(held.plate.rotation)
+              at(foot)
+              at(head)
+            }
             leaderPoints.set(level, points)
           }
         } else if (wearsBadge) {
           const { w, h } = held
           held.plate.scale.set(w, h, 1)
-          held.plate.rotation.copy(mesh.rotation)
-          // Measured in the card's own frame and then turned with it, so the
-          // badge stays welded to the top border from every angle rather than
+          orient(held.plate, mesh)
+          // Measured in the plate's own frame and then turned with it, so the
+          // badge stays on the top border from every angle rather than
           // sliding off it as the wall turns. Left edges flush.
           held.plate.position
             .copy(mesh.position)
@@ -1430,8 +1541,9 @@ function Wall({
                 (w - drawnW * swell) / 2,
                 (drawnH * swell + h) / 2,
                 BADGE_LIFT,
-              ).applyEuler(mesh.rotation),
+              ).applyEuler(held.plate.rotation),
             )
+          toPlane(held.plate.position)
         }
       }
 
@@ -1614,22 +1726,7 @@ function Wall({
       setResolution(boundsLines.inner.material, gl)
     }
 
-    const { x, y, distance, halfHeight } = pose.current
-    const eye = orbitOffset(params.camera.yawDeg, params.camera.pitchDeg, distance)
-    camera.position.set(x + eye.x, -y + eye.y, eye.z)
-    camera.lookAt(x, -y, 0)
-
-    // The orthographic frustum is what frames, so it is retargeted where a
-    // perspective camera would have moved. Live-tunable angles land the same way.
-    if ((camera as THREE.OrthographicCamera).isOrthographicCamera) {
-      const ortho = camera as THREE.OrthographicCamera
-      const aspect = window.innerWidth / window.innerHeight
-      ortho.top = halfHeight
-      ortho.bottom = -halfHeight
-      ortho.right = halfHeight * aspect
-      ortho.left = -halfHeight * aspect
-      ortho.updateProjectionMatrix()
-    }
+    applyPose(camera, pose.current, params.camera, window.innerWidth / window.innerHeight)
 
     const moving =
       (move.current !== null && performance.now() - move.current.startedAt < move.current.durationMs) ||
@@ -1714,6 +1811,30 @@ function Wall({
  *  go — the second matches `lightbox-out` in lightbox.css. */
 const REPLY_HOLD_MS = 1000
 const REPLY_CLOSE_MS = 240
+
+/**
+ * Puts a camera where a pose says: orbited off the framed point by the yaw
+ * and pitch, looking at it, and — under orthographic projection, where the
+ * frustum is what frames — sized to the pose's half height.
+ */
+function applyPose(
+  cam: THREE.Camera,
+  { x, y, distance, halfHeight }: Pose,
+  look: { yawDeg: number; pitchDeg: number },
+  aspect: number,
+): void {
+  const eye = orbitOffset(look.yawDeg, look.pitchDeg, distance)
+  cam.position.set(x + eye.x, -y + eye.y, eye.z)
+  cam.lookAt(x, -y, 0)
+  if ((cam as THREE.OrthographicCamera).isOrthographicCamera) {
+    const ortho = cam as THREE.OrthographicCamera
+    ortho.top = halfHeight
+    ortho.bottom = -halfHeight
+    ortho.right = halfHeight * aspect
+    ortho.left = -halfHeight * aspect
+    ortho.updateProjectionMatrix()
+  }
+}
 
 export function WebglBackend(props: Props) {
   const [sidebarOpen, setSidebarOpen] = usePersistedFlag('slopboard.sidebar.open.v1', false)

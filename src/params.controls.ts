@@ -81,6 +81,8 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'attention.seekLineCost': [0, 400, 5],
   'attention.seekForeign': [0, 600, 10],
   'attention.seekMismatch': [0, 400, 5],
+  'attention.seekParallel': [0, 300, 5],
+  'attention.seekAlign': [0, 300, 5],
   'attention.seekSettle': [0, 0.9, 0.01],
   'attention.seekStiffness': [1, 80, 1],
   'attention.seekDamping': [1, 40, 0.5],

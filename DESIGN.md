@@ -227,10 +227,22 @@ clock for the same reason `age01` is, so a reload does not restart a hold.
   one plate of a front card rests on the card instead and needs no line.
   Which side, and how far out, is solved for the whole wall at once
   (`src/nav/ladder.ts`): plates pay for the cards they cover, for hanging off
-  screen, for their lines, for standing on another zone's cell, and piles pay
+  screen, for their lines, for standing on another zone's cell, for lines that
+  lean away from the other lines in their pile and on the wall, and piles pay
   for disagreeing about the side. The wall keeps the layout it has unless a
   new one beats it by a share of its score, so zooming, which scales every
-  score together, never moves a plate by itself.
+  score together, never moves a plate by itself. The solve projects through
+  the camera as it will stand when the current move lands, not where it is
+  mid-ease, so a spot chosen during a move is still right after it.
+- **Plates face the camera by default** (`attention.billboard`) and all stand
+  on one plane just in front of the nearest card, moved along their own line
+  of sight so they stay put on screen. Off, a plate lies in its card's plane
+  and turns with the wall. `attention.leaderElbow` makes the line leave the
+  plate square and turn once onto the card, instead of running diagonally.
+- **Leaving a card puts you back where you were.** A badge, the flag list, the
+  menu or a loud arrival can open a card from the wall or from another pile;
+  the view remembers that start, and closing the lightbox returns to it rather
+  than to the card's own pile. Paging sideways in the lightbox keeps it.
 
 **Every sound comes with a toast.** The daemon is the thing that plays it, so
 the daemon says so: an `alert` message with the zone, the level, the repo and

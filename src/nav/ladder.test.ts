@@ -79,7 +79,16 @@ describe('ladder', () => {
   })
 })
 
-const weights: Weights = { cover: 300, pull: 90, line: 140, foreign: 200, mismatch: 80, settle: 0.25 }
+const weights: Weights = {
+  cover: 300,
+  pull: 90,
+  line: 140,
+  foreign: 200,
+  mismatch: 80,
+  parallel: 0,
+  align: 0,
+  settle: 0.25,
+}
 
 /** A plate box of the standard size, with its top-left at (x, y). */
 const plate = (x: number, y: number): Box => box(x, y, x + 0.1, y + 0.04)
@@ -192,5 +201,43 @@ describe('solve', () => {
 
   it('has nothing to say about an empty wall', () => {
     expect(solve([], [], [], weights).picks).toEqual([])
+  })
+})
+
+describe('parallel lines', () => {
+  // Two cards stacked, plates on the right flank. `level` puts each plate level
+  // with its card, so both lines run flat; `skew` slides the second plate up to
+  // its card's top edge, so its line leans while the first still runs flat.
+  // Neither covers anything and both touch their cards at the same distance.
+  const cards = [box(0.4, 0.4, 0.6, 0.6), box(0.4, 0.7, 0.6, 0.9)]
+  const skew = candidate('right', [plate(0.62, 0.48), plate(0.62, 0.7)], 1)
+  const level = candidate('right', [plate(0.62, 0.48), plate(0.62, 0.78)], 2)
+  const pile: Group = { zone: 'a', cards, candidates: [skew, level] }
+
+  it('is indifferent to a leaning line when the weight is zero', () => {
+    expect(solve([], [], [pile], weights).picks[0]?.ring).toBe(1)
+  })
+
+  it('favors a pile whose lines run parallel to each other', () => {
+    expect(solve([], [], [pile], { ...weights, parallel: 100 }).picks[0]?.ring).toBe(2)
+  })
+
+  it('favors piles whose lines run the way the rest of the wall’s do', () => {
+    // Pile a's only option runs flat. Pile b can stand above, running upright
+    // and a hair closer, or right, running flat and a hair further out.
+    // Mismatch off, so the lean is the only thing that can beat the distance.
+    const flat: Group = {
+      zone: 'a',
+      cards: [box(0.1, 0.4, 0.3, 0.6)],
+      candidates: [candidate('right', [plate(0.32, 0.48)])],
+    }
+    const b: Group = {
+      zone: 'b',
+      cards: [box(0.6, 0.4, 0.8, 0.6)],
+      candidates: [candidate('above', [plate(0.65, 0.34)]), candidate('right', [plate(0.83, 0.48)])],
+    }
+    const free = { ...weights, mismatch: 0 }
+    expect(solve([], [], [flat, b], free).picks[1]?.side).toBe('above')
+    expect(solve([], [], [flat, b], { ...free, align: 100 }).picks[1]?.side).toBe('right')
   })
 })

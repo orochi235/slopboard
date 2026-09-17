@@ -85,6 +85,11 @@ export type Weights = {
   foreign: number
   /** Per group standing on a side the others do not. */
   mismatch: number
+  /** Per plate, for how far its line leans away from the lines of the other
+   *  plates in its pile: 0 parallel, 2 perpendicular. */
+  parallel: number
+  /** Per pile, for how far its lines lean away from the wall's. Same scale. */
+  align: number
   /** The share of its score a new layout must beat the held one by before the
    *  wall leaves it. A share rather than a sum so that zooming, which scales
    *  every score together, is never by itself a reason to move. */
@@ -130,6 +135,43 @@ const gapBetween = (a: Box, b: Box): number =>
 
 const same = (a: Placement, b: Placement) => a.side === b.side && a.ring === b.ring
 
+const clampTo = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+
+/**
+ * The lean of a plate's line as a unit vector at twice its angle, so a line
+ * and its reverse — a plate on the left, a plate on the right — count as
+ * parallel. The line runs the way the renderer draws it: from the edge of the
+ * plate facing the card to the point of the card's border nearest the plate.
+ * Null when the two touch, which is no line at all.
+ */
+const leanOf = (plate: Box, card: Box): [number, number] | null => {
+  const px = (plate.x0 + plate.x1) / 2
+  const py = (plate.y0 + plate.y1) / 2
+  const cx = (card.x0 + card.x1) / 2
+  const cy = (card.y0 + card.y1) / 2
+  const dx = clampTo(px, card.x0, card.x1) - clampTo(cx, plate.x0, plate.x1)
+  const dy = clampTo(py, card.y0, card.y1) - clampTo(cy, plate.y0, plate.y1)
+  if (Math.hypot(dx, dy) < 1e-6) return null
+  const a = 2 * Math.atan2(dy, dx)
+  return [Math.cos(a), Math.sin(a)]
+}
+
+/** The mean direction of a set of leans, unit length; null for none. */
+const meanLean = (leans: readonly [number, number][]): [number, number] | null => {
+  if (leans.length === 0) return null
+  let x = 0
+  let y = 0
+  for (const [lx, ly] of leans) {
+    x += lx
+    y += ly
+  }
+  const n = Math.hypot(x, y)
+  return n < 1e-9 ? [0, 0] : [x / n, y / n]
+}
+
+/** 0 for parallel, 2 for perpendicular. */
+const spread = (lean: [number, number], mean: [number, number]) => 1 - (lean[0] * mean[0] + lean[1] * mean[1])
+
 /**
  * One number for the whole wall. Every plate pays for the cards it covers, for
  * hanging off screen, for its line and for standing on another zone's ground;
@@ -147,6 +189,7 @@ export function scoreLayout(
   const votes = new Map<Side, number>()
   let voting = 0
   const placed: Box[][] = []
+  const pileLeans: [number, number][] = []
   for (let g = 0; g < groups.length; g++) {
     const group = groups[g]
     const candidate = group?.candidates[picks[g] ?? -1]
@@ -159,10 +202,15 @@ export function scoreLayout(
       voting++
       votes.set(candidate.side, (votes.get(candidate.side) ?? 0) + 1)
     }
+    const leans: [number, number][] = []
     for (let i = 0; i < candidate.boxes.length; i++) {
       const box = candidate.boxes[i]
       const card = group.cards[i]
       if (!box) continue
+      if (candidate.side !== 'welded' && card) {
+        const lean = leanOf(box, card)
+        if (lean) leans.push(lean)
+      }
       total += (1 - coveredOf(box, SCREEN)) * OFFSCREEN
       for (const under of obstacles) total += coveredOf(box, under) * weights.cover
       if (candidate.side !== 'welded') {
@@ -174,7 +222,14 @@ export function scoreLayout(
         total += coveredOf(box, cell.box) * weights.foreign
       }
     }
+    const mean = meanLean(leans)
+    if (mean) {
+      for (const lean of leans) total += spread(lean, mean) * weights.parallel
+      pileLeans.push(mean)
+    }
   }
+  const wallLean = meanLean(pileLeans)
+  if (wallLean) for (const lean of pileLeans) total += spread(lean, wallLean) * weights.align
   for (let a = 0; a < placed.length; a++) {
     for (let b = a + 1; b < placed.length; b++) {
       for (const pa of placed[a] ?? []) for (const pb of placed[b] ?? []) total += covered(pa, pb) * OVERLAP
