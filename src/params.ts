@@ -343,8 +343,9 @@ export type StackParams = {
     attentionUrgent: string
     attentionProblem: string
     /** Badge text. Black on every plate: they all run near-neon, and even pure
-     *  red measures better against black (5.25:1) than against white (4.00:1). */
-    badgeInk: string
+     *  red measures better against black (5.25:1) than against white (4.00:1).
+     *  Renamed from `badgeInk` so a panel saved with white stops overriding it. */
+    flagInk: string
     /** A corner chip: a black plate, so it reads against a picture of any
      *  color, with the clock struck in yellow so the glyph is findable at a
      *  glance and the text stays the thing being read. */
@@ -556,7 +557,7 @@ export const defaultParams: StackParams = {
     attentionSoon: '#ffff00',
     attentionUrgent: '#ff8000',
     attentionProblem: '#ff0000',
-    badgeInk: '#ffffff',
+    flagInk: '#000000',
     chipFill: '#000000',
     chipIcon: '#ffe58f',
     chipInk: '#ffffff',
