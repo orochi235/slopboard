@@ -112,18 +112,13 @@
 }
 
 /* A width rather than a count, so the sheet fills three columns when it has
-   the room and folds to fewer on a narrow window. */
-.prefs__body[data-view='all'] {
+   the room and folds to fewer on a narrow window. An area with one group is
+   one column, which keeps a slider from stretching the width of the sheet. */
+.prefs__body {
   columns: 290px;
   column-gap: 22px;
 }
 
-.prefs__body[data-view='all'] > * {
+.prefs__body > * {
   break-inside: avoid;
-}
-
-/* One group is one column: a slider the width of the sheet is a long reach for
-   the same precision, and the rows stop reading as a table. */
-.prefs__body[data-view='one'] > * {
-  max-width: 520px;
 }

@@ -424,8 +424,11 @@ against every arrangement.
   `Color.set` and reads darker than its palette entry says.
 - **Preferences have two surfaces** — the corner panel and a sheet on `,` —
   rendering one `ParamsBody` so they cannot drift while prefs is still a copy
-  of params. The sheet's left column lists surfaces with the param groups
-  nested under `params`, built from the groups so it follows a consolidation;
+  of params. The sheet's left column lists surfaces with six areas of the
+  wall nested under `params` — piles, cards, flags, zones & sky, camera &
+  input, chrome. A leaf lands in an area by the longest prefix of its path in
+  `src/params.tabs.ts`, so `lod` splits and `colors` dissolves into the areas
+  of what it colors while every path stays where a saved set expects it.
   `params` itself shows every group in columns. The sheet is a delamin8r
   window, tuned by the `prefs` group.
 - **`typeface.chrome` is the face the DOM wears.** App publishes it to the root

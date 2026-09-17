@@ -10,6 +10,7 @@ import {
 } from '@weasel-js/ui'
 import { controlsOf, formatStepped } from '@/params.controls.ts'
 import { groupControls } from '@/params.groups.ts'
+import { categoryOf } from '@/params.tabs.ts'
 import { leafAt, setAt } from '@/params.paths.ts'
 import { defaultParams, type StackParams } from '@/params.ts'
 import { splitUnit } from '@/params.units.ts'
@@ -116,11 +117,12 @@ export function ParamsBody({
   /** Every group open. The corner panel is a column beside the wall and stays
    *  folded; the modal has the room, and folded groups waste it. */
   expanded?: boolean
-  /** One group by name, open, and nothing else. The prefs sheet's tabs. */
+  /** One area of the wall, every group in it open, and nothing else. The
+   *  prefs sheet's tabs. */
   only?: string
 }) {
-  const groups = groupControls(controlsOf(params)).filter(
-    (group) => only === undefined || group.name === only,
+  const groups = groupControls(
+    controlsOf(params).filter((control) => only === undefined || categoryOf(control.path) === only),
   )
   return (
     <>

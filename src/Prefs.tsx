@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboa
 import { delaminate } from 'delamin8r'
 import { ParamsBody } from '@/Params.tsx'
 import { controlsOf } from '@/params.controls.ts'
-import { groupControls } from '@/params.groups.ts'
+import { categoriesFor } from '@/params.tabs.ts'
 import type { StackParams } from '@/params.ts'
 import { prefsTabs, resolveTab, stepTab } from '@/prefs.tabs.ts'
 import './prefs.css'
@@ -19,8 +19,8 @@ const readTab = (): string | null => {
 
 /**
  * Preferences over the wall. The column down the left lists the surfaces —
- * params is the only one today — with the param groups nested under it, so
- * the sheet shows one group at a time or the whole set in columns. The
+ * params is the only one today — with six areas of the wall nested under it,
+ * so the sheet shows one area at a time or the whole set in columns. The
  * controls are the corner panel's own, so the two cannot drift apart.
  */
 export function Prefs({
@@ -33,7 +33,7 @@ export function Prefs({
   onClose: () => void
 }) {
   const tabs = useMemo(
-    () => prefsTabs(groupControls(controlsOf(params)).map((group) => group.name)),
+    () => prefsTabs(categoriesFor(controlsOf(params).map((control) => control.path))),
     [params],
   )
   const [tabId, setTabId] = useState(() => resolveTab(tabs, readTab()).id)
@@ -134,10 +134,9 @@ export function Prefs({
           className="prefs__body"
           id="prefs-panel"
           role="tabpanel"
-          data-view={tab.group === undefined ? 'all' : 'one'}
           data-dl-lift="1"
         >
-          <ParamsBody params={params} onChange={onChange} expanded only={tab.group} />
+          <ParamsBody params={params} onChange={onChange} expanded only={tab.category} />
         </div>
       </div>
     </div>

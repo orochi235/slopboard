@@ -1,23 +1,27 @@
+import type { Category } from '@/params.tabs.ts'
+
 export type PrefsTab = {
   id: string
   label: string
-  /** 0 for a surface, 1 for a group nested under one. */
+  /** 0 for a surface, 1 for an area nested under one. */
   depth: 0 | 1
-  /** The param group this tab shows alone. Absent shows every group. */
-  group?: string
+  /** The category this tab shows alone. Absent shows everything. */
+  category?: string
 }
 
 export const ALL = 'params'
 
 /**
- * The sheet's tab list: the surfaces, and under `params` one tab per group.
- * Built from the groups rather than written out, so the list follows the
- * groups as they are folded together.
+ * The sheet's tab list: the surfaces, and under `params` one tab per area of
+ * the wall. Built from the categories the leaves actually land in, so a tab
+ * with nothing in it is not offered.
  */
-export function prefsTabs(groups: readonly string[]): PrefsTab[] {
+export function prefsTabs(categories: readonly Category[]): PrefsTab[] {
   return [
     { id: ALL, label: ALL, depth: 0 },
-    ...groups.map((group): PrefsTab => ({ id: `${ALL}.${group}`, label: group, depth: 1, group })),
+    ...categories.map(
+      (c): PrefsTab => ({ id: `${ALL}.${c.id}`, label: c.label, depth: 1, category: c.id }),
+    ),
   ]
 }
 
