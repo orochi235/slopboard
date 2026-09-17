@@ -94,7 +94,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'camera.pitchDeg': [-90, 90, 1],
   'camera.margins': [1, 2, 0.01],
   'camera.homeMargin': [1, 3, 0.01],
-  'camera.zoomOutSpace': [1, 2, 0.01],
+  'camera.zoomOutRoom': [1, 3, 0.01],
   'camera.moveMs': [0, 3000, 10],
   'nav.wheelThreshold': [5, 300, 5],
   'nav.pinchThreshold': [1, 60, 1],

@@ -324,7 +324,7 @@ wall: once a pile has focus the framing leaves little of its neighbours on
 screen, which is what the arrows and the plan view are for.
 
 **The wall has one step further out than the hierarchy.** Outward at the wall
-backs the camera off to `camera.zoomOutSpace` times the wall's margin, and the
+backs the camera off to `camera.zoomOutRoom` times the wall's margin, and the
 next inward step comes back to the ordinary frame rather than into a pile. It is
 not a rung: it lives beside the path, so the URL and `reduceView` never see it,
 and walking into a pile forgets it. The sidebar's debug section draws the widest

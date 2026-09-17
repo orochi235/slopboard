@@ -204,8 +204,9 @@ export type StackParams = {
      *  camera's distance changes nothing you can see. */
     homeMargin: number
     /** How much further out one wheel step past the wall frames it, as a
-     *  multiple of the wall's own margin. */
-    zoomOutSpace: number
+     *  multiple of the wall's own margin. Renamed from `zoomOutSpace` so a
+     *  saved panel stops holding the old default. */
+    zoomOutRoom: number
     /** How long a level change takes. */
     moveMs: number
   }
@@ -520,7 +521,7 @@ export const defaultParams: StackParams = {
       1.12,
     ],
     homeMargin: 1.08,
-    zoomOutSpace: 1.25,
+    zoomOutRoom: 1.5,
     moveMs: 520,
   },
   nav: {

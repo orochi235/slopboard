@@ -117,7 +117,7 @@ type WallProps = Props & {
    *  reads it every frame and the panel opening must not re-render the wall. */
   sidebarInset: { current: number }
   topInset: { current: number }
-  /** One step out past the wall, framed with `camera.zoomOutSpace` of extra room. */
+  /** One step out past the wall, framed with `camera.zoomOutRoom` of extra room. */
   backedOff: boolean
   onBackOff: (on: boolean) => void
   /** Debug: draw the volume the camera can frame, and the default frame in it. */
@@ -561,11 +561,11 @@ function Wall({
       })
     const wallMargin = marginFor(params.camera.margins, 0)
     const target = frameAt(
-      marginFor(params.camera.margins, depth) * (depth === 0 && backedOff ? params.camera.zoomOutSpace : 1),
+      marginFor(params.camera.margins, depth) * (depth === 0 && backedOff ? params.camera.zoomOutRoom : 1),
     )
     if (depth === 0) {
       bounds.current = {
-        outer: frameExtent(frameAt(wallMargin * params.camera.zoomOutSpace), aspect),
+        outer: frameExtent(frameAt(wallMargin * params.camera.zoomOutRoom), aspect),
         inner: frameExtent(frameAt(wallMargin), aspect),
       }
     }
