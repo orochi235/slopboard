@@ -67,14 +67,22 @@ const NOTES: Record<Level, readonly string[]> = {
  * produces is the point: two flagged artifacts near each other in one pile is
  * the case that cannot be waited for, so this manufactures it on demand.
  *
+ * A level's hold runs from the card's birth, because a real flag arrives with
+ * the card. A fake one lands on a card that is already old, so its hold is
+ * stretched by that age — otherwise `soon`, the one level that lapses, would
+ * be born lapsed on any card older than half an hour and never wear a plate.
+ * `now` is the daemon's clock, the one `bornAt` is on.
+ *
  * `rand` is a seam for the test and Math.random everywhere else.
  */
 export function fakeFlags(
-  ids: readonly string[],
+  items: readonly { id: string; bornAt: number }[],
+  now: number,
   perLevel = 2,
   rand: () => number = Math.random,
 ): Record<string, FakeFlag> {
-  const pool = [...ids]
+  const age = new Map(items.map((i) => [i.id, Math.max(0, now - i.bornAt)]))
+  const pool = items.map((i) => i.id)
   // Fisher-Yates, so the flags land on a different set each press and the same
   // pile can be hit twice running.
   for (let i = pool.length - 1; i > 0; i--) {
@@ -107,8 +115,10 @@ export function fakeFlags(
     const notes = unread.get(level) as string[]
     const n = drawn.get(level) ?? 0
     drawn.set(level, n + 1)
-    out[pool[i] as string] = {
-      attention: { level, holdMs: DEFAULT_HOLD[level] },
+    const id = pool[i] as string
+    const hold = DEFAULT_HOLD[level]
+    out[id] = {
+      attention: { level, holdMs: hold === null ? null : hold + (age.get(id) ?? 0) },
       note: notes[n % notes.length] as string,
     }
   }

@@ -2267,7 +2267,7 @@ export function WebglBackend(props: Props) {
         onOpen={(item) => dispatch({ type: 'to', path: [item.zone, item.id] })}
         onDismiss={dismiss}
         fakeCount={Object.keys(fakes).length}
-        onGenerate={() => setFakes(fakeFlags(items.map((i) => i.id)))}
+        onGenerate={() => setFakes(fakeFlags(items, Date.now() + props.clockOffset))}
         showBounds={showBounds}
         onShowBounds={setShowBounds}
         onClearFakes={() => setFakes({})}
