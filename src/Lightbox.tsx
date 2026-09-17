@@ -17,6 +17,78 @@ import {
 import type { WallItem } from '@shared/protocol.ts'
 import './lightbox.css'
 
+/**
+ * The agent's question, over whichever kind of lightbox is open. Choices are
+ * buttons; no choices is a text box, where Enter sends and Shift+Enter breaks
+ * the line.
+ */
+function Ask({
+  item,
+  onAnswer,
+  onDismiss,
+}: {
+  item: WallItem
+  onAnswer: (text: string) => void
+  onDismiss: () => void
+}) {
+  const [text, setText] = useState('')
+  useEffect(() => setText(''), [item.id])
+  if (!item.question) return null
+  const send = () => {
+    if (text.trim() !== '') onAnswer(text)
+  }
+  return (
+    // Neither a click nor a keystroke here is the wall's: a click would close
+    // the lightbox, and `[` typed into the answer would change arrangement.
+    <form
+      className="lightbox__ask"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape') e.stopPropagation()
+      }}
+      onSubmit={(e) => {
+        e.preventDefault()
+        send()
+      }}
+    >
+      <p className="lightbox__question">{item.question}</p>
+      <div className="lightbox__answers">
+        {item.choices ? (
+          item.choices.map((choice) => (
+            <button type="button" className="lightbox__choice" key={choice} onClick={() => onAnswer(choice)}>
+              {choice}
+            </button>
+          ))
+        ) : (
+          <>
+            <textarea
+              className="lightbox__reply"
+              value={text}
+              rows={2}
+              autoFocus
+              aria-label="Answer"
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') return e.currentTarget.blur()
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  send()
+                }
+              }}
+            />
+            <button type="submit" className="lightbox__choice" disabled={text.trim() === ''}>
+              send
+            </button>
+          </>
+        )}
+        <button type="button" className="lightbox__skip" onClick={onDismiss}>
+          dismiss
+        </button>
+      </div>
+    </form>
+  )
+}
+
 const portOf = (): Size => ({ w: window.innerWidth, h: window.innerHeight })
 
 /** Below this a pointer press is a click, above it a pan. Matches the wall's
@@ -376,11 +448,22 @@ export function Lightbox(props: {
   now: number
   quietMs: number
   onClose: () => void
+  onAnswer: (id: string, text: string) => void
+  onDismiss: (id: string) => void
 }) {
-  const { quietMs, ...rest } = props
-  return rest.item.kind === 'page' ? (
-    <PageLightbox {...rest} />
-  ) : (
-    <ImageLightbox {...rest} quietMs={quietMs} />
+  const { quietMs, onAnswer, onDismiss, ...rest } = props
+  return (
+    <>
+      {rest.item.kind === 'page' ? (
+        <PageLightbox {...rest} />
+      ) : (
+        <ImageLightbox {...rest} quietMs={quietMs} />
+      )}
+      <Ask
+        item={rest.item}
+        onAnswer={(text) => onAnswer(rest.item.id, text)}
+        onDismiss={() => onDismiss(rest.item.id)}
+      />
+    </>
   )
 }

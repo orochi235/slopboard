@@ -225,6 +225,27 @@ clock for the same reason `age01` is, so a reload does not restart a hold.
 A hold of null holds until someone dismisses it; any other hold lapses on its
 own. Either way the card goes on living out its TTL as an ordinary card.
 
+### Asking a question
+
+`slop --ask "..." [--choice a --choice b] FILE` puts a question on the card and
+waits for the answer: it prints the answer and exits 0, or exits 3 if the
+question is dismissed and 4 if the card is expired first. An agent runs it in
+the background, so the answer arrives as the command finishing.
+
+- **The answer is a file**, `~/slop/answers/<the name slop gave the file>`: the
+  status on the first line (`answered`, `dismissed`, `expired`), the answer
+  after it. Not beside the image, since expiry renames that into the trash.
+  `slop --wait PATH` waits on it again if the first wait was lost.
+- **A question always flags its card**, at `look` unless the agent names a
+  level, and the question is the badge unless there is a `--note`.
+- **Opening the card does not close it**, although opening clears an ordinary
+  flag. Only answering, the lightbox's dismiss, the flag row's × or expiring the
+  card does. `/dismiss` closes a question only with `?question=close`, so an
+  open wall on older code cannot answer for the viewer.
+- **An open question has no TTL.** Someone is waiting on it.
+- **One question, one answer.** With choices, the answer must be one of them,
+  since the agent branches on the exact string.
+
 ### How depth reads
 
 Two things say "this card is far back," and they are deliberately different
@@ -687,6 +708,10 @@ Base64-over-WebSocket hitches every time a render lands.
   Whether a *zone* gets a depth is a change to windease's `Rect`, and is the one
   that would let the camera frame a pile instead of its front face. Neither is
   needed while the wall is read head-on.
+- **Threaded questions.** A question is one-shot today: one answer and the card
+  goes back to ordinary. A thread would let the agent follow up on the same
+  card, and needs a history in the lightbox and a way to mark it resolved. Worth
+  it only if follow-ups keep arriving as new cards.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
 
 ## Running it

@@ -76,9 +76,21 @@ app.get('/page/:id', async (req, res) => {
 // The only route that writes. A wall on a private machine, so the guard is
 // that dismissing something already visible to the viewer costs nothing.
 app.post('/api/items/:id/dismiss', async (req, res) => {
-  const cleared = await store.dismiss(req.params.id)
+  const cleared = await store.dismiss(req.params.id, req.query.question === 'close')
   if (cleared) broadcast({ type: 'dismiss', id: req.params.id })
   res.json({ ok: true, cleared })
+})
+
+// Answers the question on a card. Where the agent offered choices, the answer
+// has to be one of them: the agent branches on the exact string.
+app.post('/api/items/:id/answer', express.json(), async (req, res) => {
+  const text = (req.body as { text?: unknown } | undefined)?.text
+  const item = store.snapshot().find((i) => i.id === req.params.id)
+  if (typeof text !== 'string' || text.trim() === '' || (item?.choices && !item.choices.includes(text)))
+    return void res.status(400).json({ ok: false })
+  const answered = await store.answer(req.params.id, 'answered', text)
+  if (answered) broadcast({ type: 'dismiss', id: req.params.id })
+  res.json({ ok: answered })
 })
 
 app.post('/api/items/:id/keep', async (req, res) => {

@@ -1,7 +1,7 @@
-import { rename, mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { rename, mkdir, writeFile } from 'node:fs/promises'
+import { basename, join } from 'node:path'
 import { config } from './config.ts'
-import { clearAttention, setKept, trashStamp } from './sidecar.ts'
+import { clearAttention, clearQuestion, setKept, trashStamp } from './sidecar.ts'
 import type { WallItem } from '@shared/protocol.ts'
 
 type Entry = { item: WallItem; sourcePath: string; cachePath: string }
@@ -41,6 +41,7 @@ function remember(step: Gone[]) {
 
 /** Expiry moves the source file to the trash; the wall never unlinks. */
 async function expire(entry: Entry): Promise<Gone> {
+  if (entry.item.question) await close(entry, 'expired', '')
   entries.delete(entry.item.id)
   const dest = join(config.trash, `${entry.item.id}-${entry.item.zone}`)
   await mkdir(config.trash, { recursive: true })
@@ -55,7 +56,8 @@ export function startSweeper(): () => void {
   const timer = setInterval(() => {
     const now = Date.now()
     for (const entry of entries.values()) {
-      if (entry.item.keptAt) continue
+      // An open question has someone waiting on it.
+      if (entry.item.keptAt || entry.item.question) continue
       if (entry.item.bornAt < now - (entry.item.ttlMs ?? config.ttlMs)) void expire(entry)
     }
   }, 1000)
@@ -136,12 +138,41 @@ export async function undoExpiry(): Promise<WallItem[]> {
  * item or it was not asking in the first place, so the caller does not
  * broadcast a change that did not happen.
  */
-export async function dismiss(id: string): Promise<boolean> {
+export async function dismiss(id: string, closeQuestion = false): Promise<boolean> {
   const entry = entries.get(id)
+  // Opening a card dismisses its flag, and must not answer for the viewer.
+  if (entry?.item.question) return closeQuestion && close(entry, 'dismissed', '')
   if (!entry?.item.attention) return false
   delete entry.item.attention
   await clearAttention(entry.sourcePath)
   return true
+}
+
+export type Closed = 'answered' | 'dismissed' | 'expired'
+
+/**
+ * Ends a question: the answer file first, since `bin/slop --ask` is waiting on
+ * it, then the flag and the sidecar. The file is the status line, then the
+ * text — `bin/slop` is `sh` and has no JSON parser.
+ */
+async function close(entry: Entry, status: Closed, text: string): Promise<boolean> {
+  if (!entry.item.question) return false
+  delete entry.item.question
+  delete entry.item.choices
+  delete entry.item.attention
+  await mkdir(config.answers, { recursive: true })
+  const dest = join(config.answers, basename(entry.sourcePath))
+  // Renamed into place, so the waiting reader never sees half a file.
+  await writeFile(`${dest}.tmp`, `${status}\n${text}`)
+  await rename(`${dest}.tmp`, dest)
+  await clearQuestion(entry.sourcePath)
+  return true
+}
+
+/** False when there is no such item or no open question on it. */
+export async function answer(id: string, status: Closed, text: string): Promise<boolean> {
+  const entry = entries.get(id)
+  return entry ? close(entry, status, text) : false
 }
 
 export function pathOf(id: string) {

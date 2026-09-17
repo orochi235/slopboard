@@ -97,11 +97,11 @@ export function useWall(): Wall {
             }),
           )
         } else if (msg.type === 'dismiss') {
-          // The item stays; only its flag goes.
+          // The item stays; only its flag and its question go.
           setItems((prev) =>
             prev.map((i) => {
               if (i.id !== msg.id) return i
-              const { attention: _cleared, ...rest } = i
+              const { attention: _cleared, question: _closed, choices: _offered, ...rest } = i
               return rest
             }),
           )

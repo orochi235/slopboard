@@ -173,3 +173,80 @@
   background: var(--bg);
   cursor: default;
 }
+
+/* Above the caption, in the same chip treatment, and wider: a question is the
+   one thing in the surround that is waiting on the viewer. */
+.lightbox__ask {
+  position: fixed;
+  /* A sibling of `.lightbox` rather than inside it, so it clears that layer. */
+  z-index: 101;
+  bottom: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  outline: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--scrim) 88%, transparent);
+  color: var(--ink);
+  font: calc(12px * var(--ui-type))/1.4 ui-monospace, monospace;
+  cursor: default;
+}
+
+.lightbox__question {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+}
+
+.lightbox__answers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.lightbox__reply {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  color: var(--ink);
+  font: inherit;
+}
+
+.lightbox__choice,
+.lightbox__skip {
+  padding: 3px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lightbox__choice:hover,
+.lightbox__choice:focus-visible {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.lightbox__choice:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.lightbox__skip {
+  margin-left: auto;
+  border-color: transparent;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+.lightbox__skip:hover,
+.lightbox__skip:focus-visible {
+  color: var(--ink);
+}

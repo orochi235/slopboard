@@ -187,3 +187,72 @@ describe('expireZone', () => {
     expect(await store.expireZone('nowhere')).toEqual([])
   })
 })
+
+describe('questions', () => {
+  const asking = (over: Partial<WallItem> = {}) =>
+    itemAt(source, {
+      question: 'which crop?',
+      choices: ['left', 'right'],
+      attention: { level: 'look', holdMs: null },
+      ...over,
+    })
+  const answerFile = () => join(root, 'answers', 'a.png')
+  const sidecar = async () => JSON.parse(await readFile(`${source}.slop.json`, 'utf8'))
+
+  beforeEach(async () => {
+    await writeFile(
+      `${source}.slop.json`,
+      JSON.stringify({ question: 'which crop?', choices: ['left', 'right'], attention: 'look', caption: 'a' }),
+    )
+  })
+
+  it('writes the answer where the asker waits, and stops asking on the wall and on disk', async () => {
+    const store = await freshStore(root)
+    store.add({ item: asking(), sourcePath: source, cachePath: join(root, 'a.webp') })
+
+    expect(await store.answer('a1', 'answered', 'left')).toBe(true)
+    expect(await readFile(answerFile(), 'utf8')).toBe('answered\nleft')
+    const item = store.snapshot()[0]
+    expect(item?.question).toBeUndefined()
+    expect(item?.choices).toBeUndefined()
+    expect(item?.attention).toBeUndefined()
+    expect(await sidecar()).toEqual({ caption: 'a' })
+  })
+
+  it('answers once, so a second click cannot overwrite what the asker already read', async () => {
+    const store = await freshStore(root)
+    store.add({ item: asking(), sourcePath: source, cachePath: join(root, 'a.webp') })
+    await store.answer('a1', 'answered', 'left')
+    expect(await store.answer('a1', 'answered', 'right')).toBe(false)
+    expect(await readFile(answerFile(), 'utf8')).toBe('answered\nleft')
+  })
+
+  it('ends the wait as dismissed only when dismissing is meant to close the question', async () => {
+    const store = await freshStore(root)
+    store.add({ item: asking(), sourcePath: source, cachePath: join(root, 'a.webp') })
+    expect(await store.dismiss('a1')).toBe(false)
+    expect(existsSync(answerFile())).toBe(false)
+    expect(store.snapshot()[0]?.question).toBe('which crop?')
+    expect(await store.dismiss('a1', true)).toBe(true)
+    expect(await readFile(answerFile(), 'utf8')).toBe('dismissed\n')
+  })
+
+  it('ends the wait as expired when the card is expired by hand', async () => {
+    const store = await freshStore(root)
+    store.add({ item: asking(), sourcePath: source, cachePath: join(root, 'a.webp') })
+    await store.expireNow('a1')
+    expect(await readFile(answerFile(), 'utf8')).toBe('expired\n')
+    // Undone, it comes back as an ordinary card: the asker has already gone.
+    const [back] = await store.undoExpiry()
+    expect(back?.question).toBeUndefined()
+  })
+
+  it('is never taken by its TTL while it is still open', async () => {
+    const store = await freshStore(root)
+    store.add({ item: asking(), sourcePath: source, cachePath: join(root, 'a.webp') })
+    const stop = store.startSweeper()
+    await new Promise((r) => setTimeout(r, 1200))
+    stop()
+    expect(existsSync(source)).toBe(true)
+  })
+})

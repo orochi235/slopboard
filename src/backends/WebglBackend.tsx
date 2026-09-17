@@ -1699,19 +1699,30 @@ export function WebglBackend(props: Props) {
 
   // Opening a card is the thing the flag was asking for, so looking at it is
   // what clears it. Fire-and-forget: the daemon broadcasts the change, and a
-  // dismissal that fails costs a halo that is still accurate.
+  // dismissal that fails costs a halo that is still accurate. Not a card with
+  // a question on it, which only an explicit dismiss closes.
+  const openedAsks = items.find((i) => i.id === card)?.question !== undefined
   useEffect(() => {
     if (card === null) return
     dropFake(card)
+    if (openedAsks) return
     void fetch(`/api/items/${card}/dismiss`, { method: 'POST' }).catch(() => {})
-  }, [card, dropFake])
+  }, [card, openedAsks, dropFake])
+
+  const answer = useCallback((id: string, text: string) => {
+    void fetch(`/api/items/${id}/answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    }).catch(() => {})
+  }, [])
 
   // The daemon has no record of a fabricated flag, so the row's × has to clear
   // it here; a real one still goes the one route that exists for it.
   const dismiss = useCallback(
     (id: string) => {
       dropFake(id)
-      void fetch(`/api/items/${id}/dismiss`, { method: 'POST' }).catch(() => {})
+      void fetch(`/api/items/${id}/dismiss?question=close`, { method: 'POST' }).catch(() => {})
     },
     [dropFake],
   )
@@ -1978,6 +1989,8 @@ export function WebglBackend(props: Props) {
           now={now}
           quietMs={props.params.nav.quietMs}
           onClose={() => dispatch({ type: 'out' })}
+          onAnswer={answer}
+          onDismiss={dismiss}
         />
       )}
     </>

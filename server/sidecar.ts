@@ -23,6 +23,11 @@ export function parseStamp(blob: unknown): Stamp {
     const value = held[key]
     if (typeof value === 'string' && value !== '') out[key] = value
   }
+  if (typeof held.question === 'string' && held.question !== '') out.question = held.question
+  if (Array.isArray(held.choices)) {
+    const choices = held.choices.filter((c): c is string => typeof c === 'string' && c !== '')
+    if (choices.length > 0) out.choices = choices
+  }
   return out
 }
 
@@ -58,6 +63,20 @@ export async function clearAttention(imagePath: string): Promise<void> {
   } catch {
     // Nothing to clear, or a sidecar this build cannot read. Either way the
     // dismissal already happened in the store, which is what the wall shows.
+  }
+}
+
+/** Drops the question and its flag, so a restart does not ask it again. */
+export async function clearQuestion(imagePath: string): Promise<void> {
+  const path = sidecarFor(imagePath)
+  try {
+    const blob = JSON.parse(await readFile(path, 'utf8')) as Record<string, unknown>
+    delete blob.question
+    delete blob.choices
+    delete blob.attention
+    await writeFile(path, `${JSON.stringify(blob)}\n`)
+  } catch {
+    // No sidecar is no question on disk to clear.
   }
 }
 

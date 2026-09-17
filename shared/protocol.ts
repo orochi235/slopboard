@@ -21,6 +21,10 @@ export type WallItem = {
   path: string
   /** The badge a flagged item wears. Absent means it wears none. */
   note?: string
+  /** An open question the agent is waiting on. Gone once it is answered or
+   *  closed. `choices` absent means the answer is free text. */
+  question?: string
+  choices?: string[]
   /** What `bin/slop` saw when it ran: the repository and the short commit.
    *  Absent for anything dropped in by hand. */
   repo?: string
@@ -63,7 +67,8 @@ export type ServerMessage =
   | { type: 'zoneColors'; zoneColors: Record<string, string> }
   | { type: 'arrive'; item: WallItem }
   | { type: 'expire'; id: string }
-  /** The item is still on the wall; it has just stopped asking to be looked at. */
+  /** The item is still on the wall; it has just stopped asking to be looked at,
+   *  and any question on it is closed. */
   | { type: 'dismiss'; id: string }
   /** Rescued, or let go again. `keptAt` is null for the second. */
   | { type: 'keep'; id: string; keptAt: number | null }

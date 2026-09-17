@@ -14,6 +14,13 @@
 #                                `none` removes the sandbox entirely. Whoever
 #                                pushes the page decides this; the wall
 #                                applies what it is told.
+#   slop --ask "which crop reads better?" --choice left --choice right FILE
+#                             asks on the card and waits for the answer, then
+#                             prints it. No --choice is a free-text answer.
+#                             Exits 3 if the question is dismissed, 4 if the
+#                             card is expired first. Run it in the background.
+#   slop --wait PATH          waits on a question already sent, by the path
+#                             `slop --ask` printed
 #   some-generator | slop     reads stdin, writes a .png
 #   slop --print-zone         prints the zone this repo resolves to, and exits
 #
@@ -29,12 +36,21 @@ set -eu
 # silently invisible artifact the ingest contract exists to prevent.
 held_ext="png jpg jpeg webp gif avif tiff html htm"
 
+# JSON string escaping, for text that may hold a quote, a backslash or a
+# newline. The awk joins lines with a literal \n, since sed works a line at a time.
+json_escape() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | awk 'NR > 1 { printf "\\n" } { printf "%s", $0 }'
+}
+
 zone=""
 ttl=""
 caption=""
 attention=""
 note=""
 sandbox=""
+question=""
+choices=""
+wait_for=""
 [ -n "${SLOP_ZONE:-}" ] && zone="$SLOP_ZONE"
 while :; do
   case "${1:-}" in
@@ -44,6 +60,9 @@ while :; do
     --attention) attention="$2"; shift 2 ;;
     --note) note="$2"; shift 2 ;;
     --sandbox) sandbox="$2"; shift 2 ;;
+    --ask) question="$2"; shift 2 ;;
+    --choice) choices="$choices${choices:+,}\"$(json_escape "$2")\""; shift 2 ;;
+    --wait) wait_for="$2"; shift 2 ;;
     *) break ;;
   esac
 done
@@ -66,17 +85,13 @@ ext_of() {
   printf '%s' "$e" | tr 'A-Z' 'a-z'
 }
 
-# JSON string escaping, for a caption that may hold a quote or a backslash.
-json_escape() {
-  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
-}
 
 # Beside the image and before it: the daemon triggers on the image arriving, so
 # a sidecar written afterwards is a race it would lose.
 write_sidecar() {
   dest_image=$1
   dest_caption=$2
-  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && return 0
+  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && return 0
   {
     printf '{"repo":"%s"' "$(json_escape "$repo")"
     [ -n "$sha" ] && printf ',"sha":"%s"' "$(json_escape "$sha")"
@@ -84,6 +99,8 @@ write_sidecar() {
     [ -n "$attention" ] && printf ',"attention":"%s"' "$(json_escape "$attention")"
     [ -n "$note" ] && printf ',"note":"%s"' "$(json_escape "$note")"
     [ -n "$sandbox" ] && printf ',"sandbox":"%s"' "$(json_escape "$sandbox")"
+    [ -n "$question" ] && printf ',"question":"%s"' "$(json_escape "$question")"
+    [ -n "$question" ] && [ -n "$choices" ] && printf ',"choices":[%s]' "$choices"
     printf '}\n'
   } > "$dest_image.slop.json"
 }
@@ -91,6 +108,31 @@ write_sidecar() {
 if [ "${1:-}" = "--print-zone" ]; then echo "$zone"; exit 0; fi
 
 slop_root="${SLOP_ROOT:-$HOME/slop}"
+
+# The daemon writes the answer to answers/<the name slop gave the file>: the
+# status on the first line, the answer after it.
+await_answer() {
+  answer="$slop_root/answers/$(basename "$1")"
+  while [ ! -f "$answer" ]; do sleep 1; done
+  status=$(head -n 1 "$answer")
+  tail -n +2 "$answer"
+  rm -f "$answer"
+  case "$status" in
+    answered) printf '\n'; exit 0 ;;
+    dismissed) echo "slop: dismissed without an answer" >&2; exit 3 ;;
+    *) echo "slop: the card was expired before it was answered" >&2; exit 4 ;;
+  esac
+}
+
+if [ -n "$wait_for" ]; then await_answer "$wait_for"; fi
+if [ -n "$question" ] && [ $# -gt 1 ]; then
+  echo "slop: --ask takes one file, since one answer comes back" >&2
+  exit 1
+fi
+if [ -z "$question" ] && [ -n "$choices" ]; then
+  echo "slop: --choice needs --ask" >&2
+  exit 1
+fi
 dir="$slop_root/inbox/$zone"
 mkdir -p "$dir"
 
@@ -107,6 +149,7 @@ if [ $# -eq 0 ]; then
   write_sidecar "$dest" "$caption"
   cat > "$dest"
   echo "$dest"
+  [ -n "$question" ] && await_answer "$dest"
   exit 0
 fi
 
@@ -134,4 +177,5 @@ for f in "$@"; do
   write_sidecar "$dest" "$own"
   cp "$f" "$dest"
   echo "$dest"
+  [ -n "$question" ] && await_answer "$dest"
 done

@@ -26,6 +26,12 @@ describe('parseStamp', () => {
     expect(parseStamp({ caption: 12, zone: '', repo: null })).toEqual({})
   })
 
+  it('takes the choices as a list of strings, dropping anything else in it', () => {
+    expect(parseStamp({ question: 'q', choices: ['a', 3, '', 'b'] })).toEqual({ question: 'q', choices: ['a', 'b'] })
+    expect(parseStamp({ choices: 'a' })).toEqual({})
+    expect(parseStamp({ choices: [] })).toEqual({})
+  })
+
   it('is empty for anything that is not an object', () => {
     expect(parseStamp(null)).toEqual({})
     expect(parseStamp('caption')).toEqual({})

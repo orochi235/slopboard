@@ -14,6 +14,10 @@ export type Stamp = {
   /** Not written into the XMP: an HTML file is never stamped, since
    *  `stampOriginal` returns early for anything but a PNG. */
   sandbox?: string
+  /** What the agent asked, and the answers it offered. No choices means the
+   *  answer is free text. Sidecar only, like `kept`. */
+  question?: string
+  choices?: string[]
   /** When the wall rescued this, ISO. Wall state rather than provenance, so it
    *  stays in the sidecar and never reaches the XMP packet. */
   kept?: string

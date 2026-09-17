@@ -99,10 +99,14 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   await stampOriginal(sourcePath, xmp)
 
   const ttlMs = ttlFromName(basename(sourcePath))
-  const attention = sidecar?.attention ? parseAttention(sidecar.attention) : null
-  if (sidecar?.attention && !attention) {
+  const question = sidecar?.question ?? null
+  const asked = sidecar?.attention ? parseAttention(sidecar.attention) : null
+  if (sidecar?.attention && !asked) {
     console.warn(`[ingest] unreadable attention "${sidecar.attention}" on ${basename(sourcePath)}`)
   }
+  // Someone is waiting on a question, so it always asks to be looked at.
+  const attention = asked ?? (question === null ? null : parseAttention('look'))
+  const note = sidecar?.note ?? question
   const keptAt = keptFrom(sidecar)
   const item: WallItem = {
     id,
@@ -110,7 +114,9 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     ...(keptAt === null ? {} : { keptAt }),
     ...(attention === null ? {} : { attention }),
     // A note without a flag has nothing to hang on, so it is dropped with it.
-    ...(attention !== null && sidecar?.note ? { note: sidecar.note } : {}),
+    ...(attention !== null && note ? { note } : {}),
+    ...(question === null ? {} : { question }),
+    ...(question !== null && sidecar?.choices ? { choices: sidecar.choices } : {}),
     ...(sidecar?.repo ? { repo: sidecar.repo } : {}),
     ...(sidecar?.sha ? { sha: sidecar.sha } : {}),
     ...(kind === 'page' ? { kind: 'page' as const } : {}),

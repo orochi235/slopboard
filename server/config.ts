@@ -9,6 +9,9 @@ export const config = {
   inbox: join(root, 'inbox'),
   cache: join(root, '.cache'),
   trash: join(root, 'trash'),
+  /** Where a question's answer lands, named for the file `bin/slop` sent.
+   *  Not beside the image: expiry renames that into the trash. */
+  answers: join(root, 'answers'),
   port: Number(process.env.SLOP_PORT ?? 8787),
   ttlMs: parseDuration(process.env.SLOP_TTL ?? '8h') ?? 28_800_000,
   trashMs: 24 * 60 * 60 * 1000,
