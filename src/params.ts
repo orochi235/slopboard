@@ -285,12 +285,20 @@ export type StackParams = {
     /** How far the viewpoint swings at full deflection, px. */
     swing: number
   }
-  /** The prefs sheet's parallax, handed to delamin8r. `window` mode only: the
-   *  sheet is a form, and a deck that tilts moves what you are reaching for. */
+  /** The prefs modal's parallax, handed to delamin8r. `window` mode only: the
+   *  sheet is a form, and a deck that tilts moves what you are reaching for.
+   *  The scrim is the stage, so the sheet itself is a plane and swings against
+   *  the wall behind it. */
   prefs: {
     parallax: boolean
-    /** Z between adjacent planes, px. */
+    /** Z between adjacent planes, px. Small, and paid for with `swing`: a
+     *  plane's travel goes as `swing * z / (perspective - z)` while the
+     *  compositing it costs goes as `z / perspective`, so depth bought with
+     *  the viewpoint is free where depth bought with Z softens the text. */
     step: number
+    /** px. Left to delamin8r this comes off the container, and the scrim is
+     *  the viewport. */
+    perspective: number
     /** How far the viewpoint swings at full deflection, px. */
     swing: number
   }
@@ -577,8 +585,9 @@ export const defaultParams: StackParams = {
   },
   prefs: {
     parallax: true,
-    step: 14,
-    swing: 40,
+    step: 12,
+    perspective: 1400,
+    swing: 420,
   },
   typeface: {
     label: 'oxanium',

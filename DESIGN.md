@@ -433,8 +433,21 @@ against every arrangement.
   input, chrome. A leaf lands in an area by the longest prefix of its path in
   `src/params.tabs.ts`, so `lod` splits and `colors` dissolves into the areas
   of what it colors while every path stays where a saved set expects it.
-  `params` itself shows every group in columns. The sheet is a delamin8r
+  `params` itself shows every group in columns. The modal is a delamin8r
   window, tuned by the `prefs` group.
+- **The scrim is the stage, not the sheet.** A delamin8r stage never moves, so
+  staging the sheet left its own 1px border as the only reference the eye had —
+  and a border is where the motion is smallest. Every plane traveled under a
+  pixel. The sheet is a plane in its own right now and swings against the wall
+  showing through the scrim, which has detail in it to move against. This is
+  the rule for any `window`-mode modal: the backdrop is the stage.
+- **Depth is bought with `swing`, not `step`.** A plane's travel goes as
+  `swing * z / (perspective - z)`; the compositing that softens its text goes
+  as `z / perspective`. So the viewpoint is the free half and Z is the
+  expensive one, and the sheet reads deeper than it did while scaling its text
+  less. `drift` is off here: in `window` mode it moves planes *with* the
+  pointer, against the parallax rather than on top of it as its own
+  documentation says, and at any Z worth having it wins.
 - **`typeface.chrome` is the face the DOM wears.** App publishes it to the root
   as `--chrome-face`, and every panel, sheet and menu reads that rather than
   naming a font. The `?` card's wordmark and crest keep their own faces; they

@@ -44,7 +44,7 @@ export function Prefs({
   )
   const [tabId, setTabId] = useState(() => resolveTab(tabs, readTab()).id)
   const tab = resolveTab(tabs, tabId)
-  const sheet = useRef<HTMLDivElement>(null)
+  const stage = useRef<HTMLDivElement>(null)
   const look = params.prefs
 
   useEffect(() => {
@@ -67,18 +67,29 @@ export function Prefs({
     return () => window.removeEventListener('keydown', onKey, true)
   }, [onClose])
 
-  // delamin8r reads its options once, so a tuning change unwraps the sheet and
+  // delamin8r reads its options once, so a tuning change unwraps the modal and
   // wraps it again. `window`, not `tilt`: the sheet is a form, and a deck that
   // turns under the pointer moves what the hand is reaching for.
+  //
+  // The stage is the scrim, not the sheet. A stage never moves, so staging the
+  // sheet left its own border as the only reference the eye had, and a border
+  // is where the motion is smallest; against the wall showing through the
+  // scrim, the sheet has something with detail in it to move against.
   useEffect(() => {
-    const el = sheet.current
+    const el = stage.current
     if (!el || !look.parallax) return
     const handle = delaminate(el, {
       mode: 'window',
       step: look.step,
+      perspective: look.perspective,
       swing: look.swing,
-      // The head, the tab column and the body, then the tabs and the close.
-      maxDepth: 2,
+      // The sheet, then the head, the tab column and the body, then the tabs
+      // and the close.
+      maxDepth: 3,
+      // Window mode moves the planes against the pointer and drift moves them
+      // with it, so the default 0.05 does not add to the parallax, it cancels
+      // it — and at any sane Z it wins.
+      drift: false,
       // The body scrolls, and `overflow` flattens everything in it, so planes
       // there would only cost compositing and a warning each.
       skip: '.prefs__body > *',
@@ -87,7 +98,7 @@ export function Prefs({
       for (const { el: flat, cause } of handle.diagnose()) console.warn(`[prefs] flat: ${cause}`, flat)
     }
     return () => handle.destroy()
-  }, [look.parallax, look.step, look.swing])
+  }, [look.parallax, look.step, look.perspective, look.swing])
 
   const onTabKey = (e: ReactKeyboardEvent<HTMLElement>) => {
     const delta = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0
@@ -99,11 +110,18 @@ export function Prefs({
   }
 
   return (
-    <div className="prefs" role="dialog" aria-modal="true" aria-label="Preferences" onClick={onClose}>
+    <div
+      className="prefs"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Preferences"
+      ref={stage}
+      onClick={onClose}
+    >
       {/* Classes in here are static and state rides on attributes: delamin8r
           writes `dl-plane` onto these elements, and React setting `className`
           strips it. */}
-      <div className="prefs__sheet" ref={sheet} onClick={(e) => e.stopPropagation()}>
+      <div className="prefs__sheet" onClick={(e) => e.stopPropagation()}>
         <div className="prefs__head" data-dl-lift="1">
           <span className="prefs__title">preferences</span>
           <button type="button" className="prefs__close" onClick={onClose} aria-label="Close">
