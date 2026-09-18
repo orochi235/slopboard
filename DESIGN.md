@@ -448,6 +448,16 @@ against every arrangement.
   less. `drift` is off here: in `window` mode it moves planes *with* the
   pointer, against the parallax rather than on top of it as its own
   documentation says, and at any Z worth having it wins.
+- **An area that fits gives up its scroller.** A scrolling box takes its whole
+  subtree out of 3D, and moving the scroller up to the sheet or the scrim only
+  moves the flattening with it — so the body's controls get planes only when
+  the body does not scroll. Seven of the eight areas fit; only `params`, which
+  shows every group at once, overflows, and it overflows sideways, since a
+  multicol box with a fixed height spills into more columns rather than down
+  the page. So the body takes `data-fits` when it has nothing to scroll, drops
+  to `overflow: visible`, and its group cards become a plane of their own; an
+  area that overflows keeps the scroller and stays flat. `scrollWidth` reports
+  the overflow in either state, so the switch cannot flip-flop.
 - **`typeface.chrome` is the face the DOM wears.** App publishes it to the root
   as `--chrome-face`, and every panel, sheet and menu reads that rather than
   naming a font. The `?` card's wordmark and crest keep their own faces; they

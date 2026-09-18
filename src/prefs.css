@@ -111,6 +111,14 @@
   padding: 8px 14px 12px;
 }
 
+/* A scrolling box takes its whole subtree out of 3D, and the computed
+   `transform-style` still reads `preserve-3d` afterwards, so the loss is
+   silent. Every area but `params` fits the sheet, and an area that fits has
+   nothing to scroll — so it gives the scroller up and gets its planes. */
+.prefs__body[data-fits] {
+  overflow: visible;
+}
+
 /* A width rather than a count, so the sheet fills three columns when it has
    the room and folds to fewer on a narrow window. An area with one group is
    one column, which keeps a slider from stretching the width of the sheet. */

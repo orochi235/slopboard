@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import { delaminate } from 'delamin8r'
 import { ParamsBody } from '@/Params.tsx'
 import { controlsOf } from '@/params.controls.ts'
@@ -45,7 +52,26 @@ export function Prefs({
   const [tabId, setTabId] = useState(() => resolveTab(tabs, readTab()).id)
   const tab = resolveTab(tabs, tabId)
   const stage = useRef<HTMLDivElement>(null)
+  const body = useRef<HTMLDivElement>(null)
+  const [fits, setFits] = useState(false)
   const look = params.prefs
+
+  // Whether this area needs the scroller at all. Only `params` — every group
+  // at once — overflows, and it overflows sideways, since a multicol box with
+  // a fixed height spills into more columns rather than down the page.
+  useLayoutEffect(() => {
+    const el = body.current
+    if (!el) return
+    const measure = () =>
+      setFits(el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight)
+    measure()
+    // The children too: a group folds and unfolds under the pointer, and the
+    // body's own box never changes when it does.
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    for (const child of el.children) ro.observe(child)
+    return () => ro.disconnect()
+  }, [tab.id])
 
   useEffect(() => {
     try {
@@ -83,22 +109,22 @@ export function Prefs({
       step: look.step,
       perspective: look.perspective,
       swing: look.swing,
-      // The sheet, then the head, the tab column and the body, then the tabs
-      // and the close.
+      // The sheet, then the head, the tab column and the body, then the tabs,
+      // the close and the body's own group cards.
       maxDepth: 3,
       // Window mode moves the planes against the pointer and drift moves them
       // with it, so the default 0.05 does not add to the parallax, it cancels
       // it — and at any sane Z it wins.
       drift: false,
-      // The body scrolls, and `overflow` flattens everything in it, so planes
+      // While the body scrolls, `overflow` flattens everything in it, so planes
       // there would only cost compositing and a warning each.
-      skip: '.prefs__body > *',
+      skip: fits ? undefined : '.prefs__body > *',
     })
     if (import.meta.env.DEV) {
       for (const { el: flat, cause } of handle.diagnose()) console.warn(`[prefs] flat: ${cause}`, flat)
     }
     return () => handle.destroy()
-  }, [look.parallax, look.step, look.perspective, look.swing])
+  }, [look.parallax, look.step, look.perspective, look.swing, fits])
 
   const onTabKey = (e: ReactKeyboardEvent<HTMLElement>) => {
     const delta = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0
@@ -158,7 +184,9 @@ export function Prefs({
           className="prefs__body"
           id="prefs-panel"
           role="tabpanel"
+          ref={body}
           data-dl-lift="1"
+          data-fits={fits ? '' : undefined}
         >
           {tab.id === WALL ? (
             <WallBody ttlMs={ttlMs} onTtl={onTtl} />

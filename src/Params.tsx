@@ -131,6 +131,10 @@ export function ParamsBody({
         <details
           className="params__group wzl-skin"
           key={group.name}
+          // Where this body is delaminated, the cards are the layer the eye is
+          // actually on, and a tied sibling sits a quarter-step off its
+          // backing — under a pixel of travel. Inert outside a stage.
+          data-dl-lift="3"
           open={expanded || only !== undefined || group.name === 'wall'}
         >
           <summary className="params__groupName">{group.name}</summary>
