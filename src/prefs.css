@@ -25,6 +25,17 @@
   background: var(--bg);
   color: var(--ink);
   font: 500 calc(11px * var(--ui-type))/1.3 var(--chrome-face);
+  /* Depth the hand does not have to chase. Every pixel a plane travels is a
+     pixel a control slides out from under the pointer, which is the same
+     complaint that kept this modal out of `tilt` mode — so the sheet's own
+     cue is its shadow, swinging the width of the parallax against the scrim
+     while every box stays where it was aimed at. `--dl-px` is delamin8r's
+     deflection, ±1, inherited from the stage. */
+  box-shadow:
+    calc(var(--dl-px, 0) * 9px) calc(var(--dl-py, 0) * 7px + 3px) 10px
+      color-mix(in srgb, var(--scrim) 58%, transparent),
+    calc(var(--dl-px, 0) * 30px) calc(var(--dl-py, 0) * 23px + 14px) 48px
+      color-mix(in srgb, var(--scrim) 84%, transparent);
 }
 
 .prefs__head {

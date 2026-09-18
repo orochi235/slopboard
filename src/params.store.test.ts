@@ -82,7 +82,7 @@ describe('saveParams', () => {
   })
 })
 
-describe('migrating a v1 panel', () => {
+describe('migrating a stored panel', () => {
   const fake = (): Storage => {
     const map = new Map<string, string>()
     return {
@@ -120,13 +120,43 @@ describe('migrating a v1 panel', () => {
     storage.setItem('slopboard.params.v1', JSON.stringify({ origin: { x: 0.9, y: 0.9 } }))
     loadParams(defaultParams, storage)
     expect(storage.getItem('slopboard.params.v1')).toBeNull()
-    expect(storage.getItem('slopboard.params.v2')).not.toBeNull()
+    expect(storage.getItem('slopboard.params.v3')).not.toBeNull()
   })
 
-  it('prefers a v2 panel over a v1 left behind', () => {
+  it('prefers a newer panel over an older one left behind', () => {
     const storage = fake()
     storage.setItem('slopboard.params.v1', JSON.stringify({ origin: { x: 0.1, y: 0.1 } }))
     storage.setItem('slopboard.params.v2', JSON.stringify({ origin: { x: 0.7, y: 0.7 } }))
     expect(loadParams(defaultParams, storage).origin).toEqual({ x: 0.7, y: 0.7 })
+  })
+
+  it('gives back the prefs subtree, whose stage moved from the sheet to the scrim', () => {
+    const storage = fake()
+    storage.setItem(
+      'slopboard.params.v2',
+      JSON.stringify({ prefs: { parallax: true, step: 14, swing: 40 }, origin: { x: 0.9, y: 0.9 } }),
+    )
+    const out = loadParams(defaultParams, storage)
+    expect(out.prefs).toEqual(defaultParams.prefs)
+    // and the rest of a panel tuned over weeks still survives it
+    expect(out.origin).toEqual({ x: 0.9, y: 0.9 })
+  })
+
+  it('gives back prefs from a v1 panel too, which predates the change as well', () => {
+    const storage = fake()
+    storage.setItem(
+      'slopboard.params.v1',
+      JSON.stringify({ prefs: { parallax: true, step: 14, swing: 40 } }),
+    )
+    expect(loadParams(defaultParams, storage).prefs).toEqual(defaultParams.prefs)
+  })
+
+  it('leaves every legacy key retired, so a stale one cannot resurface', () => {
+    const storage = fake()
+    storage.setItem('slopboard.params.v1', JSON.stringify({ origin: { x: 0.1, y: 0.1 } }))
+    storage.setItem('slopboard.params.v2', JSON.stringify({ origin: { x: 0.7, y: 0.7 } }))
+    loadParams(defaultParams, storage)
+    expect(storage.getItem('slopboard.params.v1')).toBeNull()
+    expect(storage.getItem('slopboard.params.v2')).toBeNull()
   })
 })
