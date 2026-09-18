@@ -428,13 +428,28 @@ against every arrangement.
   `Color.set` and reads darker than its palette entry says.
 - **Preferences have two surfaces** — the corner panel and a sheet on `,` —
   rendering one `ParamsBody` so they cannot drift while prefs is still a copy
-  of params. The sheet's left column lists surfaces with six areas of the
-  wall nested under `params` — piles, cards, flags, zones & sky, camera &
-  input, chrome. A leaf lands in an area by the longest prefix of its path in
-  `src/params.tabs.ts`, so `lod` splits and `colors` dissolves into the areas
-  of what it colors while every path stays where a saved set expects it.
-  `params` itself shows every group in columns. The modal is a delamin8r
-  window, tuned by the `prefs` group.
+  of params. The sheet's left column leads with `general`, then lists surfaces
+  with six areas of the wall nested under `params` — piles, cards, flags,
+  zones & sky, camera & input, chrome. A leaf lands in an area by the longest
+  prefix of its path in `src/params.tabs.ts`, so `lod` splits and `colors`
+  dissolves into the areas of what it colors while every path stays where a
+  saved set expects it. `params` itself shows every group in columns. The
+  modal is a delamin8r window, tuned by the `prefs` group.
+- **`general` is the tab for what you want first, not for one part of the
+  wall.** It is absent from `CATEGORIES`, so it never nests under `params`, and
+  its leaves are drawn from wherever they live — `general.parallax`,
+  `typeface.chrome`, `camera.projection` — by the same longest-prefix rule,
+  which takes them out of the area they would otherwise sit in rather than
+  showing them twice. It also carries the daemon's lifetime, the one setting in
+  the sheet that holds for every browser rather than this one; that retired the
+  `wall` tab, whose only row it was.
+- **`general.parallax` gates every delamin8r surface** — the band, the card
+  menu, the `?` card and this sheet — over each surface's own flag, so a
+  surface tuned off stays off when the gate comes back on. The menu and the `?`
+  card have no flag of their own and answer to the gate alone. The two hook
+  surfaces are detached by passing a null ref rather than tuned flat: a handle
+  that is torn down leaves the DOM as it found it, where a zeroed `step` would
+  leave every plane composited for nothing.
 - **The scrim is the stage, not the sheet.** A delamin8r stage never moves, so
   staging the sheet left its own 1px border as the only reference the eye had —
   and a border is where the motion is smallest. Every plane traveled under a

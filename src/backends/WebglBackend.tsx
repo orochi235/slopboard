@@ -2248,6 +2248,7 @@ export function WebglBackend(props: Props) {
         onList={toggleList}
         connected={props.connected}
         look={props.params.band}
+        allowParallax={props.params.general.parallax}
         plan={
           <Minimap
             cells={plan.cells}
@@ -2296,6 +2297,7 @@ export function WebglBackend(props: Props) {
           zonePinned={menuZone !== null && menuZone in props.pinnedZones}
           armed={armed}
           look={props.params.menu}
+          allowParallax={props.params.general.parallax}
           onAct={act}
           onClose={() => {
             setArmed(null)

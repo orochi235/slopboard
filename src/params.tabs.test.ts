@@ -21,7 +21,19 @@ describe('categoryOf', () => {
     expect(categoryOf('colors.skyGlow')).toBe('zones')
     expect(categoryOf('colors.accent')).toBe('chrome')
     expect(categoryOf('typeface.badge')).toBe('flags')
-    expect(categoryOf('typeface.chrome')).toBe('chrome')
+  })
+
+  it('draws the general tab from wherever its leaves live', () => {
+    expect(categoryOf('general.parallax')).toBe('general')
+    // The longest listed prefix wins, so these leave the area they read as
+    // belonging to rather than appearing in both.
+    expect(categoryOf('typeface.chrome')).toBe('general')
+    expect(categoryOf('camera.projection')).toBe('general')
+    expect(categoryOf('camera.yawDeg')).toBe('camera')
+  })
+
+  it('keeps general out of the areas nested under params', () => {
+    expect(categoriesFor(['general.parallax', 'sky.spreadDeg']).map((c) => c.id)).toEqual(['zones'])
   })
 
   it('places every default leaf somewhere named, so nothing lands in other', () => {

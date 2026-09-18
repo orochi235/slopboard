@@ -32,6 +32,7 @@ export function CardMenu({
   zonePinned,
   armed,
   look,
+  allowParallax,
   onAct,
   onClose,
 }: {
@@ -45,6 +46,8 @@ export function CardMenu({
   /** The row clicked once and waiting to be meant. */
   armed?: Action | null
   look: StackParams['menu']
+  /** The app-wide parallax gate. The menu has no flag of its own. */
+  allowParallax: boolean
   onAct: (action: Action) => void
   onClose: () => void
 }) {
@@ -61,7 +64,10 @@ export function CardMenu({
   })
   // One stable function, not an inline arrow: React detaches and reattaches a
   // ref whose identity changed, `useDelaminate` sets state on every attach, and
-  // that is an infinite render loop rather than a slow one.
+  // that is an infinite render loop rather than a slow one. Two of them rather
+  // than one reading the gate, for the same reason — a callback that closes
+  // over a flag changes identity when the flag does, and the menu still has to
+  // measure itself for placement when it is not delaminated.
   const hold = useCallback(
     (node: HTMLDivElement | null) => {
       box.current = node
@@ -69,6 +75,9 @@ export function CardMenu({
     },
     [ref],
   )
+  const holdFlat = useCallback((node: HTMLDivElement | null) => {
+    box.current = node
+  }, [])
 
   useLayoutEffect(() => {
     const el = box.current
@@ -154,7 +163,7 @@ export function CardMenu({
       <div
         className="menu"
         data-placed={spot ? '' : undefined}
-        ref={hold}
+        ref={allowParallax ? hold : holdFlat}
         style={spot ? { left: `${spot.left}px`, top: `${spot.top}px` } : undefined}
         onPointerDown={(e) => e.stopPropagation()}
         onPointerUp={(e) => e.stopPropagation()}

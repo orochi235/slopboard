@@ -79,7 +79,7 @@ export function App() {
         announce={announce}
         connected={connected}
       />
-      <ParallaxModal />
+      <ParallaxModal allowParallax={params.general.parallax} />
       <Toasts alerts={alerts} onDismiss={dismissAlert} />
       {prefs && (
         <Prefs

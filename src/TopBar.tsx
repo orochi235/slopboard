@@ -31,6 +31,7 @@ export function TopBar({
   plan,
   axes,
   look,
+  allowParallax,
   listed,
   onList,
 }: {
@@ -57,6 +58,8 @@ export function TopBar({
   plan?: ReactNode
   axes?: ReactNode
   look: StackParams['band']
+  /** The app-wide parallax gate, over `look.parallax`. */
+  allowParallax: boolean
   /** Whether the lightbox pages the whole wall as one list. */
   listed: boolean
   onList: () => void
@@ -90,7 +93,7 @@ export function TopBar({
   // row would be left laying out one child.
   useEffect(() => {
     const el = band.current
-    if (!el || !look.parallax) return
+    if (!el || !allowParallax || !look.parallax) return
     const handle = delaminate(el, {
       mode: 'window',
       step: look.step,
@@ -104,7 +107,7 @@ export function TopBar({
       for (const { el: flat, cause } of handle.diagnose()) console.warn(`[band] flat: ${cause}`, flat)
     }
     return () => handle.destroy()
-  }, [look.parallax, look.step, look.perspective, look.swing])
+  }, [allowParallax, look.parallax, look.step, look.perspective, look.swing])
 
   return (
     <header className="topbar" ref={band} aria-label="Wall filters">

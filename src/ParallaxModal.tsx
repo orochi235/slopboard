@@ -27,7 +27,7 @@ const signed = (z: number) => `${z < 0 ? '−' : '+'}${Math.abs(Math.round(z))}`
  * A card whose parts sit on real Z planes inside one perspective, so pointer
  * movement swings them past each other rather than sliding them in the plane.
  */
-export function ParallaxModal() {
+export function ParallaxModal({ allowParallax }: { allowParallax: boolean }) {
   const [open, setOpen] = useState(false)
   const { ref, handle } = useDelaminate<HTMLDivElement>({
     mode: 'tilt',
@@ -82,7 +82,10 @@ export function ParallaxModal() {
     <div className="pxm" role="dialog" aria-modal="true" aria-label="About slopboard" onClick={close}>
       {/* Every class in here is static: delamin8r writes `dl-plane` onto these
           same elements, and React setting `className` would strip it. */}
-      <div className="pxm__stage" ref={ref}>
+      {/* Detached rather than tuned flat when the gate is off: a null ref tears
+          the handle down, and the card's rows then read `·` instead of a Z that
+          nothing is using. */}
+      <div className="pxm__stage" ref={allowParallax ? ref : null}>
         <div className="pxm__deck" onClick={(e) => e.stopPropagation()}>
           <div className="pxm__layer pxm__starfield" data-layer="starfield" data-dl-lift="0" aria-hidden="true" />
           <div className="pxm__layer pxm__glow" data-layer="glow" data-dl-lift="1" aria-hidden="true" />

@@ -9,29 +9,35 @@ export type PrefsTab = {
   category?: string
 }
 
+export const GENERAL = 'general'
 export const ALL = 'params'
-export const WALL = 'wall'
 
 /**
- * The sheet's tab list: the surfaces — `params`, with one nested tab per area
- * of the wall, then `wall` — built from the categories the leaves actually land
- * in, so a tab with nothing in it is not offered.
+ * The sheet's tab list: `general` first, then `params` with one nested tab per
+ * area of the wall — built from the categories the leaves actually land in, so
+ * a tab with nothing in it is not offered.
+ *
+ * `general` is the few settings worth finding first, drawn from wherever they
+ * live rather than from one part of the wall, and it carries the daemon's own
+ * lifetime too — the one setting here that holds for every browser rather than
+ * this one.
  */
 export function prefsTabs(categories: readonly Category[]): PrefsTab[] {
   return [
+    { id: GENERAL, label: GENERAL, depth: 0, category: GENERAL },
     { id: ALL, label: ALL, depth: 0 },
     ...categories.map(
       (c): PrefsTab => ({ id: `${ALL}.${c.id}`, label: c.label, depth: 1, category: c.id }),
     ),
-    // The daemon's own settings, under the browser's: what the wall is, rather
-    // than how this browser draws it.
-    { id: WALL, label: WALL, depth: 0 },
   ]
 }
 
-/** The remembered tab if the list still has it, else the whole of params. */
+/** The remembered tab if the list still has it, else the first one. */
 export function resolveTab(tabs: readonly PrefsTab[], id: string | null): PrefsTab {
-  return tabs.find((tab) => tab.id === id) ?? tabs[0] ?? { id: ALL, label: ALL, depth: 0 }
+  return (
+    tabs.find((tab) => tab.id === id) ??
+    tabs[0] ?? { id: GENERAL, label: GENERAL, depth: 0, category: GENERAL }
+  )
 }
 
 /** The tab `delta` rows from `id`, wrapping at either end. */

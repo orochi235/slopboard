@@ -21,6 +21,16 @@ export type AttentionLevel = {
 }
 
 export type StackParams = {
+  /** The few settings worth finding first, whatever they govern. First in the
+   *  type so it is the first group in the sheet and the first tab in its
+   *  column. */
+  general: {
+    /** The app-wide parallax gate, over each surface's own flag: the band, the
+     *  card menu, the `?` card and the prefs sheet all stop when this is off.
+     *  A master switch rather than a replacement, so a surface tuned off stays
+     *  off when this comes back on. */
+    parallax: boolean
+  }
   /** Per-rank offset within a pile, in world units. z is negative: away. */
   step: { x: number; y: number; z: number }
   /** Constant world side of each item's square slot. */
@@ -448,6 +458,9 @@ export type StackParams = {
 }
 
 export const defaultParams: StackParams = {
+  general: {
+    parallax: true,
+  },
   step: {
     x: -0.013,
     y: -0.009,

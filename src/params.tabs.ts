@@ -20,6 +20,14 @@ export const CATEGORIES: readonly Category[] = [
 export const OTHER: Category = { id: 'other', label: 'other' }
 
 const PLACES: Record<string, string> = {
+  // The general tab is not one of the areas of the wall, so it is absent from
+  // CATEGORIES and never nests under `params`. Its leaves are drawn from
+  // wherever they live: what they have in common is being worth finding first,
+  // not being about one part of the wall.
+  general: 'general',
+  'typeface.chrome': 'general',
+  'camera.projection': 'general',
+
   step: 'piles',
   side: 'piles',
   shoveMs: 'piles',
@@ -65,7 +73,6 @@ const PLACES: Record<string, string> = {
   menu: 'chrome',
   band: 'chrome',
   prefs: 'chrome',
-  'typeface.chrome': 'chrome',
   'colors.bg': 'chrome',
   'colors.scrim': 'chrome',
   'colors.ink': 'chrome',

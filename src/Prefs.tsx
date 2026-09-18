@@ -11,7 +11,7 @@ import { ParamsBody } from '@/Params.tsx'
 import { controlsOf } from '@/params.controls.ts'
 import { categoriesFor } from '@/params.tabs.ts'
 import type { StackParams } from '@/params.ts'
-import { prefsTabs, resolveTab, stepTab, WALL } from '@/prefs.tabs.ts'
+import { GENERAL, prefsTabs, resolveTab, stepTab } from '@/prefs.tabs.ts'
 import { WallBody } from '@/WallBody.tsx'
 import './prefs.css'
 
@@ -101,9 +101,11 @@ export function Prefs({
   // sheet left its own border as the only reference the eye had, and a border
   // is where the motion is smallest; against the wall showing through the
   // scrim, the sheet has something with detail in it to move against.
+  const parallax = params.general.parallax && look.parallax
+
   useEffect(() => {
     const el = stage.current
-    if (!el || !look.parallax) return
+    if (!el || !parallax) return
     const handle = delaminate(el, {
       mode: 'window',
       step: look.step,
@@ -124,7 +126,7 @@ export function Prefs({
       for (const { el: flat, cause } of handle.diagnose()) console.warn(`[prefs] flat: ${cause}`, flat)
     }
     return () => handle.destroy()
-  }, [look.parallax, look.step, look.perspective, look.swing, fits])
+  }, [parallax, look.step, look.perspective, look.swing, fits])
 
   const onTabKey = (e: ReactKeyboardEvent<HTMLElement>) => {
     const delta = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0
@@ -188,11 +190,8 @@ export function Prefs({
           data-dl-lift="1"
           data-fits={fits ? '' : undefined}
         >
-          {tab.id === WALL ? (
-            <WallBody ttlMs={ttlMs} onTtl={onTtl} />
-          ) : (
-            <ParamsBody params={params} onChange={onChange} expanded only={tab.category} />
-          )}
+          {tab.id === GENERAL && <WallBody ttlMs={ttlMs} onTtl={onTtl} />}
+          <ParamsBody params={params} onChange={onChange} expanded only={tab.category} />
         </div>
       </div>
     </div>

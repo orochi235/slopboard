@@ -7,14 +7,20 @@ const two = [
 ]
 
 describe('prefsTabs', () => {
-  it('leads with the whole of params, then one nested tab per area in order', () => {
+  it('leads with general, then the whole of params and one nested tab per area', () => {
     const tabs = prefsTabs(two)
     expect(tabs.map((t) => [t.id, t.label, t.depth, t.category])).toEqual([
+      ['general', 'general', 0, 'general'],
       ['params', 'params', 0, undefined],
       ['params.piles', 'piles', 1, 'piles'],
       ['params.zones', 'zones & sky', 1, 'zones'],
-      ['wall', 'wall', 0, undefined],
     ])
+  })
+
+  it('shows general alone rather than everything, unlike params', () => {
+    const [general, all] = prefsTabs(two)
+    expect(general?.category).toBe('general')
+    expect(all?.category).toBeUndefined()
   })
 })
 
@@ -23,18 +29,21 @@ describe('resolveTab', () => {
   it('keeps a remembered tab the list still has', () => {
     expect(resolveTab(tabs, 'params.zones').category).toBe('zones')
   })
-  it('falls back to the whole of params for a tab that is gone', () => {
-    expect(resolveTab(tabs, 'params.gone').id).toBe('params')
-    expect(resolveTab(tabs, null).id).toBe('params')
+  it('falls back to the first tab for one that is gone', () => {
+    expect(resolveTab(tabs, 'params.gone').id).toBe('general')
+    expect(resolveTab(tabs, null).id).toBe('general')
+  })
+  it('lands on general for a browser that remembered the retired wall tab', () => {
+    expect(resolveTab(tabs, 'wall').id).toBe('general')
   })
 })
 
 describe('stepTab', () => {
   const tabs = prefsTabs(two)
   it('moves by rows and wraps at both ends', () => {
-    expect(stepTab(tabs, 'params', 1).id).toBe('params.piles')
-    expect(stepTab(tabs, 'params', -1).id).toBe('wall')
-    expect(stepTab(tabs, 'params.zones', 1).id).toBe('wall')
-    expect(stepTab(tabs, 'wall', 1).id).toBe('params')
+    expect(stepTab(tabs, 'general', 1).id).toBe('params')
+    expect(stepTab(tabs, 'general', -1).id).toBe('params.zones')
+    expect(stepTab(tabs, 'params.zones', 1).id).toBe('general')
+    expect(stepTab(tabs, 'params', -1).id).toBe('general')
   })
 })
