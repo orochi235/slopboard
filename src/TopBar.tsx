@@ -115,7 +115,10 @@ export function TopBar({
           writes `dl-plane` onto these elements, and React setting `className`
           strips it. */}
       <Panel name="time">
-        <div className="topbar__chart">
+        {/* Out of the stack, not just off its own plane: a control nested two
+            planes deep is hit-tested a dozen px from where it paints, and the
+            range picker's thumb is 6px wide, so the grab misses every time. */}
+        <div className="topbar__chart" data-dl-skip>
           <Slider
             className="topbar__range wzl-skin"
             thumbs={[{ value: value[0] }, { value: value[1] }]}
