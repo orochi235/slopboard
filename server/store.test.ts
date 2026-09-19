@@ -278,7 +278,7 @@ describe("a zone's own lifetime", () => {
     const store = await freshStore(root)
     const zones = await import('./zones.ts')
     await zones.load()
-    await zones.set('slopboard', { ttlMs: 60_000 })
+    await zones.set('slopboard', { lifetime: 60_000 })
     // Two minutes old, inside the wall's eight hours and past the zone's minute.
     store.add({
       item: itemAt(source, { bornAt: Date.now() - 120_000 }),
@@ -299,7 +299,7 @@ describe("a zone's own lifetime", () => {
     const store = await freshStore(root)
     const zones = await import('./zones.ts')
     await zones.load()
-    await zones.set('slopboard', { ttlMs: 60_000 })
+    await zones.set('slopboard', { lifetime: 60_000 })
     store.add({
       item: itemAt(source, { bornAt: Date.now() - 120_000, ttlMs: 86_400_000 }),
       sourcePath: source,
@@ -310,6 +310,58 @@ describe("a zone's own lifetime", () => {
     stop()
     delete process.env.SLOP_TTL
     expect(existsSync(source)).toBe(true)
+  })
+
+  it.each(['indefinite', 'eternal'] as const)(
+    'holds an artifact off the clock when the zone says %s',
+    async (hold) => {
+      process.env.SLOP_TTL = '1m'
+      const store = await freshStore(root)
+      const zones = await import('./zones.ts')
+      await zones.load()
+      await zones.set('slopboard', { lifetime: hold })
+      // A year old, against a wall lifetime of one minute.
+      store.add({
+        item: itemAt(source, { bornAt: Date.now() - 365 * 86_400_000 }),
+        sourcePath: source,
+        cachePath: join(root, 'a.webp'),
+      })
+      const stop = store.startSweeper()
+      await new Promise((r) => setTimeout(r, 1200))
+      stop()
+      delete process.env.SLOP_TTL
+      expect(existsSync(source)).toBe(true)
+    },
+  )
+})
+
+describe('taking a zone in bulk', () => {
+  it('passes over an eternal zone, which is what separates it from indefinite', async () => {
+    const store = await freshStore(root)
+    const zones = await import('./zones.ts')
+    await zones.load()
+    await zones.set('slopboard', { lifetime: 'eternal' })
+    store.add({
+      item: itemAt(source, { bornAt: Date.now() }),
+      sourcePath: source,
+      cachePath: join(root, 'a.webp'),
+    })
+    expect(await store.expireZone('slopboard')).toEqual([])
+    expect(existsSync(source)).toBe(true)
+  })
+
+  it('takes an indefinite zone, which is off the clock and nothing more', async () => {
+    const store = await freshStore(root)
+    const zones = await import('./zones.ts')
+    await zones.load()
+    await zones.set('slopboard', { lifetime: 'indefinite' })
+    store.add({
+      item: itemAt(source, { bornAt: Date.now() }),
+      sourcePath: source,
+      cachePath: join(root, 'a.webp'),
+    })
+    expect(await store.expireZone('slopboard')).toHaveLength(1)
+    expect(existsSync(source)).toBe(false)
   })
 })
 

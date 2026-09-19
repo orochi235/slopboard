@@ -6,8 +6,9 @@ export const PATTERN_INDEX: Record<Backdrop, number> = {
   solid: 0,
   hatch: 1,
   crosshatch: 2,
-  diamonds: 3,
+  grid: 3,
   bricks: 4,
   dots: 5,
   checks: 6,
+  argyle: 7,
 }

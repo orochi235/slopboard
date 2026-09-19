@@ -1,8 +1,13 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { config } from './config.ts'
-import { formatDuration, parseDuration } from '@shared/duration.ts'
 import { isBackdrop } from '@shared/backdrops.ts'
+import {
+  formatLifetime,
+  isHold,
+  parseLifetime,
+  type Lifetime,
+} from '@shared/lifetime.ts'
 import type { ZoneSettings } from '@shared/protocol.ts'
 
 const file = join(config.root, 'zones.json')
@@ -25,6 +30,15 @@ const bounds = { min: 60_000, max: 90 * 86_400_000 }
 
 const HEX = /^#[0-9a-f]{6}$/i
 
+/** A lifetime the wall will hold, or null. A hold is always held: the bounds
+ *  exist to stop a number so large nothing ever leaves, and saying so outright
+ *  is not that mistake — it is the setting that mistake was imitating. */
+const heldLifetime = (lifetime: Lifetime | null): Lifetime | null => {
+  if (lifetime === null) return null
+  if (isHold(lifetime)) return lifetime
+  return lifetime >= bounds.min && lifetime <= bounds.max ? lifetime : null
+}
+
 let zones: Record<string, ZoneSettings> = {}
 
 /** One stored entry, less anything this build cannot use. A zone whose record
@@ -36,8 +50,8 @@ function clean(raw: unknown): ZoneSettings {
   if (typeof blob.color === 'string' && HEX.test(blob.color)) out.color = blob.color
   if (isBackdrop(blob.backdrop)) out.backdrop = blob.backdrop
   if (typeof blob.ttl === 'string') {
-    const ms = parseDuration(blob.ttl)
-    if (ms !== null && ms >= bounds.min && ms <= bounds.max) out.ttlMs = ms
+    const held = heldLifetime(parseLifetime(blob.ttl))
+    if (held !== null) out.lifetime = held
   }
   return out
 }
@@ -50,7 +64,7 @@ const onDisk = (all: Record<string, ZoneSettings>) => ({
       {
         ...(s.color ? { color: s.color } : {}),
         ...(s.backdrop ? { backdrop: s.backdrop } : {}),
-        ...(s.ttlMs ? { ttl: formatDuration(s.ttlMs) } : {}),
+        ...(s.lifetime === undefined ? {} : { ttl: formatLifetime(s.lifetime) }),
       },
     ]),
   ),
@@ -80,7 +94,7 @@ export const settingsFor = (zone: string): ZoneSettings => zones[zone] ?? {}
 
 /** How long an artifact in this zone lives when it carries no TTL of its own,
  *  or undefined for a zone that leaves that to the wall. */
-export const ttlFor = (zone: string): number | undefined => zones[zone]?.ttlMs
+export const lifetimeFor = (zone: string): Lifetime | undefined => zones[zone]?.lifetime
 
 /**
  * Sets the fields a patch names and leaves the rest alone; `null` puts a field
@@ -96,7 +110,7 @@ export async function set(
   patch: {
     color?: string | null
     backdrop?: ZoneSettings['backdrop'] | null
-    ttlMs?: number | null
+    lifetime?: Lifetime | null
   },
 ): Promise<ZoneSettings> {
   const next: ZoneSettings = { ...settingsFor(zone) }
@@ -107,14 +121,15 @@ export async function set(
   if (patch.backdrop === null) delete next.backdrop
   else if (isBackdrop(patch.backdrop)) next.backdrop = patch.backdrop
 
-  if (patch.ttlMs === null) delete next.ttlMs
-  else if (
-    typeof patch.ttlMs === 'number' &&
-    Number.isFinite(patch.ttlMs) &&
-    patch.ttlMs >= bounds.min &&
-    patch.ttlMs <= bounds.max
-  )
-    next.ttlMs = patch.ttlMs
+  if (patch.lifetime === null) delete next.lifetime
+  else if (patch.lifetime !== undefined) {
+    const held = heldLifetime(
+      typeof patch.lifetime === 'number' && !Number.isFinite(patch.lifetime)
+        ? null
+        : patch.lifetime,
+    )
+    if (held !== null) next.lifetime = held
+  }
 
   if (Object.keys(next).length > 0) zones[zone] = next
   else delete zones[zone]

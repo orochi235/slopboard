@@ -13,8 +13,9 @@ export const BACKDROPS = [
   'solid',
   'hatch',
   'crosshatch',
-  'diamonds',
+  'grid',
   'bricks',
+  'argyle',
   'dots',
   'checks',
 ] as const

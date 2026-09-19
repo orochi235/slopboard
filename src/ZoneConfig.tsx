@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { CheckboxRow, ColorRow, PropertyList, SelectRow } from '@weasel-js/ui'
 import { delaminate } from 'delamin8r'
-import { BACKDROPS, type Backdrop } from '@shared/backdrops.ts'
+import type { Backdrop } from '@shared/backdrops.ts'
+import { isEternal, type Lifetime } from '@shared/lifetime.ts'
+import { BackdropSwatches, INHERIT as SWATCH_INHERIT } from '@/BackdropSwatches.tsx'
 import type { ZoneSettings } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
 import type { ZonePatch } from '@/useWall.ts'
-import { ttlOptions } from '@/wall-settings.ts'
+import { lifetimeFromChoice, lifetimeLabel, lifetimeOptions } from '@/wall-settings.ts'
 import './zone-config.css'
 
 /** What a row shows for a field the zone has not set. Empty rather than a
@@ -51,6 +53,9 @@ export function ZoneConfig({
   /** The expire row, clicked once and waiting to be meant. The menu asks the
    *  same question the same way. */
   const [armed, setArmed] = useState(false)
+  // The one setting that changes what the foot can do: bulk expiry passes over
+  // an eternal zone, which is the only thing separating it from indefinite.
+  const eternal = isEternal(settings.lifetime)
 
   // Capture, so Escape closes the sheet rather than reaching the wall's own
   // handler and walking a rung out of the hierarchy behind it.
@@ -110,33 +115,27 @@ export function ZoneConfig({
               value={settings.color ?? hued ?? '#888888'}
               onChange={(next) => onChange({ color: next })}
             />
-            <SelectRow
+            <BackdropSwatches
               label="backdrop"
-              layout="inline"
-              value={settings.backdrop ?? INHERIT}
-              options={[
-                { value: INHERIT, label: inheritLabel(wall.backdrop) },
-                ...BACKDROPS.map((name) => ({ value: name, label: name })),
-              ]}
-              onChange={(raw) => onChange({ backdrop: raw === INHERIT ? null : (raw as Backdrop) })}
+              value={settings.backdrop ?? SWATCH_INHERIT}
+              tint={settings.color ?? hued ?? '#888888'}
+              inherits={wall.backdrop}
+              onChange={(next) =>
+                onChange({ backdrop: next === SWATCH_INHERIT ? null : next })
+              }
             />
             <SelectRow
               label="lifetime"
               layout="inline"
-              value={settings.ttlMs === undefined ? INHERIT : String(settings.ttlMs)}
+              value={settings.lifetime === undefined ? INHERIT : String(settings.lifetime)}
               options={[
-                {
-                  value: INHERIT,
-                  label: inheritLabel(
-                    ttlOptions(wall.ttlMs).find((o) => o.value === String(wall.ttlMs))?.label ?? '',
-                  ),
-                },
-                ...ttlOptions(settings.ttlMs ?? wall.ttlMs),
+                { value: INHERIT, label: inheritLabel(lifetimeLabel(wall.ttlMs)) },
+                ...lifetimeOptions(settings.lifetime ?? wall.ttlMs),
               ]}
               onChange={(raw) => {
-                if (raw === INHERIT) return onChange({ ttlMs: null })
-                const ms = Number(raw)
-                if (Number.isFinite(ms)) onChange({ ttlMs: ms })
+                if (raw === INHERIT) return onChange({ lifetime: null })
+                const next: Lifetime | null = lifetimeFromChoice(raw)
+                if (next !== null) onChange({ lifetime: next })
               }}
             />
             <CheckboxRow label="pinned to the top" value={pinned} onChange={onPin} />
@@ -152,25 +151,29 @@ export function ZoneConfig({
             </button>
           )}
 
-          <p className="zcfg__note">
-            Set on the daemon, so every wall sees it and it survives a restart. A lifetime here
-            takes what is already hanging in the zone, not only what lands next.
-          </p>
         </div>
         <div className="zcfg__foot" data-dl-lift="1">
           {/* Two clicks, like the menu's: this is the one control here that can
-              take thirty artifacts at once. */}
+              take thirty artifacts at once — and none at all in an eternal
+              zone, which the daemon refuses. Saying so is better than a button
+              that reports success and takes nothing. */}
           <button
             type="button"
             className="zcfg__button zcfg__button--grave"
             data-armed={armed ? '' : undefined}
+            disabled={eternal}
+            title={eternal ? 'An eternal zone is not taken in bulk' : undefined}
             onClick={() => {
               if (!armed) return setArmed(true)
               setArmed(false)
               onExpire()
             }}
           >
-            {armed ? `Really — expire ${count}` : `Expire everything (${count})`}
+            {eternal
+              ? `Eternal — expire cards one at a time (${count})`
+              : armed
+                ? `Really — expire ${count}`
+                : `Expire everything (${count})`}
           </button>
         </div>
       </div>

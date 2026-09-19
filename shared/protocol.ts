@@ -1,5 +1,6 @@
 import type { Attention, Level } from './attention.ts'
 import type { Backdrop } from './backdrops.ts'
+import type { Lifetime } from './lifetime.ts'
 
 /** How a question closed. `text` is empty unless it was answered. */
 export type Reply = { status: 'answered' | 'dismissed' | 'expired'; text: string; at: number }
@@ -87,8 +88,9 @@ export type ZoneSettings = {
   /** Wins over the `.hued` color. Cleared to fall back to the project again. */
   color?: string
   backdrop?: Backdrop
-  /** How long an artifact here lives when it carries no TTL of its own. */
-  ttlMs?: number
+  /** How long an artifact here lives when it carries no TTL of its own. A
+   *  duration, or one of the two ways of being off the clock. */
+  lifetime?: Lifetime
 }
 
 export type ServerMessage =

@@ -398,8 +398,8 @@ against every arrangement.
 - **A plan view** in the corner names each zone, lights the one with focus, and
   zooms to a pile when clicked.
 - **The `zones` group** owns how a zone presents itself: outline, label, and a
-  backdrop filling its cell — a ruled hatch by default, or crosshatch,
-  diamonds, bricks, dots, checks or a flat tint, all drawn by one shader in
+  backdrop filling its cell — a ruled hatch by default, or crosshatch, grid,
+  bricks, argyle, dots, checks or a flat tint, all drawn by one shader in
   world space so it holds one density across the wall and costs the texture
   budget nothing. The backdrop sits a hair behind the zone outline rather than
   behind the pile: it writes no depth and draws ahead of the cards, so it never
@@ -730,6 +730,20 @@ fallback for a wall nobody has set. Bounded at a minute and ninety days, since
 either end empties the wall or freezes it. A card sent with its own `--ttl`, and
 a rescued one, ignore it.
 
+**A zone may set its own, and may take itself off the clock entirely.** Its
+sheet offers the same durations plus `indefinite` and `eternal`, both of which
+resolve to an infinite lifetime at the sweeper's one comparison, so neither
+needs a case of its own. They differ in nothing today and in everything later:
+**indefinite is off the clock and ordinary otherwise**, so whatever collector
+the wall grows takes it like anything else, while **eternal is exempt from all
+of that** — the zone-wide form of a rescue. The one place that already
+separates them is bulk expiry, which passes over an eternal zone; the card's
+own Expire is a deliberate act on one artifact and still lands.
+
+A zone's lifetime is written to `zones.json` the way a person would — `8h`, or
+the hold's own word — and a record this build cannot read leaves the zone
+inheriting.
+
 **Saving is capacity-bounded.** Not yet built — keeping is currently unbounded,
 and the bound waits on having watched a wall that can rescue at all. The keep
 set holds N (start at 12). Keeping
@@ -737,9 +751,14 @@ something when the set is full means choosing what it displaces. Without a bound
 "permanence earned by attention" collapses into one click and forever, and one
 click is not attention — you get the sediment folder back with extra steps.
 
-**Expiry moves to a holding trash, and it's kept for 24 hours.** The real loss
+**Expiry moves to a holding trash — which is never emptied.** The real loss
 mode is being heads-down for 40 minutes, not glancing up as something dies; a
-10-minute trash catches almost none of those and only feels like a safety net.
+10-minute trash catches almost none of those and only feels like a safety net,
+so 24 hours is the intended figure. `config.trashMs` holds it and **nothing
+reads it**: the trash grows without bound, and the wall has no collector of any
+kind — no count cap, no disk budget, nothing that empties `trash/`. That is the
+gap `indefinite` is named against, and until it is closed the word promises
+something no code delivers.
 
 **The last ten expiries a person asked for are undoable with a keystroke** —
 Delete in the lightbox, the menu's expiries — never a TTL running out, which

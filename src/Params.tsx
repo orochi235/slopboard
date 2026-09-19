@@ -8,6 +8,8 @@ import {
   SelectRow,
   Slider,
 } from '@weasel-js/ui'
+import type { Backdrop } from '@shared/backdrops.ts'
+import { BackdropSwatches } from '@/BackdropSwatches.tsx'
 import { controlsOf, formatStepped } from '@/params.controls.ts'
 import { groupControls } from '@/params.groups.ts'
 import { categoryOf } from '@/params.tabs.ts'
@@ -184,6 +186,20 @@ export function ParamsBody({
                   )
                 }
                 case 'choice':
+                  // The one choice whose options are pictures. A list of nine
+                  // words does not say what any of them look like, which for a
+                  // pattern is the whole question.
+                  if (control.path === 'zones.backdrop') {
+                    return (
+                      <BackdropSwatches
+                        key={control.path}
+                        label={label}
+                        value={value as Backdrop}
+                        tint="currentColor"
+                        onChange={set}
+                      />
+                    )
+                  }
                   return (
                     <SelectRow
                       key={control.path}

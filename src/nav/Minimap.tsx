@@ -55,8 +55,11 @@ export function Minimap({
     const backdrop = backdropFor(zoneSettings[zone], zones.backdrop)
     return {
       hatched: zones.huedBackdrop && backdrop !== 'none' && backdrop !== 'solid',
-      crossed: backdrop === 'crosshatch' || backdrop === 'diamonds',
-      turned: backdrop === 'diamonds' ? 45 : 0,
+      crossed: backdrop === 'crosshatch' || backdrop === 'grid' || backdrop === 'argyle',
+      // `crosshatch` and `argyle` are ruled on the wall's own angle, which at
+      // 45 degrees is what makes them read as diamonds; `grid` is the one
+      // turned back onto the axes. The plan has to turn the same way round.
+      turned: backdrop === 'grid' ? 0 : 45,
     }
   }
   const hatched = [...tints.keys()].some((zone) => ruleFor(zone).hatched)

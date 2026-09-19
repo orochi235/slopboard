@@ -3,8 +3,9 @@ import { basename, join } from 'node:path'
 import { config } from './config.ts'
 import { clearAttention, closeQuestion, setKept, trashStamp } from './sidecar.ts'
 import { ttlMs as wallTtlMs } from './settings.ts'
-import { ttlFor as zoneTtlMs } from './zones.ts'
+import { lifetimeFor as zoneLifetime } from './zones.ts'
 import type { Reply, WallItem } from '@shared/protocol.ts'
+import { isEternal, lifetimeMs } from '@shared/lifetime.ts'
 
 type Entry = { item: WallItem; sourcePath: string; cachePath: string }
 
@@ -66,7 +67,10 @@ export function startSweeper(): () => void {
       // The item's own, then its zone's, then the wall's. Read per sweep
       // rather than stamped at arrival, so shortening a zone's lifetime
       // reaches what is already hanging in it.
-      const ttl = entry.item.ttlMs ?? zoneTtlMs(entry.item.zone) ?? wallTtlMs()
+      //
+      // A zone held off the clock resolves to Infinity, which this comparison
+      // is already false against — so neither hold needs a case here.
+      const ttl = entry.item.ttlMs ?? lifetimeMs(zoneLifetime(entry.item.zone) ?? wallTtlMs())
       if (from < now - ttl) void expire(entry)
     }
   }, 1000)
@@ -90,8 +94,13 @@ export async function expireNow(id: string): Promise<boolean> {
  *
  * A kept artifact is not swept, but it is taken here: rescuing something says
  * the wall must not drop it on its own, not that it cannot be dismissed.
+ *
+ * An eternal zone is the exception, and the only thing that separates the two
+ * holds: taking a whole zone at once is the collector that promise is against.
+ * The card's own Expire is one deliberate act on one artifact and still lands.
  */
 export async function expireZone(zone: string): Promise<string[]> {
+  if (isEternal(zoneLifetime(zone))) return []
   const doomed = [...entries.values()].filter((e) => e.item.zone === zone)
   if (doomed.length === 0) return []
   const gone: Gone[] = []

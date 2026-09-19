@@ -15,6 +15,7 @@ import { zoneCounts } from './zoneCounts.ts'
 import { alert, debugItem, toastFor } from './alert.ts'
 import { withKeyForwarder } from './page-keys.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
+import type { Lifetime } from '@shared/lifetime.ts'
 import { BEAT_MS, type ServerMessage } from '@shared/protocol.ts'
 
 await settings.load()
@@ -174,7 +175,7 @@ app.post('/api/zones/:zone/settings', express.json(), async (req, res) => {
   const settings = await zones.set(req.params.zone, {
     color: field<string>('color'),
     backdrop: field<never>('backdrop'),
-    ttlMs: field<number>('ttlMs'),
+    lifetime: field<Lifetime>('lifetime'),
   })
   console.log(`[zone] ${req.params.zone} ${JSON.stringify(settings)}`)
   broadcast({ type: 'zoneSettings', zone: req.params.zone, settings })

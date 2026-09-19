@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ALERTS } from '@shared/attention.ts'
 import { BEAT_MS, type Alert, type ServerMessage, type WallItem, type ZoneSettings } from '@shared/protocol.ts'
+import type { Lifetime } from '@shared/lifetime.ts'
 import { createWatchdog, type Watchdog } from '@/watchdog.ts'
 
 /** One write to a zone's overrides. A field left out is untouched; a field
@@ -8,7 +9,7 @@ import { createWatchdog, type Watchdog } from '@/watchdog.ts'
 export type ZonePatch = {
   color?: string | null
   backdrop?: ZoneSettings['backdrop'] | null
-  ttlMs?: number | null
+  lifetime?: Lifetime | null
 }
 
 export type Wall = {
