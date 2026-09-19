@@ -77,7 +77,7 @@ import {
   zoneOf,
 } from '@/view-state.ts'
 import { rampAt, rampOf, rampTo } from '@/ramp.ts'
-import type { WallItem } from '@shared/protocol.ts'
+import type { WallItem, ZoneSettings } from '@shared/protocol.ts'
 
 type Props = {
   items: WallItem[]
@@ -91,6 +91,10 @@ type Props = {
   /** Published by the daemon: the zones held at the top of the wall, each to
    *  when it was pinned. */
   pinnedZones: Record<string, number>
+  /** Published by the daemon: what each zone overrides about itself. */
+  zoneSettings: Record<string, ZoneSettings>
+  /** Opens the zone's own settings sheet, which lives above this backend. */
+  onConfigureZone: (zone: string) => void
   /** An arrival whose level asks to be opened the moment it lands. */
   announce: WallItem | null
   /** Whether the daemon is still on the other end of the socket. */
@@ -181,6 +185,7 @@ function Wall({
   onParams,
   zoneColors,
   pinnedZones,
+  zoneSettings,
   view,
   dispatch,
   onPlan,
@@ -448,7 +453,7 @@ function Wall({
   latest.current = { items, ttlMs, clockOffset, sort, dimmed, heldZones, connected }
 
   // Each of these is a reason to draw, not an input the effect reads.
-  useEffect(() => wake(), [wake, items, params, view, sort, dimmed, zoneColors, pinnedZones, connected, cursor, fontsReady, backedOff, showBounds])
+  useEffect(() => wake(), [wake, items, params, view, sort, dimmed, zoneColors, zoneSettings, pinnedZones, connected, cursor, fontsReady, backedOff, showBounds])
   useEffect(() => {
     const events = ['pointermove', 'pointerdown', 'pointerup', 'wheel', 'keydown', 'resize'] as const
     for (const name of events) window.addEventListener(name, wake, { passive: true })
@@ -1827,6 +1832,7 @@ function Wall({
         labelPicks={zoneLabels}
         moveMs={params.camera.moveMs}
         settings={params.zones}
+        zoneSettings={zoneSettings}
         colors={params.colors}
         hued={huedColors}
         family={labelFamily}
@@ -2141,6 +2147,11 @@ export function WebglBackend(props: Props) {
           method: 'POST',
         }).catch(() => {})
       }
+      if (action === 'configureZone' && target?.kind === 'zone') {
+        setArmed(null)
+        setMenu(null)
+        return props.onConfigureZone(target.zone)
+      }
       if ((action === 'pinZone' || action === 'unpinZone') && target?.kind === 'zone') {
         setArmed(null)
         setMenu(null)
@@ -2169,7 +2180,7 @@ export function WebglBackend(props: Props) {
         return void fetch(`/api/items/${id}/expire`, { method: 'POST' }).catch(() => {})
       }
     },
-    [menu, menuItem, dispatch, dismiss, undo, armed],
+    [menu, menuItem, dispatch, dismiss, undo, armed, props.onConfigureZone],
   )
 
   const deleteCard = useCallback((id: string) => {
@@ -2269,6 +2280,7 @@ export function WebglBackend(props: Props) {
             focus={zoneOf(view)}
             tints={planTints}
             zones={props.params.zones}
+            zoneSettings={props.zoneSettings}
             onFocus={(zone) => dispatch({ type: 'to', path: [zone] })}
           />
         }

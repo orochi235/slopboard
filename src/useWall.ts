@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ALERTS } from '@shared/attention.ts'
-import { BEAT_MS, type Alert, type ServerMessage, type WallItem } from '@shared/protocol.ts'
+import { BEAT_MS, type Alert, type ServerMessage, type WallItem, type ZoneSettings } from '@shared/protocol.ts'
 import { createWatchdog, type Watchdog } from '@/watchdog.ts'
+
+/** One write to a zone's overrides. A field left out is untouched; a field
+ *  passed as null goes back to inheriting the wall's. */
+export type ZonePatch = {
+  color?: string | null
+  backdrop?: ZoneSettings['backdrop'] | null
+  ttlMs?: number | null
+}
 
 export type Wall = {
   items: WallItem[]
@@ -9,6 +17,12 @@ export type Wall = {
   zoneColors: Record<string, string>
   /** The zones held at the top of the wall, each to when it was pinned. */
   pinnedZones: Record<string, number>
+  /** What each zone overrides about itself. Most zones have no entry. */
+  zoneSettings: Record<string, ZoneSettings>
+  /** Sets one zone's overrides. A field passed as null goes back to
+   *  inheriting; a field left out is untouched. Nothing is held optimistically
+   *  — the daemon answers with the message every wall reads. */
+  setZoneSettings: (zone: string, patch: ZonePatch) => void
   ttlMs: number
   /** Sets how long an artifact lives from now on. The daemon answers with the
    *  `ttl` message every wall reads, so nothing is held optimistically here. */
@@ -34,6 +48,7 @@ export function useWall(): Wall {
   const [items, setItems] = useState<WallItem[]>([])
   const [zoneColors, setZoneColors] = useState<Record<string, string>>({})
   const [pinnedZones, setPinnedZones] = useState<Record<string, number>>({})
+  const [zoneSettings, holdZoneSettings] = useState<Record<string, ZoneSettings>>({})
   const [ttlMs, setTtlMs] = useState(300_000)
   const [connected, setConnected] = useState(false)
   const [announce, setAnnounce] = useState<WallItem | null>(null)
@@ -43,6 +58,14 @@ export function useWall(): Wall {
     (id: string) => setAlerts((prev) => prev.filter((a) => a.id !== id)),
     [],
   )
+
+  const postZone = useCallback((zone: string, patch: ZonePatch) => {
+    void fetch(`/api/zones/${encodeURIComponent(zone)}/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }).catch(() => {})
+  }, [])
 
   const postTtl = useCallback((ms: number) => {
     void fetch('/api/settings/ttl', {
@@ -93,10 +116,21 @@ export function useWall(): Wall {
           setItems(msg.items)
           setZoneColors(msg.zoneColors ?? {})
           setPinnedZones(msg.pinnedZones ?? {})
+          holdZoneSettings(msg.zoneSettings ?? {})
         } else if (msg.type === 'ttl') {
           setTtlMs(msg.ttlMs)
         } else if (msg.type === 'zoneColors') {
           setZoneColors(msg.zoneColors)
+        } else if (msg.type === 'zoneSettings') {
+          holdZoneSettings((prev) => {
+            // A zone back to inheriting everything leaves no entry, the shape
+            // the snapshot has: `zoneSettings[zone]` is absent, never empty.
+            if (Object.keys(msg.settings).length === 0) {
+              const { [msg.zone]: _inherits, ...rest } = prev
+              return rest
+            }
+            return { ...prev, [msg.zone]: msg.settings }
+          })
         } else if (msg.type === 'zonePin') {
           setPinnedZones((prev) => {
             if (msg.pinnedAt === null) {
@@ -158,6 +192,8 @@ export function useWall(): Wall {
     items,
     zoneColors,
     pinnedZones,
+    zoneSettings,
+    setZoneSettings: postZone,
     ttlMs,
     setTtlMs: postTtl,
     clockOffset: clockOffset.current,

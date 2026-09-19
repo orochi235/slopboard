@@ -9,6 +9,7 @@ import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { readPins, setPinned } from './pins.ts'
+import * as zones from './zones.ts'
 import * as settings from './settings.ts'
 import { zoneCounts } from './zoneCounts.ts'
 import { alert, debugItem, toastFor } from './alert.ts'
@@ -17,6 +18,7 @@ import { LEVELS, type Level } from '@shared/attention.ts'
 import { BEAT_MS, type ServerMessage } from '@shared/protocol.ts'
 
 await settings.load()
+await zones.load()
 await mkdir(config.inbox, { recursive: true })
 await mkdir(config.cache, { recursive: true })
 
@@ -44,6 +46,7 @@ wss.on('connection', (ws) => {
     items: store.snapshot(),
     zoneColors,
     pinnedZones,
+    zoneSettings: zones.all(),
   }
   ws.send(JSON.stringify(hello))
 })
@@ -158,6 +161,24 @@ app.post('/api/zones/:zone/pin', async (req, res) => {
   pinnedZones = await readPins()
   broadcast({ type: 'zonePin', zone: req.params.zone, pinnedAt })
   res.json({ ok: true, pinnedAt })
+})
+
+// What one zone overrides about itself: its color over the project's, its
+// backdrop over the wall's, its lifetime over the wall's. A field sent as null
+// goes back to inheriting. Guarded like the other writes — a wall on a private
+// machine.
+app.post('/api/zones/:zone/settings', express.json(), async (req, res) => {
+  const body = (req.body ?? {}) as Record<string, unknown>
+  const field = <T>(key: string): T | null | undefined =>
+    key in body ? (body[key] as T | null) : undefined
+  const settings = await zones.set(req.params.zone, {
+    color: field<string>('color'),
+    backdrop: field<never>('backdrop'),
+    ttlMs: field<number>('ttlMs'),
+  })
+  console.log(`[zone] ${req.params.zone} ${JSON.stringify(settings)}`)
+  broadcast({ type: 'zoneSettings', zone: req.params.zone, settings })
+  res.json({ ok: true, settings })
 })
 
 // Fires a level's whole treatment against an arrival that never happened, so

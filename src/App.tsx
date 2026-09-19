@@ -4,6 +4,7 @@ import { arrangements } from '@/arrangements/index.ts'
 import { WebglBackend } from '@/backends/WebglBackend.tsx'
 import { ParallaxModal } from '@/ParallaxModal.tsx'
 import { Prefs } from '@/Prefs.tsx'
+import { ZoneConfig } from '@/ZoneConfig.tsx'
 import { layoutKeyOf } from '@/params.layout.ts'
 import { defaultParams } from '@/params.ts'
 import { loadParams, saveParams } from '@/params.store.ts'
@@ -11,13 +12,31 @@ import { Toasts } from '@/Toasts.tsx'
 import { applyColors } from '@/theme.ts'
 import { stackFor } from '@/typeface.ts'
 import { useWall } from '@/useWall.ts'
+import { tintsFor } from '@/zone-settings.ts'
 
 
 export function App() {
-  const { items, zoneColors, pinnedZones, ttlMs, setTtlMs, clockOffset, connected, announce, alerts, dismissAlert } =
-    useWall()
+  const {
+    items,
+    zoneColors,
+    pinnedZones,
+    zoneSettings,
+    setZoneSettings,
+    ttlMs,
+    setTtlMs,
+    clockOffset,
+    connected,
+    announce,
+    alerts,
+    dismissAlert,
+  } = useWall()
   const [index, setIndex] = useState(0)
   const [prefs, setPrefs] = useState(false)
+  /** The zone whose own sheet is open, or null. */
+  const [configuring, setConfiguring] = useState<string | null>(null)
+  // A zone's own color over the project's, so everything below reads one map
+  // and never learns there is an override.
+  const tints = useMemo(() => tintsFor(zoneColors, zoneSettings), [zoneColors, zoneSettings])
   // Lazy: reading storage on every render would be wasted, and the tuning
   // pass is the whole reason the panel exists — losing it on reload defeats it.
   const [params, setParams] = useState(() => loadParams(defaultParams))
@@ -74,13 +93,40 @@ export function App() {
         clockOffset={clockOffset}
         params={params}
         onParams={setParams}
-        zoneColors={zoneColors}
+        zoneColors={tints}
         pinnedZones={pinnedZones}
+        zoneSettings={zoneSettings}
+        onConfigureZone={setConfiguring}
         announce={announce}
         connected={connected}
       />
       <ParallaxModal allowParallax={params.general.parallax} />
       <Toasts alerts={alerts} onDismiss={dismissAlert} />
+      {configuring !== null && (
+        <ZoneConfig
+          zone={configuring}
+          settings={zoneSettings[configuring] ?? {}}
+          hued={zoneColors[configuring]}
+          count={items.filter((i) => i.zone === configuring).length}
+          pinned={configuring in pinnedZones}
+          wall={{ backdrop: params.zones.backdrop, ttlMs }}
+          look={params.prefs}
+          allowParallax={params.general.parallax}
+          onChange={(patch) => setZoneSettings(configuring, patch)}
+          onPin={(on) => {
+            void fetch(`/api/zones/${encodeURIComponent(configuring)}/pin?on=${on ? '1' : '0'}`, {
+              method: 'POST',
+            }).catch(() => {})
+          }}
+          onExpire={() => {
+            void fetch(`/api/zones/${encodeURIComponent(configuring)}/expire`, {
+              method: 'POST',
+            }).catch(() => {})
+            setConfiguring(null)
+          }}
+          onClose={() => setConfiguring(null)}
+        />
+      )}
       {prefs && (
         <Prefs
           params={params}

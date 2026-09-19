@@ -1,6 +1,6 @@
 import { leafAt, leafPathsOf } from '@/params.paths.ts'
 import { TYPEFACES } from '@/typeface.ts'
-import { BACKDROPS } from '@/backdrops.ts'
+import { BACKDROPS } from '@shared/backdrops.ts'
 import type { StackParams } from '@/params.ts'
 
 export type Control =

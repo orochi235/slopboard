@@ -1,4 +1,5 @@
 import type { Attention, Level } from './attention.ts'
+import type { Backdrop } from './backdrops.ts'
 
 /** How a question closed. `text` is empty unless it was answered. */
 export type Reply = { status: 'answered' | 'dismissed' | 'expired'; text: string; at: number }
@@ -76,6 +77,20 @@ export type Alert = {
   sha?: string
 }
 
+/**
+ * What one zone overrides about itself. Every field is absent by default and
+ * absent means inherit — the wall's backdrop, the wall's lifetime, the color
+ * the daemon read off the project's `.hued`. A zone that has never been
+ * configured has no entry at all.
+ */
+export type ZoneSettings = {
+  /** Wins over the `.hued` color. Cleared to fall back to the project again. */
+  color?: string
+  backdrop?: Backdrop
+  /** How long an artifact here lives when it carries no TTL of its own. */
+  ttlMs?: number
+}
+
 export type ServerMessage =
   | {
       type: 'snapshot'
@@ -88,8 +103,13 @@ export type ServerMessage =
       /** Zone name to when it was pinned, for the zones held at the top of
        *  the wall. A zone that is not held has no entry. */
       pinnedZones: Record<string, number>
+      /** Zone name to what that zone overrides. Most zones have no entry. */
+      zoneSettings: Record<string, ZoneSettings>
     }
   | { type: 'zoneColors'; zoneColors: Record<string, string> }
+  /** One zone's overrides, as someone just set them. An empty object means the
+   *  zone went back to inheriting everything. */
+  | { type: 'zoneSettings'; zone: string; settings: ZoneSettings }
   | { type: 'arrive'; item: WallItem }
   | { type: 'expire'; id: string }
   /** The item is still on the wall; it has just stopped asking to be looked at. */

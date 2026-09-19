@@ -16,6 +16,7 @@ export type Action =
    *  zone — so only the code has to tell them apart. */
   | 'pinZone'
   | 'unpinZone'
+  | 'configureZone'
   | 'expire'
   | 'expireZone'
   | 'copyArtifact'
@@ -76,6 +77,7 @@ export function menuFor(
   // content of the question anyway.
   if (target.kind === 'zone' && (ctx.zoneCount ?? 0) > 0) {
     const n = ctx.zoneCount ?? 0
+    items.push({ action: 'configureZone', label: 'Configure the zone…' })
     items.push(
       ctx.zonePinned
         ? { action: 'unpinZone', label: 'Unpin the zone' }

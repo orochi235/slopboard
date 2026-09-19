@@ -5,6 +5,8 @@ import type { Rect } from 'windease'
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { createBackdropMaterial } from '@/backends/hatch.ts'
 import { PATTERN_INDEX } from '@/backdrops.ts'
+import { backdropFor } from '@/zone-settings.ts'
+import type { ZoneSettings } from '@shared/protocol.ts'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import type { StackParams } from '@/params.ts'
 import { rampAt, rampOf, rampTo } from '@/ramp.ts'
@@ -27,6 +29,9 @@ type Props = {
    *  answers to the camera closing in may read it. */
   cursor: string | null
   settings: StackParams['zones']
+  /** What each zone overrides about itself. A zone with no entry is ruled the
+   *  way the wall is. */
+  zoneSettings: Record<string, ZoneSettings>
   colors: StackParams['colors']
   /** A zone's project colour, where the daemon found one. */
   hued: Map<string, THREE.Color>
@@ -86,6 +91,7 @@ export function ZoneOverlay({
   pinnedZones,
   labelPicks,
   settings,
+  zoneSettings,
   colors,
   hued,
   family,
@@ -180,7 +186,8 @@ export function ZoneOverlay({
     const angle = (settings.hatchAngleDeg * Math.PI) / 180
     for (const [zone, mesh] of backdrops.byZone) {
       const box = cells.current?.get(zone)
-      mesh.visible = settings.backdrop !== 'none' && !!box
+      const backdrop = backdropFor(zoneSettings[zone], settings.backdrop)
+      mesh.visible = backdrop !== 'none' && !!box
       if (!box || !mesh.visible) continue
       mesh.scale.set(box.w, box.h, 1)
       // A rect's x/y is its top-left and three positions a plane by its centre,
@@ -195,7 +202,7 @@ export function ZoneOverlay({
       u.uSpacing.value = Math.max(1e-4, settings.hatchSpacing)
       u.uWidth.value = settings.hatchWidth
       u.uAngle.value = angle
-      u.uPattern.value = PATTERN_INDEX[settings.backdrop]
+      u.uPattern.value = PATTERN_INDEX[backdrop]
     }
 
     for (const [zone, line] of outlines) {

@@ -3,6 +3,7 @@ import { basename, join } from 'node:path'
 import { config } from './config.ts'
 import { clearAttention, closeQuestion, setKept, trashStamp } from './sidecar.ts'
 import { ttlMs as wallTtlMs } from './settings.ts'
+import { ttlFor as zoneTtlMs } from './zones.ts'
 import type { Reply, WallItem } from '@shared/protocol.ts'
 
 type Entry = { item: WallItem; sourcePath: string; cachePath: string }
@@ -62,7 +63,11 @@ export function startSweeper(): () => void {
       // A question can stay open for longer than a TTL, so an answered card
       // gets a whole life from its answer.
       const from = Math.max(entry.item.bornAt, entry.item.reply?.at ?? 0)
-      if (from < now - (entry.item.ttlMs ?? wallTtlMs())) void expire(entry)
+      // The item's own, then its zone's, then the wall's. Read per sweep
+      // rather than stamped at arrival, so shortening a zone's lifetime
+      // reaches what is already hanging in it.
+      const ttl = entry.item.ttlMs ?? zoneTtlMs(entry.item.zone) ?? wallTtlMs()
+      if (from < now - ttl) void expire(entry)
     }
   }, 1000)
   return () => clearInterval(timer)

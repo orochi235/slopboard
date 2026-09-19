@@ -93,9 +93,9 @@ describe('menuFor on a zone', () => {
     expect(rowFor('pinZone', held)).toBeUndefined()
   })
 
-  it('puts the pin above the row that takes the zone away', () => {
+  it('leads with the sheet, then the pin, then the row that takes the zone away', () => {
     const menu = menuFor(zone, { canUndo: false, zoneCount: 3 })
-    expect(menu.map((i) => i.action)).toEqual(['pinZone', 'expireZone'])
+    expect(menu.map((i) => i.action)).toEqual(['configureZone', 'pinZone', 'expireZone'])
   })
 
   it('marks nothing about the pin as destructive — it goes both ways', () => {

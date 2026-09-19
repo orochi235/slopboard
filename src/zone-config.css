@@ -1,0 +1,108 @@
+/* One zone's own settings. The prefs sheet's treatment at a fraction of the
+   size: same scrim, same plate, four rows rather than a hundred controls. */
+.zcfg {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--scrim) 76%, transparent) 0%,
+    color-mix(in srgb, var(--scrim) 88%, transparent) 55%,
+    color-mix(in srgb, var(--scrim) 97%, transparent) 100%
+  );
+}
+
+.zcfg__sheet {
+  width: min(380px, 92vw);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 500 calc(11px * var(--ui-type))/1.3 var(--chrome-face);
+  /* The sheet's depth cue is its shadow rather than travel, for the reason
+     prefs gives: every pixel a plane moves is a pixel a control slides out
+     from under the pointer. `--dl-px` is delamin8r's deflection, ±1. */
+  box-shadow:
+    calc(var(--dl-px, 0) * 9px) calc(var(--dl-py, 0) * 7px + 3px) 10px
+      color-mix(in srgb, var(--scrim) 58%, transparent),
+    calc(var(--dl-px, 0) * 30px) calc(var(--dl-py, 0) * 23px + 14px) 48px
+      color-mix(in srgb, var(--scrim) 84%, transparent);
+}
+
+.zcfg__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+}
+
+.zcfg__title {
+  color: var(--ink);
+  letter-spacing: 0.06em;
+}
+
+.zcfg__close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: calc(15px * var(--ui-type));
+  line-height: 1;
+  cursor: pointer;
+}
+
+.zcfg__close:hover {
+  color: var(--ink);
+}
+
+.zcfg__body {
+  padding: 8px 12px 10px;
+}
+
+.zcfg__note {
+  color: var(--muted);
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.zcfg__foot {
+  padding: 8px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+}
+
+.zcfg__button {
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
+  border-radius: 3px;
+  color: inherit;
+  font: inherit;
+  padding: 2px 8px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.zcfg__button:hover {
+  border-color: var(--accent);
+}
+
+.zcfg__foot .zcfg__button {
+  margin-top: 0;
+  width: 100%;
+}
+
+.zcfg__button--grave {
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+
+.zcfg__button--grave:hover,
+.zcfg__button--grave[data-armed] {
+  background: color-mix(in srgb, #e0523f 30%, transparent);
+  border-color: #e0523f;
+  color: var(--ink);
+}

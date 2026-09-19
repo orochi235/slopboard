@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react'
 import type { Rect } from 'windease'
+import type { ZoneSettings } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
+import { backdropFor } from '@/zone-settings.ts'
 import { hatchRotation } from '@/nav/hatch-angle.ts'
 import { unionOf } from '@/nav/zone-cells.ts'
 import './minimap.css'
@@ -26,6 +28,7 @@ export function Minimap({
   focus,
   tints,
   zones,
+  zoneSettings,
   onFocus,
 }: {
   cells: MinimapCell[]
@@ -34,6 +37,9 @@ export function Minimap({
   tints: ReadonlyMap<string, string>
   /** The wall's own backdrop settings, so the two cannot disagree. */
   zones: StackParams['zones']
+  /** What each zone overrides, for the same reason: a pile ruled in dots on
+   *  the wall and hatched here reads as somewhere else. */
+  zoneSettings: Record<string, ZoneSettings>
   onFocus: (zone: string) => void
 }) {
   // The icons' own extent. A pile steps back and to the left as it deepens, so
@@ -42,12 +48,18 @@ export function Minimap({
   const bounds = unionOf(cells.map((c) => c.box))
   if (!bounds || bounds.w <= 0 || bounds.h <= 0) return null
 
-  const grounded = zones.huedBackdrop && zones.backdrop !== 'none'
-  // Any line art draws as the wall's hatch here, crossed where the wall's is;
-  // at this size the pattern is a texture, not a picture.
-  const hatched = grounded && zones.backdrop !== 'none' && zones.backdrop !== 'solid'
-  const crossed = zones.backdrop === 'crosshatch' || zones.backdrop === 'diamonds'
-  const turned = zones.backdrop === 'diamonds' ? 45 : 0
+  // Any line art draws as a hatch here, crossed where the pattern is; at this
+  // size the pattern is a texture, not a picture. Per zone, because a zone may
+  // rule itself differently from the wall.
+  const ruleFor = (zone: string) => {
+    const backdrop = backdropFor(zoneSettings[zone], zones.backdrop)
+    return {
+      hatched: zones.huedBackdrop && backdrop !== 'none' && backdrop !== 'solid',
+      crossed: backdrop === 'crosshatch' || backdrop === 'diamonds',
+      turned: backdrop === 'diamonds' ? 45 : 0,
+    }
+  }
+  const hatched = [...tints.keys()].some((zone) => ruleFor(zone).hatched)
   // The plan is an icon, not a scale drawing. The wall's spacing is in these
   // same units, and at the size of this box it would lay down a hundred and
   // fifty lines — a flat tint with a cost. The angle is the wall's; the pitch
@@ -75,7 +87,7 @@ export function Minimap({
                 patternUnits="userSpaceOnUse"
                 width={pitch}
                 height={pitch}
-                patternTransform={`rotate(${hatchRotation(zones.hatchAngleDeg) + turned})`}
+                patternTransform={`rotate(${hatchRotation(zones.hatchAngleDeg) + ruleFor(zone).turned})`}
               >
                 {/* The zone's ground, then its hatch over it: one fill has to
                     carry both, and a pattern is the only fill that can. */}
@@ -89,7 +101,7 @@ export function Minimap({
                   strokeWidth={pitch / 5}
                   opacity={zones.backdropOpacity}
                 />
-                {crossed && (
+                {ruleFor(zone).crossed && (
                   <line
                     x1={0}
                     y1={0}
@@ -121,7 +133,7 @@ export function Minimap({
                 tint
                   ? ({
                       '--tint': tint,
-                      ...(hatched && id ? { fill: `url(#${id})` } : {}),
+                      ...(ruleFor(zone).hatched && id ? { fill: `url(#${id})` } : {}),
                     } as CSSProperties)
                   : undefined
               }

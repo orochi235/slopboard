@@ -272,6 +272,47 @@ describe('questions', () => {
   })
 })
 
+describe("a zone's own lifetime", () => {
+  it('takes what is already hanging in the zone, not just what lands next', async () => {
+    process.env.SLOP_TTL = '8h'
+    const store = await freshStore(root)
+    const zones = await import('./zones.ts')
+    await zones.load()
+    await zones.set('slopboard', { ttlMs: 60_000 })
+    // Two minutes old, inside the wall's eight hours and past the zone's minute.
+    store.add({
+      item: itemAt(source, { bornAt: Date.now() - 120_000 }),
+      sourcePath: source,
+      cachePath: join(root, 'a.webp'),
+    })
+    const stop = store.startSweeper()
+    try {
+      await vi.waitFor(() => expect(existsSync(source)).toBe(false), { timeout: 3000 })
+    } finally {
+      stop()
+      delete process.env.SLOP_TTL
+    }
+  })
+
+  it('loses to the artifact\'s own TTL, which is the narrower claim', async () => {
+    process.env.SLOP_TTL = '1m'
+    const store = await freshStore(root)
+    const zones = await import('./zones.ts')
+    await zones.load()
+    await zones.set('slopboard', { ttlMs: 60_000 })
+    store.add({
+      item: itemAt(source, { bornAt: Date.now() - 120_000, ttlMs: 86_400_000 }),
+      sourcePath: source,
+      cachePath: join(root, 'a.webp'),
+    })
+    const stop = store.startSweeper()
+    await new Promise((r) => setTimeout(r, 1200))
+    stop()
+    delete process.env.SLOP_TTL
+    expect(existsSync(source)).toBe(true)
+  })
+})
+
 describe('the wall lifetime as the panel sets it', () => {
   it('sweeps against the live setting rather than what the daemon started with', async () => {
     process.env.SLOP_TTL = '8h'

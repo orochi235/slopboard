@@ -1,6 +1,6 @@
 import type { Level } from '@shared/attention.ts'
 import type { Typeface } from '@/typeface.ts'
-import type { Backdrop } from '@/backdrops.ts'
+import type { Backdrop } from '@shared/backdrops.ts'
 
 /** One LOD tier. `edge` of 0 means no texture — a flat quad in the average color. */
 export type LodTier = { maxRank: number; edge: 0 | 32 | 128 | 512 }
