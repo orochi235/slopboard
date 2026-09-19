@@ -72,11 +72,15 @@ whoever typed it; a missing decoder must too.
 monitor that makes noise because of something you did yesterday is the failure
 this avoids. Muted also means Chrome's autoplay policy never blocks the play, so
 there is no case where the video sits on its first frame waiting for a second
-click. The unmute is in the meta line and its state persists only within a
-session.
+click. The unmute is in the meta line and is not carried anywhere: the
+component is keyed by item id so that paging from one video to the next
+remounts it. Without that key React reuses the instance, the second video
+inherits the first one's unmute, and the wall makes a noise nobody asked it
+for — which is the failure the rule exists to prevent, reached by the other
+road.
 
 **"Open in default app" is a daemon route, not a link.** The browser cannot
-call `open`, so `POST /api/open/:id` spawns it — restricted to ids the store
+call `open`, so `POST /api/items/:id/open` spawns it — restricted to ids the store
 holds, so the route cannot be pointed at an arbitrary path.
 
 **`VideoLightbox` is its own component.** The image path's pan, zoom, drag and
@@ -114,7 +118,7 @@ runtime.
 **`server/ingest.ts`** — the page branch becomes the `posterFor` call; `duration`
 is probed for a video and set on the item.
 
-**`server/index.ts`** — `POST /api/open/:id`.
+**`server/index.ts`** — `POST /api/items/:id/open`.
 
 **`src/backends/WebglBackend.tsx`** — the play badge's predicate becomes
 `frames || kind === 'video'`, and its text `▶ 0:12` where a duration exists.
