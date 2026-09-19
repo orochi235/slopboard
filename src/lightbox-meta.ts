@@ -1,4 +1,5 @@
 import { ago } from '@/age.ts'
+import { formatClock } from '@shared/duration.ts'
 import type { WallItem } from '@shared/protocol.ts'
 
 /**
@@ -11,6 +12,8 @@ import type { WallItem } from '@shared/protocol.ts'
  */
 function formatOf(item: WallItem): string | null {
   if (item.kind === 'page') return 'page'
+  // A video says its container, the same as a picture does: it is what `/orig`
+  // hands over on a save, and `video` would say less than `mp4`.
   return item.path.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? null
 }
 
@@ -30,6 +33,8 @@ export function metaOf(item: WallItem, now: number): string[] {
   // The one thing about an animation nobody can count by looking, and the
   // reason the card underneath is a still.
   if (item.frames) parts.push(`${item.frames} frames`)
+  // Same job for a video: how much of it there is, which the poster cannot say.
+  if (item.duration) parts.push(formatClock(item.duration))
   if (item.w > 0 && item.h > 0) parts.push(`${item.w}×${item.h}`)
   if (item.keptAt) parts.push('kept')
   return parts

@@ -40,6 +40,7 @@ import { badgeTexture } from '@/textures/badge.ts'
 import { createChips } from '@/textures/chip.ts'
 import { loadFaces, stackFor } from '@/typeface.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
+import { formatClock } from '@shared/duration.ts'
 import type { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { createGestureRail } from '@/nav/gesture.ts'
 import {
@@ -139,8 +140,9 @@ const DEG_PER_PX = 0.25
 /** Drawn as text, so it wears whatever colour emoji font the system has. */
 const PIN_GLYPH = '📌'
 
-/** What a card wears when its picture is one frame of several. The wall never
- *  plays it; the chip is the invitation to open the lightbox, which does. */
+/** What a card wears when its picture is one moment of several — an animation
+ *  or a video. The wall never plays either; the badge is the invitation to
+ *  open the lightbox, which does. */
 const PLAYS_GLYPH = '▶'
 
 const BADGE_LIFT = 0.002
@@ -957,7 +959,17 @@ function Wall({
     // it fades, and a chip that froze with it would report the wrong day.
     const bornAt = new Map(current.items.map((i) => [i.id, i.bornAt]))
     const pinned = new Set(current.items.filter((i) => i.keptAt).map((i) => i.id))
-    const animated = new Set(current.items.filter((i) => i.frames).map((i) => i.id))
+    // What the bottom-left badge reads, for a card that is one moment of
+    // several. A video spends the runtime it reported; an animation has none
+    // to spend and wears the bare glyph.
+    const playsText = new Map(
+      current.items
+        .filter((i) => i.frames || i.kind === 'video')
+        .map((i) => [
+          i.id,
+          i.duration ? `${PLAYS_GLYPH} ${formatClock(i.duration)}` : PLAYS_GLYPH,
+        ]),
+    )
     // A chip annotates its subject, so it shrinks when the camera closes on
     // one: at wall distance the pile is small and the note has to carry, and
     // zoomed in the card is what grew. Ramped over the camera's own move, so
@@ -1643,12 +1655,14 @@ function Wall({
       // The bottom-left corner, clear of both the age chip and the pin: an
       // animated card can be the front of its pile and rescued at once.
       const play = plays.byId.get(id)
-      const wearsPlay = animated.has(id)
+      const playText = playsText.get(id)
+      const wearsPlay = playText !== undefined
       if (play || wearsPlay) {
+        const text = playText ?? PLAYS_GLYPH
         const held = plays.sync(
           id,
-          `plays|${params.colors.chipFill}|${params.colors.chipInk}|${badgeFamily}|${fontsReady}`,
-          PLAYS_GLYPH,
+          `${text}|${params.colors.chipFill}|${params.colors.chipInk}|${badgeFamily}|${fontsReady}`,
+          text,
           {
             fill: params.colors.chipFill,
             ink: params.colors.chipInk,

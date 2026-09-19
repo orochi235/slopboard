@@ -22,3 +22,18 @@ export function formatDuration(ms: number): string {
   }
   return `${ms}ms`
 }
+
+/**
+ * A runtime, as a clock reads it: `0:12`, `4:03`, `1:02:33`. The hour appears
+ * only when there is one, and the minute is padded only under it — which is
+ * what separates this from `formatDuration`'s `5m`. Seconds are floored, so a
+ * badge never claims a second the video does not have.
+ */
+export function formatClock(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const s = total % 60
+  const m = Math.floor(total / 60) % 60
+  const h = Math.floor(total / 3600)
+  const ss = String(s).padStart(2, '0')
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
+}

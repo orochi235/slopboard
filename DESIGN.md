@@ -557,20 +557,30 @@ sidecar with no caption means the CLI had nothing to say, and the wall shows
 nothing. A file dropped in by hand has no sidecar, and its name is the only
 thing it says.
 
-**An artifact is a picture or a page.** `.png .jpg .jpeg .webp .gif .avif
-.tiff` are pictures; `.html` and `.htm` are pages. Anything else is skipped
-silently, which is also what keeps the sidecar sitting beside every artifact
-from being ingested as one.
+**An artifact is a picture, a page or a video.** `.png .jpg .jpeg .webp .gif
+.avif .tiff` are pictures; `.html` and `.htm` are pages; `.mp4 .m4v .mov .webm`
+are videos. Anything else is skipped silently, which is also what keeps the
+sidecar sitting beside every artifact from being ingested as one.
 
-A page has no pixels, so the daemon gives it some: headless Chrome shoots it
-once at ingest, and the shot goes through the picture pipeline unchanged. That
-is the whole reason for the screenshot — the card, the LOD tiers, the texture
-budget and the aspect never learn a page exists, so nothing in the renderer
-branches on the kind. **A page's `w`/`h` are the shot's viewport, not the
-document's**, which is the one field whose meaning differs between the two
-kinds. `--screenshot` captures the viewport and not the page, so a short page
-leaves a card that is mostly background; `SLOP_SHOT_WIDTH`/`HEIGHT` is where
-that is traded.
+**Neither a page nor a video has pixels, so the daemon gives each some.**
+`server/poster.ts` is the one step both go through: headless Chrome shoots a
+page, ffmpeg takes a frame of a video, and a picture is its own poster. What
+comes back goes through the picture pipeline unchanged. That is the whole
+reason for it — the card, the LOD tiers, the texture budget and the aspect
+never learn either kind exists, so nothing in the renderer branches on the
+kind.
+
+**A page's `w`/`h` are the shot's viewport, not the document's**, which is the
+one field whose meaning differs between the kinds. `--screenshot` captures the
+viewport and not the page, so a short page leaves a card that is mostly
+background; `SLOP_SHOT_WIDTH`/`HEIGHT` is where that is traded. A video's are
+honest, because ffmpeg writes the poster at the video's own size.
+
+**The only container the wall holds is one the browser can play.** ffmpeg would
+poster a `.mkv` happily and the lightbox would then show a dead player, so
+`slop` refuses it at the send — and refuses any video at all where ffmpeg is
+not on `PATH`, for the reason every send-time check exists: a file the daemon
+declines is silently invisible *and* never expires.
 
 The shot is a picture of the page as it was when it landed and is never
 retaken. `/orig` keeps serving the source file, so opening a page runs it live
@@ -586,6 +596,33 @@ reads as the whole artifact, and a loop that begins where it ends reads as a
 broken render. A multi-page TIFF is a still. Frames are counted only where the
 file also carries per-frame delays, which is what separates an animation from a
 scan.
+
+**A video follows the same rule**, and its card is a poster frame rather than
+the first one. The poster is seeked to one second rather
+than to frame 0, because a fade-in or a screen recording opens on black often
+enough that the first frame is the worse default; anything shorter falls back
+to it. `SLOP_POSTER_AT` moves the offset.
+
+The badge it wears is the animation's `▶` with its runtime beside it — `▶ 0:12`
+— so the card says how much video there is before you spend it. A container
+that declares no duration wears the bare glyph.
+
+**Width and height come from the poster, never from ffprobe.** A phone's `.mov`
+carries a display matrix: ffmpeg applies it to the frame and ffprobe reports
+the stream without it, so trusting ffprobe would transpose every portrait
+video. ffprobe is asked for the runtime and nothing else.
+
+**The lightbox opens a video muted, every time, and does not remember
+otherwise.** A side monitor that makes noise because of something you did
+yesterday is the failure that avoids, and muted is also what keeps Chrome's
+autoplay policy from ever blocking the play. The unmute sits in the meta line
+beside "open in app", which hands the file to whatever the OS would have used —
+the browser cannot call `open`, so `POST /api/items/:id/open` does, and only
+ever for a path the store holds.
+
+Nothing is transcoded. `/orig` streams the file as it landed, which
+`res.sendFile` already serves by range, so seeking works with no server of its
+own.
 
 **Whoever pushes a page says what it may do.** `--sandbox` rides the sidecar
 and is applied verbatim to the iframe's `sandbox` attribute; `none` removes the
@@ -610,6 +647,8 @@ The level is a name from the first commit even though only one exists, which is
 what makes a second treatment a row in the params table it drives rather than a
 change to this contract. **A flag is not a reprieve:** it changes how loudly an
 item is drawn and never how long it lives, which is what `--ttl` is for.
+
+A video's original goes unstamped for the same reason a JPEG's does, below.
 
 **The daemon folds the stamp into the image's own XMP at ingest**, both into the
 cache derivative and into the original — `/orig` serves the original, and it is

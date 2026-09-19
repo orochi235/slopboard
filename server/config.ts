@@ -45,4 +45,16 @@ export const config = {
   /** Chrome does not exit after writing the shot, so the daemon kills it. This
    *  is how long the page gets to finish painting first. */
   shotTimeoutMs: Number(process.env.SLOP_SHOT_TIMEOUT_MS ?? 15_000),
+  /** How a video is turned into a picture, and how its runtime is read.
+   *  `bin/slop` refuses a video when the first is not on PATH, so a file the
+   *  daemon could not poster never lands in the inbox to sit there forever. */
+  ffmpeg: process.env.SLOP_FFMPEG ?? 'ffmpeg',
+  ffprobe: process.env.SLOP_FFPROBE ?? 'ffprobe',
+  /** Where the poster is seeked from. A fade-in or a screen recording opens on
+   *  black often enough that frame 0 is the worse default; anything shorter
+   *  than this falls back to it. */
+  posterAtMs: parseDuration(process.env.SLOP_POSTER_AT ?? '1s') ?? 1000,
+  /** ffmpeg exits on its own, unlike Chrome. This is the ceiling on a file
+   *  pathological enough not to.  */
+  posterTimeoutMs: Number(process.env.SLOP_POSTER_TIMEOUT_MS ?? 20_000),
 }

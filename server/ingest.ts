@@ -12,7 +12,8 @@ import { keptFrom, readStamp, replyFrom } from './sidecar.ts'
 import { ttlMs as wallTtlMs } from './settings.ts'
 import { orientedSize } from './sourceSize.ts'
 import { framesOf } from './frames.ts'
-import { shootPage } from './shoot.ts'
+import { posterFor } from './poster.ts'
+import { durationOf } from './probe.ts'
 import { parseAttention } from '@shared/attention.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
 import { createLimiter } from './limit.ts'
@@ -61,15 +62,20 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   // `info` describes the cache thumbnail, and `/orig` hands out the original.
   let source: { w: number; h: number } | null = null
   let frames: number | null = null
-  // A page has no pixels of its own, so it gets some. Everything below this is
-  // the picture pipeline unchanged, which is the point.
-  const shotPath = join(config.cache, `${id}.shot.png`)
-  if (kind === 'page' && !(await shootPage(sourcePath, shotPath))) {
-    // A shot that timed out may have left a half-written file behind.
-    await rm(shotPath, { force: true }).catch(() => {})
+  // A page and a video have no still of their own, so each is given one.
+  // Everything below this is the picture pipeline unchanged, which is the
+  // point: nothing downstream of here learns either kind exists.
+  const posterPath = join(config.cache, `${id}.poster.png`)
+  const pixelPath = await posterFor(kind, sourcePath, posterPath)
+  if (pixelPath === null) {
+    // A poster that timed out may have left a half-written file behind.
+    await rm(posterPath, { force: true }).catch(() => {})
     return null
   }
-  const pixelPath = kind === 'page' ? shotPath : sourcePath
+  // ffprobe is asked for this and nothing else: the size comes off the poster
+  // below, because a phone's `.mov` carries a display matrix that ffmpeg
+  // applies to the frame and ffprobe reports the stream without.
+  const duration = kind === 'video' ? await durationOf(sourcePath) : null
 
   try {
     const meta = await sharp(pixelPath).metadata()
@@ -92,9 +98,9 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     console.warn(`[ingest] skipped ${basename(sourcePath)}: ${(err as Error).message}`)
     return null
   } finally {
-    // The shot only ever fed the webp. Keeping it would double the cache for
-    // every page on the wall.
-    if (kind === 'page') await rm(shotPath, { force: true }).catch(() => {})
+    // The poster only ever fed the webp. Keeping it would double the cache for
+    // every page and every video on the wall.
+    if (pixelPath !== sourcePath) await rm(posterPath, { force: true }).catch(() => {})
   }
 
   await stampOriginal(sourcePath, xmp)
@@ -123,8 +129,9 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     ...(reply === null ? {} : { reply }),
     ...(sidecar?.repo ? { repo: sidecar.repo } : {}),
     ...(sidecar?.sha ? { sha: sidecar.sha } : {}),
-    ...(kind === 'page' ? { kind: 'page' as const } : {}),
+    ...(kind === 'image' ? {} : { kind }),
     ...(frames === null ? {} : { frames }),
+    ...(duration === null ? {} : { duration }),
     ...(kind === 'page' && sidecar?.sandbox ? { sandbox: sidecar.sandbox } : {}),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,

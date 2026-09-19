@@ -51,6 +51,18 @@ describe('metaOf', () => {
     expect(metaOf(item(), 0).some((p) => p.endsWith('frames'))).toBe(false)
   })
 
+  it('gives a video its runtime, which the poster cannot show', () => {
+    const video = { kind: 'video' as const, path: '/slop/inbox/z/a.mp4', duration: 243_000 }
+    expect(metaOf(item(video), 0)).toContain('4:03')
+    // Its container, not the word "video": that is what `/orig` hands over.
+    expect(metaOf(item(video), 0)).toContain('mp4')
+  })
+
+  it('leaves the runtime out of a container that declared none', () => {
+    const parts = metaOf(item({ kind: 'video', path: '/slop/inbox/z/a.webm' }), 0)
+    expect(parts.some((p) => p.includes(':'))).toBe(false)
+  })
+
   it('says nothing about a format for a file expiry has already renamed', () => {
     expect(metaOf(item({ path: '/slop/trash/abc123-slopboard' }), 0)).toEqual([
       'slopboard',

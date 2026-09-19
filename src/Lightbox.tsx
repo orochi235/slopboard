@@ -470,13 +470,99 @@ function PageLightbox({
 }
 
 /**
+ * A video plays rather than being drawn: `/orig` hands the file to a `<video>`,
+ * which is why the wall holds only containers the browser can play.
+ *
+ * Separate for the same reason `PageLightbox` is — the image path's pan, zoom
+ * and drag state means nothing for native video controls, and a branch above
+ * those hooks would change the hook count when the arrows page from a picture
+ * to a video on the same element.
+ */
+function VideoLightbox({
+  item,
+  now,
+  closing,
+  onClose,
+}: {
+  item: WallItem
+  now: number
+  closing: boolean
+  onClose: () => void
+}) {
+  const video = useRef<HTMLVideoElement>(null)
+  // Muted on every mount, never remembered: a side monitor that makes noise
+  // because of something you did yesterday is the failure this avoids. It is
+  // also what keeps Chrome's autoplay policy from ever blocking the play, so
+  // there is no case where the video sits on its first frame waiting for a
+  // second click.
+  const [muted, setMuted] = useState(true)
+
+  return (
+    <div
+      className="lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Video"
+      data-closing={closing ? '' : undefined}
+      // The margin around the video, and nothing the viewer is aiming at: a
+      // click on the element itself is either the controls or a play toggle.
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <video
+        className="lightbox__video"
+        ref={video}
+        src={`/orig/${item.id}`}
+        muted={muted}
+        autoPlay
+        loop
+        playsInline
+        controls
+        // Left unfocused on purpose: the wall's arrows page the pile, and a
+        // focused video would take them for a seek before they got there.
+        // Clicking it is how a viewer asks for that trade.
+        tabIndex={-1}
+      />
+
+      <div className="lightbox__meta">
+        {metaOf(item, now).map((part) => (
+          <span className="lightbox__metaPart" key={part}>
+            {part}
+          </span>
+        ))}
+        <button
+          type="button"
+          className="lightbox__metaPart lightbox__metaButton"
+          onClick={() => setMuted((m) => !m)}
+        >
+          {muted ? 'unmute' : 'mute'}
+        </button>
+        {/* The browser cannot call `open`, so the daemon does. Worth having for
+            anything long enough to want a real player's scrubbing and PiP. */}
+        <button
+          type="button"
+          className="lightbox__metaPart lightbox__metaButton"
+          onClick={() => {
+            void fetch(`/api/items/${item.id}/open`, { method: 'POST' })
+          }}
+        >
+          open in app
+        </button>
+      </div>
+      {item.name && <figcaption className="lightbox__caption">{item.name}</figcaption>}
+    </div>
+  )
+}
+
+/**
  * A DOM overlay either way, not a GL quad: full resolution costs the texture
  * budget nothing here, and right-click-save, copy and drag-to-Finder keep
  * working for a picture.
  *
- * Two components rather than one with a branch, so that paging a pile from an
- * image to a page unmounts one and mounts the other — which is also what stops
- * an iframe surviving a move to the next artifact.
+ * One component per kind rather than one with a branch, so that paging a pile
+ * across kinds unmounts one and mounts the other — which is also what stops an
+ * iframe, or a playing video, surviving a move to the next artifact.
  */
 export function Lightbox(props: {
   item: WallItem
@@ -493,6 +579,12 @@ export function Lightbox(props: {
     <>
       {rest.item.kind === 'page' ? (
         <PageLightbox {...rest} closing={closing} />
+      ) : rest.item.kind === 'video' ? (
+        // Keyed, so paging from one video to the next remounts rather than
+        // reusing: the mute is mount state, and without this the second video
+        // inherits the first one's unmute and the wall makes a noise nobody
+        // asked it for.
+        <VideoLightbox key={rest.item.id} {...rest} closing={closing} />
       ) : (
         <ImageLightbox {...rest} closing={closing} quietMs={quietMs} />
       )}

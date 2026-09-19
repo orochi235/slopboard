@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuration, parseDuration } from './duration.ts'
+import { formatClock, formatDuration, parseDuration } from './duration.ts'
 
 describe('parseDuration', () => {
   it('assumes seconds when no unit is given', () => {
@@ -45,5 +45,24 @@ describe('formatDuration', () => {
   it('round-trips through parseDuration', () => {
     for (const ms of [1000, 90_000, 300_000, 3_600_000, 28_800_000, 604_800_000])
       expect(parseDuration(formatDuration(ms))).toBe(ms)
+  })
+})
+
+describe('formatClock', () => {
+  it('writes a runtime the way a player does', () => {
+    expect(formatClock(12_000)).toBe('0:12')
+    expect(formatClock(243_000)).toBe('4:03')
+    expect(formatClock(3_753_000)).toBe('1:02:33')
+  })
+
+  it('pads the minute only once there is an hour above it', () => {
+    expect(formatClock(300_000)).toBe('5:00')
+    expect(formatClock(3_600_000)).toBe('1:00:00')
+  })
+
+  it('floors, so a badge never claims a second the video lacks', () => {
+    expect(formatClock(11_999)).toBe('0:11')
+    expect(formatClock(0)).toBe('0:00')
+    expect(formatClock(-5)).toBe('0:00')
   })
 })

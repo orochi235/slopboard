@@ -1,6 +1,7 @@
 import express from 'express'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { createServer } from 'node:http'
+import { spawn } from 'node:child_process'
 import { mkdir, readFile } from 'node:fs/promises'
 import { config } from './config.ts'
 import { classifyPortHolder } from './portGuard.ts'
@@ -122,6 +123,16 @@ app.post('/api/items/:id/expire', async (req, res) => {
   const gone = await store.expireNow(req.params.id)
   if (gone) broadcast({ type: 'expire', id: req.params.id })
   res.json({ ok: gone })
+})
+
+// Whatever the OS would have opened the artifact with. The browser cannot
+// call `open`, so the daemon does — and only ever on a path the store already
+// holds, so the route cannot be pointed at an arbitrary file.
+app.post('/api/items/:id/open', (req, res) => {
+  const path = store.resolveOriginal(req.params.id)
+  if (!path) return void res.sendStatus(404)
+  spawn('open', [path], { stdio: 'ignore', detached: true }).unref()
+  res.json({ ok: true })
 })
 
 app.post('/api/undo', async (_req, res) => {

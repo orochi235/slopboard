@@ -9,6 +9,8 @@
 #                                urgent, problem. Also `look:90s`, `30m`,
 #                                `until-dismissed`.
 #   slop --note "what it needs" FILE   badge text on a flagged card
+#   slop clip.mp4             video too: the card is a poster frame and the
+#                             lightbox plays it. Needs ffmpeg.
 #   slop --sandbox "allow-scripts allow-forms" PAGE.html
 #                                what an HTML page may do in the lightbox.
 #                                `none` removes the sandbox entirely. Whoever
@@ -34,7 +36,12 @@ set -eu
 # What the wall holds, matching server/kind.ts — held to it by kind.test.ts.
 # Anything else is never adopted, so accepting it here would produce exactly the
 # silently invisible artifact the ingest contract exists to prevent.
-held_ext="png jpg jpeg webp gif avif tiff html htm"
+held_ext="png jpg jpeg webp gif avif tiff html htm mp4 m4v mov webm"
+# Of those, the ones the daemon needs ffmpeg to turn into a poster frame. A
+# video sent to a machine without it would be adopted by nothing and expired by
+# nothing either, which is the silently invisible artifact this check exists to
+# prevent — the same reason the extension check is here and not at ingest.
+video_ext="mp4 m4v mov webm"
 
 # JSON string escaping, for text that may hold a quote, a backslash or a
 # newline. The awk joins lines with a literal \n, since sed works a line at a time.
@@ -161,6 +168,13 @@ for f in "$@"; do
   case " $held_ext " in
     *" $ext "*) ;;
     *) echo "slop: the wall does not hold .$ext ($f). It holds: $held_ext" >&2; exit 1 ;;
+  esac
+  case " $video_ext " in
+    *" $ext "*)
+      command -v ffmpeg >/dev/null 2>&1 || {
+        echo "slop: .$ext needs ffmpeg for the poster frame ($f). brew install ffmpeg" >&2
+        exit 1
+      } ;;
   esac
 done
 
