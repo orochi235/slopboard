@@ -1,4 +1,5 @@
 import type { Attention, Level } from './attention.ts'
+import type { Build } from './build.ts'
 import type { Backdrop } from './backdrops.ts'
 import type { Lifetime } from './lifetime.ts'
 
@@ -115,6 +116,10 @@ export type ServerMessage =
       pinnedZones: Record<string, number>
       /** Zone name to what that zone overrides. Most zones have no entry. */
       zoneSettings: Record<string, ZoneSettings>
+      /** What code the daemon is running. The wall compares it to its own and
+       *  says so when they disagree — the daemon is a LaunchAgent and does not
+       *  reload, so it can serve yesterday's build with no sign at all. */
+      build: Build
     }
   | { type: 'zoneColors'; zoneColors: Record<string, string> }
   /** One zone's overrides, as someone just set them. An empty object means the

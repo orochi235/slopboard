@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
@@ -18,12 +19,31 @@ const sibling = (name: string, entries: Record<string, string>) => {
 const daemon = `http://localhost:${process.env.SLOP_PORT ?? 8787}`
 const proxy = { target: daemon, ws: true, changeOrigin: false }
 
+/** The checkout's sha, or an unknown that the wall reads as "nothing to
+ *  compare" — a clone with no git, or the published demo. */
+function buildId() {
+  const git = (...args: string[]) =>
+    execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  try {
+    return { sha: git('rev-parse', '--short', 'HEAD'), dirty: git('status', '--porcelain').length > 0, startedAt: Date.now() }
+  } catch {
+    return { sha: 'unknown', dirty: false, startedAt: Date.now() }
+  }
+}
+
 export default defineConfig({
   plugins: [react()],
   // A literal, not a lookup on `import.meta.env`: rollup has to see `false`
   // to drop the demo branch, and with it the daemon and forty pictures. An
   // env var read at runtime keeps all of it in the ordinary bundle.
-  define: { __SLOP_DEMO__: JSON.stringify(process.env.VITE_SLOP_DEMO === '1') },
+  define: {
+    __SLOP_DEMO__: JSON.stringify(process.env.VITE_SLOP_DEMO === '1'),
+    // What the client was built from, to set against what the daemon reports.
+    // Read here rather than at runtime for the same reason the daemon reads it
+    // at start: this has to name the code that was compiled, not the code on
+    // disk when somebody happens to look.
+    __SLOP_BUILD__: JSON.stringify(buildId()),
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

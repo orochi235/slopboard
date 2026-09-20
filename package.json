@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -n daemon,client -c cyan,magenta \"npm:dev:daemon\" \"npm:dev:client\"",
-    "dev:daemon": "tsx watch server/index.ts",
+    "dev:daemon": "node tools/free-port.mjs 8787 && tsx watch server/index.ts",
     "dev:client": "vite",
     "sim": "tsx server/sim.ts",
     "typecheck": "tsc --noEmit",
@@ -13,7 +13,9 @@
     "build": "vite build",
     "demo:stage": "tsx tools/demo-set.ts stage",
     "demo:pack": "tsx tools/demo-set.ts pack",
-    "site": "tsx tools/site.ts"
+    "site": "tsx tools/site.ts",
+    "doctor": "tsx tools/doctor.ts",
+    "daemon:restart": "launchctl kickstart -k gui/$(id -u)/tech.michaelbaker.slopboard.daemon && echo \"daemon restarted\" && sleep 1 && npm run --silent doctor"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",

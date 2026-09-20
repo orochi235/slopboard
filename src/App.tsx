@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createStack } from '@/arrangements/stack.ts'
 import { actions } from '@/actions.ts'
+import { agree } from '@shared/build.ts'
 import { arrangements } from '@/arrangements/index.ts'
 import { WebglBackend } from '@/backends/WebglBackend.tsx'
 import { ParallaxModal } from '@/ParallaxModal.tsx'
@@ -27,6 +28,7 @@ export function App() {
     setTtlMs,
     clockOffset,
     connected,
+    daemonBuild,
     announce,
     alerts,
     dismissAlert,
@@ -101,6 +103,7 @@ export function App() {
         onPrefs={() => setPrefs(true)}
         announce={announce}
         connected={connected}
+        stale={daemonBuild !== null && !agree(daemonBuild, __SLOP_BUILD__)}
       />
       <ParallaxModal allowParallax={params.general.parallax} />
       <Toasts alerts={alerts} onDismiss={dismissAlert} />

@@ -1,3 +1,4 @@
+import { UNKNOWN } from '@shared/build.ts'
 import { BEAT_MS, type ServerMessage, type WallItem, type ZoneSettings } from '@shared/protocol.ts'
 import type { Actions } from '@/actions.ts'
 import type { Sink, Transport } from '@/transport.ts'
@@ -142,6 +143,10 @@ export function createDemoDaemon() {
       zoneColors: zones,
       pinnedZones,
       zoneSettings,
+      // Nothing to be stale against: the demo has no daemon behind it, and
+      // `agree` reads an unknown on either side as no claim rather than a
+      // mismatch.
+      build: UNKNOWN,
     })
     sink.connected(true)
 

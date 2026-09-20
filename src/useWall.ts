@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ALERTS } from '@shared/attention.ts'
 import type { Alert, WallItem, ZoneSettings } from '@shared/protocol.ts'
+import type { Build } from '@shared/build.ts'
 import { actions, type ZonePatch } from '@/actions.ts'
 import { subscribe } from '@/transport.ts'
 
@@ -25,6 +26,9 @@ export type Wall = {
   /** Add to Date.now() to get the daemon's clock. Keeps decay server-anchored. */
   clockOffset: number
   connected: boolean
+  /** What build the daemon is running, once it has said. Null before the first
+   *  snapshot, and in demo mode where there is no daemon at all. */
+  daemonBuild: Build | null
   /** The last arrival whose level asks to be opened on sight. Held rather than
    *  fired so a wall that was closed does not open a queue of them at once —
    *  only the newest is still worth looking at. */
@@ -46,6 +50,7 @@ export function useWall(): Wall {
   const [zoneSettings, holdZoneSettings] = useState<Record<string, ZoneSettings>>({})
   const [ttlMs, setTtlMs] = useState(300_000)
   const [connected, setConnected] = useState(false)
+  const [daemonBuild, setDaemonBuild] = useState<Build | null>(null)
   const [announce, setAnnounce] = useState<WallItem | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const clockOffset = useRef(0)
@@ -74,6 +79,7 @@ export function useWall(): Wall {
             setZoneColors(msg.zoneColors ?? {})
             setPinnedZones(msg.pinnedZones ?? {})
             holdZoneSettings(msg.zoneSettings ?? {})
+            setDaemonBuild(msg.build ?? null)
           } else if (msg.type === 'ttl') {
             setTtlMs(msg.ttlMs)
           } else if (msg.type === 'zoneColors') {
@@ -148,6 +154,7 @@ export function useWall(): Wall {
     setTtlMs: postTtl,
     clockOffset: clockOffset.current,
     connected,
+    daemonBuild,
     announce,
     alerts,
     dismissAlert,

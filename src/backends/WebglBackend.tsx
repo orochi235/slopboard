@@ -102,6 +102,10 @@ type Props = {
   announce: WallItem | null
   /** Whether the daemon is still on the other end of the socket. */
   connected: boolean
+  /** Whether the daemon is running different code from this wall. A LaunchAgent
+   *  daemon does not reload, so this is the only sign a feature is missing
+   *  because the process predates it rather than because it is broken. */
+  stale: boolean
 }
 
 type WallProps = Props & {
@@ -2289,6 +2293,7 @@ export function WebglBackend(props: Props) {
         listed={listed}
         onList={toggleList}
         connected={props.connected}
+        stale={props.stale}
         look={props.params.band}
         allowParallax={props.params.general.parallax}
         plan={

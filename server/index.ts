@@ -1,4 +1,5 @@
 import express from 'express'
+import { build } from './build.ts'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
@@ -48,8 +49,15 @@ wss.on('connection', (ws) => {
     zoneColors,
     pinnedZones,
     zoneSettings: zones.all(),
+    build,
   }
   ws.send(JSON.stringify(hello))
+})
+
+// What this daemon is running, for `npm run doctor` and for anything else that
+// needs to know whether the process is older than the code.
+app.get('/api/build', (_req, res) => {
+  res.json(build)
 })
 
 app.get('/img/:id', (req, res) => {

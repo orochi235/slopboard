@@ -28,6 +28,7 @@ export function TopBar({
   arrangement,
   count,
   connected,
+  stale,
   plan,
   axes,
   look,
@@ -52,6 +53,9 @@ export function TopBar({
   count: number
   /** Whether the daemon is still on the other end of the socket. */
   connected: boolean
+  /** The daemon is running other code than this wall. Said out loud because
+   *  every symptom of it looks like a broken feature instead. */
+  stale: boolean
   /** The wall's plan view and its axis gizmo. Passed in rather than built
    *  here: both read the live camera, which the band has no other reason to
    *  know about. */
@@ -234,6 +238,11 @@ export function TopBar({
             <span className="topbar__count">{count}</span> {count === 1 ? 'item' : 'items'}
           </span>
           {!connected && <span className="topbar__offline">offline</span>}
+          {connected && stale && (
+            <span className="topbar__stale" title="The daemon is running a different build. Run npm run daemon:restart.">
+              daemon stale
+            </span>
+          )}
         </div>
       </Panel>
       {plan && (
