@@ -149,9 +149,6 @@ const IDLE_MS = 1000
 /** How far the scene turns per pixel dragged. */
 const DEG_PER_PX = 0.25
 
-/** How many chip heights wide a card on a flat wall has to be to wear one. */
-const FLAT_CHIP_ROOM = 4
-
 /** Clear of its own card, so the plate never z-fights the border it sits on. */
 /** Drawn as text, so it wears whatever color emoji font the system has. */
 const PIN_GLYPH = '📌'
@@ -1142,11 +1139,8 @@ function Wall({
     // a rank behind it is mostly hidden by the card in front of it.
     const fronts = new Set<string>()
     for (const list of cardsByZone.current.values()) if (list[0]) fronts.add(list[0])
-    // Nothing on a flat wall is buried, so every card is a front — but one too
-    // small to carry a chip would be covered by it rather than annotated.
-    for (const id of stream.current) {
-      if ((placedRects.get(id)?.w ?? 0) >= chipHeight * FLAT_CHIP_ROOM) fronts.add(id)
-    }
+    // Nothing on a flat wall is buried, so every card is a front.
+    for (const id of stream.current) fronts.add(id)
     zoneCounts.current = new Map(
       [...cardsByZone.current].map(([zone, list]) => [zone, list.length]),
     )
@@ -1658,6 +1652,8 @@ function Wall({
         }
       }
 
+      const cardChip = Math.min(chipHeight, Math.min(drawnW, drawnH) * swell * params.chips.share)
+      const inset = params.chips.inset * (cardChip / chipHeight)
       const chip = chips.byId.get(id)
       const wearsChip = params.chips.cards && fronts.has(id)
       if (chip || wearsChip) {
@@ -1676,14 +1672,13 @@ function Wall({
         )
         held.plate.visible = wearsChip
         if (wearsChip) {
-          const h = chipHeight
+          const h = cardChip
           const w = h * held.aspect
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
           // Inside the artifact's top-left corner. Measured in the card's own
           // frame and then turned with it, so it holds that corner from every
           // angle rather than sliding off it as the wall turns.
-          const inset = params.chips.inset
           held.plate.position
             .copy(mesh.position)
             .add(
@@ -1717,11 +1712,10 @@ function Wall({
         )
         held.plate.visible = wearsPin
         if (wearsPin) {
-          const h = chipHeight
+          const h = cardChip
           const w = h * held.aspect
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
-          const inset = params.chips.inset
           held.plate.position
             .copy(mesh.position)
             .add(
@@ -1755,11 +1749,10 @@ function Wall({
         )
         held.plate.visible = wearsPlay
         if (wearsPlay) {
-          const h = chipHeight
+          const h = cardChip
           const w = h * held.aspect
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
-          const inset = params.chips.inset
           held.plate.position
             .copy(mesh.position)
             .add(

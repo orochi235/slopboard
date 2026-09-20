@@ -57,6 +57,7 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'distance.floor': [0, 1, 0.01],
   'chips.size': [0.008, 0.12, 0.002],
   'chips.shrink': [0.1, 1, 0.01],
+  'chips.share': [0.05, 0.5, 0.01],
   'chips.inset': [0, 0.05, 0.001],
   'chips.bleed': [-0.05, 0.05, 0.001],
   'attention.pulse': [0, 1, 0.01],

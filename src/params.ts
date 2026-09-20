@@ -93,6 +93,9 @@ export type StackParams = {
      *  chip that held its world size would swell as the camera closed in,
      *  because the card it annotates is what gets bigger, not the note. */
     shrink: number
+    /** The most of its card's shorter side a card's chip may take, so a small
+     *  card is annotated rather than covered. Scales the inset with it. */
+    share: number
     /** How far the age chip sits inside its artifact's top-left corner. */
     inset: number
     /** How far a zone's count runs past the corner it marks, along the
@@ -528,6 +531,7 @@ export const defaultParams: StackParams = {
     zones: true,
     size: 0.03,
     shrink: 0.45,
+    share: 0.16,
     inset: 0.006,
     bleed: 0,
   },
