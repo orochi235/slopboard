@@ -27,6 +27,7 @@ export function TopBar({
   whereColor,
   arrangement,
   count,
+  offWall = 0,
   connected,
   stale,
   plan,
@@ -51,6 +52,8 @@ export function TopBar({
   /** How the wall is laid out, and how many artifacts are on it. */
   arrangement: string
   count: number
+  /** How many of them the arrangement had no room to show. */
+  offWall?: number
   /** Whether the daemon is still on the other end of the socket. */
   connected: boolean
   /** The daemon is running other code than this wall. Said out loud because
@@ -236,6 +239,12 @@ export function TopBar({
           />
           <span className="topbar__tally">
             <span className="topbar__count">{count}</span> {count === 1 ? 'item' : 'items'}
+            {offWall > 0 && (
+              <>
+                {' · '}
+                <span className="topbar__count">{offWall}</span> off wall
+              </>
+            )}
           </span>
           {!connected && <span className="topbar__offline">offline</span>}
           {connected && stale && (

@@ -9,6 +9,7 @@ export type Category = { id: string; label: string }
 
 export const CATEGORIES: readonly Category[] = [
   { id: 'piles', label: 'piles' },
+  { id: 'inbox', label: 'inbox' },
   { id: 'cards', label: 'cards' },
   { id: 'flags', label: 'flags' },
   { id: 'zones', label: 'zones & sky' },
@@ -36,6 +37,7 @@ const PLACES: Record<string, string> = {
   jitter: 'piles',
   zoneGrid: 'piles',
   lod: 'piles',
+  inbox: 'inbox',
   'lod.revealHoldMs': 'cards',
   'lod.revealFadeMs': 'cards',
 

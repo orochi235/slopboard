@@ -73,3 +73,21 @@ export function jumpFrom(
 export function afterDelete(at: At, piles: Piles, order: readonly string[] | null): Opened | null {
   return pageFrom(at, 'left', piles, order) ?? pageFrom(at, 'right', piles, order)
 }
+
+/**
+ * The card ← or → opens on a flat wall, where there are no piles: one list,
+ * newest first, laid out so that older runs right. So → is older and ← newer,
+ * and the ends clamp.
+ */
+export function streamFrom(
+  card: string,
+  direction: 'left' | 'right',
+  stream: readonly string[],
+  zoneOf: ReadonlyMap<string, string>,
+): Opened | null {
+  const from = stream.indexOf(card)
+  if (from === -1) return null
+  const next = stream[direction === 'right' ? from + 1 : from - 1]
+  const zone = next === undefined ? undefined : zoneOf.get(next)
+  return next !== undefined && zone !== undefined ? [zone, next] : null
+}

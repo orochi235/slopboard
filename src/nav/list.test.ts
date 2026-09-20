@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Rect } from 'windease'
-import { afterDelete, jumpFrom, pageFrom, readingOrder } from '@/nav/list.ts'
+import { afterDelete, jumpFrom, pageFrom, readingOrder, streamFrom } from '@/nav/list.ts'
 
 const box = (x: number, y: number, side = 0.2): Rect => ({ x, y, z: 0, w: side, h: side })
 
@@ -113,5 +113,24 @@ describe('afterDelete', () => {
 
   it('crosses into a neighboring pile when the list is on', () => {
     expect(afterDelete({ zone: 'c', card: 'c1' }, piles, order)).toEqual(['b', 'b1'])
+  })
+})
+
+describe('streamFrom', () => {
+  const zones = new Map([
+    ['n', 'a'],
+    ['m', 'b'],
+    ['o', 'a'],
+  ])
+  const stream = ['n', 'm', 'o']
+
+  it('goes older to the right and newer to the left, with each card in its own zone', () => {
+    expect(streamFrom('n', 'right', stream, zones)).toEqual(['b', 'm'])
+    expect(streamFrom('m', 'left', stream, zones)).toEqual(['a', 'n'])
+  })
+
+  it('clamps at both ends', () => {
+    expect(streamFrom('n', 'left', stream, zones)).toBeNull()
+    expect(streamFrom('o', 'right', stream, zones)).toBeNull()
   })
 })

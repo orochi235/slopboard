@@ -7,6 +7,9 @@ export type LodTier = { maxRank: number; edge: 0 | 32 | 128 | 512 }
 
 export type Projection = 'orthographic' | 'perspective'
 
+export const INBOX_MODES = ['grid', 'mosaic', 'river'] as const
+export type InboxMode = (typeof INBOX_MODES)[number]
+
 /** How one attention level is drawn. */
 export type AttentionLevel = {
   /** World units toward the viewer, in front of the pile's own front rank. */
@@ -220,6 +223,28 @@ export type StackParams = {
     /** How long a pile takes to reach a new cell, when a sort, a pin or an
      *  arriving zone reshuffles the grid. */
     moveMs: number
+  }
+  /** The `inbox` arrangement: every artifact at once, zones ignored, newest
+   *  first. Age still fades a card through `fade`. */
+  inbox: {
+    /** `grid` is equal cells in reading order; `mosaic` gives the newest the
+     *  biggest cells; `river` sets each card's distance from the left edge by
+     *  its age, in lanes. */
+    mode: InboxMode
+    /** World space between two cards. */
+    gap: number
+    /** The largest a card may be, so three artifacts do not fill the wall. */
+    maxSide: number
+    /** The smallest a card may shrink to. Past it, the oldest leave the wall
+     *  and the band counts them instead. */
+    floor: number
+    /** How long a card takes to reach a new place when an arrival moves it. */
+    moveMs: number
+    /** Mosaic: how many of the newest take three cells square, then two. */
+    big: number
+    mid: number
+    /** River: rows the cards travel in. */
+    lanes: number
   }
   camera: {
     projection: Projection
@@ -568,6 +593,16 @@ export const defaultParams: StackParams = {
     reverseY: false,
     minCells: 4,
     moveMs: 520,
+  },
+  inbox: {
+    mode: 'grid',
+    gap: 0.02,
+    maxSide: 0.45,
+    floor: 0.07,
+    moveMs: 520,
+    big: 1,
+    mid: 4,
+    lanes: 10,
   },
   camera: {
     projection: 'orthographic',

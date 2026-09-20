@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createStack } from '@/arrangements/stack.ts'
 import { actions } from '@/actions.ts'
 import { agree } from '@shared/build.ts'
-import { arrangements } from '@/arrangements/index.ts'
+import { arrangements as registry, arrangementsFor } from '@/arrangements/index.ts'
 import { WebglBackend } from '@/backends/WebglBackend.tsx'
 import { ParallaxModal } from '@/ParallaxModal.tsx'
 import { Prefs } from '@/Prefs.tsx'
@@ -15,6 +14,8 @@ import { applyColors } from '@/theme.ts'
 import { stackFor } from '@/typeface.ts'
 import { useWall } from '@/useWall.ts'
 import { tintsFor } from '@/zone-settings.ts'
+
+const ARRANGEMENT_COUNT = registry.length
 
 
 export function App() {
@@ -43,13 +44,13 @@ export function App() {
   // Lazy: reading storage on every render would be wasted, and the tuning
   // pass is the whole reason the panel exists — losing it on reload defeats it.
   const [params, setParams] = useState(() => loadParams(defaultParams))
-  // createStack closes over its params, so a change rebuilds the arrangement
-  // and resets its rank allocators — one frame of snapping, the same contract
+  // Every arrangement closes over its params, so a change rebuilds them
+  // and resets their allocators — one frame of snapping, the same contract
   // every cache here already honors. Keyed on the layout half alone so that
   // turning the camera, which no strategy reads, does not reshuffle the piles.
   const layoutKey = layoutKeyOf(params)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- layoutKey is params, minus the display half
-  const tuned = useMemo(() => createStack(params), [layoutKey])
+  const arrangements = useMemo(() => arrangementsFor(params), [layoutKey])
 
   // Only a tab that can edit writes, and only once it actually has. A mount
   // write is what turns a read this build cannot parse into a permanent loss:
@@ -78,7 +79,7 @@ export function App() {
       }
       if (e.key !== '[' && e.key !== ']') return
       const step = e.key === ']' ? 1 : -1
-      setIndex((i) => (i + step + arrangements.length) % arrangements.length)
+      setIndex((i) => (i + step + ARRANGEMENT_COUNT) % ARRANGEMENT_COUNT)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -91,7 +92,7 @@ export function App() {
     <>
       <WebglBackend
         items={items}
-        arrangement={arrangement.name === 'stack' ? tuned : arrangement}
+        arrangement={arrangement}
         ttlMs={ttlMs}
         clockOffset={clockOffset}
         params={params}

@@ -1,7 +1,7 @@
 import { leafAt, leafPathsOf } from '@/params.paths.ts'
 import { TYPEFACES } from '@/typeface.ts'
 import { BACKDROPS } from '@shared/backdrops.ts'
-import type { StackParams } from '@/params.ts'
+import { INBOX_MODES, type StackParams } from '@/params.ts'
 
 export type Control =
   | { kind: 'slider'; path: string; min: number; max: number; step: number; invert?: true }
@@ -94,6 +94,13 @@ const SLIDERS: Record<string, readonly [number, number, number]> = {
   'zoneGrid.cols': [1, 12, 1],
   'zoneGrid.rows': [1, 12, 1],
   'zoneGrid.moveMs': [0, 3000, 10],
+  'inbox.gap': [0, 0.2, 0.002],
+  'inbox.maxSide': [0.05, 1, 0.005],
+  'inbox.floor': [0.01, 0.5, 0.005],
+  'inbox.moveMs': [0, 3000, 10],
+  'inbox.big': [0, 4, 1],
+  'inbox.mid': [0, 16, 1],
+  'inbox.lanes': [1, 12, 1],
   'camera.fovDeg': [5, 120, 1],
   'camera.standoff': [1, 60, 0.5],
   'camera.yawDeg': [-90, 90, 1],
@@ -136,6 +143,7 @@ const CHOICES: Record<string, readonly (number | string)[]> = {
   'zones.backdrop': BACKDROPS,
   'camera.projection': ['orthographic', 'perspective'],
   'zoneGrid.orientation': ['wide', 'tall', 'fit'],
+  'inbox.mode': INBOX_MODES,
   'menu.mode': ['window', 'tilt'],
 }
 

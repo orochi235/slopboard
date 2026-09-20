@@ -1,6 +1,7 @@
 import type { LayoutItem, LayoutResult, Rect } from 'windease'
 import { createRanks, ramp } from './slots.ts'
 import { createZoneGrid } from './zones.ts'
+import { createGlides, easeOut } from './glide.ts'
 import { defaultParams, type StackParams } from '@/params.ts'
 import type { Arrangement, SlopChannels } from './types.ts'
 
@@ -19,24 +20,6 @@ function hashUnit(id: string): number {
     h = Math.imul(h, 16777619)
   }
   return ((h >>> 0) / 0xffffffff) * 2 - 1
-}
-
-const easeOut = (t: number) => 1 - (1 - t) ** 3
-
-type Glide = { from: Rect; to: Rect; at: number }
-
-const sameRect = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
-
-function glideAt(glide: Glide, now: number, ms: number): Rect {
-  const t = ms > 0 ? easeOut(Math.min(1, (now - glide.at) / ms)) : 1
-  const { from, to } = glide
-  return {
-    x: from.x + (to.x - from.x) * t,
-    y: from.y + (to.y - from.y) * t,
-    z: to.z,
-    w: from.w + (to.w - from.w) * t,
-    h: from.h + (to.h - from.h) * t,
-  }
 }
 
 /**
@@ -75,22 +58,11 @@ export function createStack(
   const { fade, distance } = { ...defaultCurves, ...curves }
   const ranksByZone = new Map<string, ReturnType<typeof createRanks>>()
   const zoneGrid = createZoneGrid()
-  const glides = new Map<string, Glide>()
+  const glides = createGlides()
 
-  /** Where a zone's pile stands now, on its way to the cell it was handed. A
-   *  new target starts from wherever the last move had got to, so a sort
-   *  changed twice mid-flight turns rather than jumping. */
-  const cellFor = (zone: string, to: Rect, now: number): Rect => {
-    const glide = glides.get(zone)
-    if (!glide) {
-      glides.set(zone, { from: to, to, at: now })
-      return to
-    }
-    if (!sameRect(glide.to, to)) {
-      glides.set(zone, { from: glideAt(glide, now, params.zoneGrid.moveMs), to, at: now })
-    }
-    return glideAt(glides.get(zone) ?? glide, now, params.zoneGrid.moveMs)
-  }
+  /** Where a zone's pile stands now, on its way to the cell it was handed. */
+  const cellFor = (zone: string, to: Rect, now: number): Rect =>
+    glides.at(zone, to, now, params.zoneGrid.moveMs)
 
   const ranksFor = (zone: string) => {
     let ranks = ranksByZone.get(zone)
@@ -137,7 +109,7 @@ export function createStack(
         const cells = zoneGrid([...byZone.keys()], container, params.zoneGrid, zoneOrder)
         // A zone that empties and comes back arrives in place, not from the
         // cell it held before it left.
-        for (const zone of glides.keys()) if (!cells.has(zone)) glides.delete(zone)
+        glides.keep(cells)
 
         const placements = new Map<string, Rect>()
         const channels = new Map<string, Record<string, number>>()

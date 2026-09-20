@@ -52,7 +52,7 @@ import {
   sortFor,
   togglesList,
 } from '@/nav/keys.ts'
-import { afterDelete, jumpFrom, pageFrom, readingOrder } from '@/nav/list.ts'
+import { afterDelete, jumpFrom, pageFrom, readingOrder, streamFrom } from '@/nav/list.ts'
 import { neighborOf } from '@/nav/neighbor.ts'
 import { zoneAt } from '@/nav/pick.ts'
 import { liftedHex, liftedTint } from '@/nav/zone-tint.ts'
@@ -115,6 +115,8 @@ type WallProps = Props & {
   view: ViewState
   dispatch: Dispatch<ViewAction>
   onPlan: (plan: Plan) => void
+  /** How many artifacts a flat arrangement had no room for. */
+  onOffWall: (count: number) => void
   /** A right-click, already resolved to what it was over. The pick lives in
    *  here with the raycaster; the menu is DOM and lives outside the canvas. */
   onMenu: (at: MenuAt) => void
@@ -146,6 +148,9 @@ const IDLE_MS = 1000
 
 /** How far the scene turns per pixel dragged. */
 const DEG_PER_PX = 0.25
+
+/** How many chip heights wide a card on a flat wall has to be to wear one. */
+const FLAT_CHIP_ROOM = 4
 
 /** Clear of its own card, so the plate never z-fights the border it sits on. */
 /** Drawn as text, so it wears whatever color emoji font the system has. */
@@ -201,6 +206,7 @@ function Wall({
   view,
   dispatch,
   onPlan,
+  onOffWall,
   onMenu,
   onPrefs,
   dimmed,
@@ -511,6 +517,13 @@ function Wall({
   const cardsByZone = useRef<Map<string, string[]>>(new Map())
   /** How many artifacts each zone holds, for the count chip on its corner. */
   const zoneCounts = useRef<Map<string, number>>(new Map())
+  /** A flat arrangement's cards in its own order, newest first — what the
+   *  arrows page when there are no piles — and the box they cover. */
+  const stream = useRef<string[]>([])
+  const streamBox = useRef<Rect | null>(null)
+  const offWallRef = useRef(0)
+  const flatRef = useRef(!!arrangement.flat)
+  flatRef.current = !!arrangement.flat
   /** The deepest z each pile reaches, so its backdrop can sit behind it. */
   const viewRef = useRef(view)
   viewRef.current = view
@@ -561,12 +574,12 @@ function Wall({
     const container = { w: aspect, h: 1 }
     const zones = zoneNamesRef.current
     const spare =
-      zones.length < params.zoneGrid.minCells
+      !flatRef.current && zones.length < params.zoneGrid.minCells
         ? gridCells(params.zoneGrid.minCells, container, params.zoneGrid)
             .slice(zones.length)
             .map((cell) => frontSlotOf(cell, params))
         : []
-    const wall = unionOf([...bases.current.values(), ...spare]) ?? {
+    const wall = (flatRef.current ? streamBox.current : unionOf([...bases.current.values(), ...spare])) ?? {
       x: 0,
       y: 0,
       z: 0,
@@ -933,7 +946,13 @@ function Wall({
         return dispatch({ type: 'out' })
       }
       if (opensIn(e)) {
-        const next = descend(viewRef.current.path, cursor, (zone) => cardsByZone.current.get(zone)?.[0])
+        const newest = stream.current[0]
+        const next =
+          flatRef.current && depthOf(viewRef.current) === 0
+            ? newest && zoneById.current.get(newest) !== undefined
+              ? [zoneById.current.get(newest)!, newest]
+              : null
+            : descend(viewRef.current.path, cursor, (zone) => cardsByZone.current.get(zone)?.[0])
         if (!next) return
         // Space scrolls a document, and the canvas is one as far as the
         // browser is concerned.
@@ -948,7 +967,10 @@ function Wall({
         e.preventDefault()
         // Moved first, or the expiry the daemon broadcasts prunes the view off
         // the card and the lightbox closes.
-        const next = afterDelete({ zone, card }, cardsByZone.current, order())
+        const next = flatRef.current
+          ? (streamFrom(card, 'right', stream.current, zoneById.current) ??
+            streamFrom(card, 'left', stream.current, zoneById.current))
+          : afterDelete({ zone, card }, cardsByZone.current, order())
         dispatch(next ? { type: 'to', path: next } : { type: 'out' })
         onDelete(card)
         return
@@ -971,11 +993,16 @@ function Wall({
       if (card) {
         // Inside a card left and right page the pile, and shift jumps to a
         // neighboring pile's front card in any direction.
-        const next = e.shiftKey
-          ? jumpFrom(zone, direction, cells.current, cardsByZone.current)
-          : direction === 'left' || direction === 'right'
-            ? pageFrom({ zone, card }, direction, cardsByZone.current, order())
+        const sideways = direction === 'left' || direction === 'right'
+        const next = flatRef.current
+          ? sideways
+            ? streamFrom(card, direction, stream.current, zoneById.current)
             : null
+          : e.shiftKey
+            ? jumpFrom(zone, direction, cells.current, cardsByZone.current)
+            : sideways
+              ? pageFrom({ zone, card }, direction, cardsByZone.current, order())
+              : null
         if (next) dispatch({ type: 'to', path: next })
         return
       }
@@ -1048,9 +1075,20 @@ function Wall({
     for (const [id, ch] of channels) wantLod.set(id, ch.lod ?? 0)
     textures.sync(wantLod)
 
-    cells.current = zoneCellsOf(result.placements as Map<string, Rect>, zoneFor)
-
-    bases.current = baseCellsOf(result.placements as Map<string, Rect>, zoneFor)
+    // A flat wall has no zone geometry, and every piece of zone chrome — the
+    // labels, the counts, the plan, the cursor — is drawn from these, so
+    // leaving them empty is what takes it all away.
+    const flat = !!arrangement.flat
+    const placedRects = result.placements as Map<string, Rect>
+    cells.current = flat ? new Map() : zoneCellsOf(placedRects, zoneFor)
+    bases.current = flat ? new Map() : baseCellsOf(placedRects, zoneFor)
+    stream.current = flat ? [...placedRects.keys()] : []
+    streamBox.current = flat ? unionOf([...placedRects.values()]) : null
+    const off = flat ? (result.unplaced?.length ?? 0) : 0
+    if (off !== offWallRef.current) {
+      offWallRef.current = off
+      onOffWall(off)
+    }
 
     if (revealed.current < 1) {
       // The front of every pile draws at the top tier, so counting that tier is
@@ -1090,7 +1128,7 @@ function Wall({
     // Ordered by depth rather than by arrival: an arrangement that puts every
     // card at z 0 keeps insertion order, and the stack's ranks sort themselves.
     const ranked = new Map<string, { id: string; z: number }[]>()
-    for (const [id, rect] of result.placements as Map<string, Rect>) {
+    for (const [id, rect] of flat ? [] : placedRects) {
       const zone = zoneFor.get(id)
       if (zone === undefined) continue
       const list = ranked.get(zone)
@@ -1104,6 +1142,11 @@ function Wall({
     // a rank behind it is mostly hidden by the card in front of it.
     const fronts = new Set<string>()
     for (const list of cardsByZone.current.values()) if (list[0]) fronts.add(list[0])
+    // Nothing on a flat wall is buried, so every card is a front — but one too
+    // small to carry a chip would be covered by it rather than annotated.
+    for (const id of stream.current) {
+      if ((placedRects.get(id)?.w ?? 0) >= chipHeight * FLAT_CHIP_ROOM) fronts.add(id)
+    }
     zoneCounts.current = new Map(
       [...cardsByZone.current].map(([zone, list]) => [zone, list.length]),
     )
@@ -1954,6 +1997,7 @@ export function WebglBackend(props: Props) {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
   const [plan, setPlan] = useState<Plan>({ cells: [] })
+  const [offWall, setOffWall] = useState(0)
   // Flags the wall never received, merged in below. Held here rather than in
   // App so that a fake reaches the scene by exactly the route a real one does.
   const [fakes, setFakes] = useState<Record<string, FakeFlag>>({})
@@ -2113,7 +2157,9 @@ export function WebglBackend(props: Props) {
   )
   const scope = zoneOf(view)
   const countInScope =
-    scope && !(listed && card) ? items.filter((i) => i.zone === scope).length : items.length
+    scope && !(listed && card) && !props.arrangement.flat
+      ? items.filter((i) => i.zone === scope).length
+      : items.length
 
   /** The item the lightbox is showing. From `props.items` rather than the
    *  fake-flag overlay, so the meta line reports the wall, not the rehearsal. */
@@ -2275,6 +2321,7 @@ export function WebglBackend(props: Props) {
           view={view}
           dispatch={dispatch}
           onPlan={setPlan}
+          onOffWall={setOffWall}
           onMenu={onMenu}
           dimmed={dimmed}
           listed={listed}
@@ -2290,6 +2337,7 @@ export function WebglBackend(props: Props) {
         whereColor={scope ? props.zoneColors[scope] : undefined}
         arrangement={props.arrangement.name}
         count={countInScope}
+        offWall={props.arrangement.flat ? offWall : 0}
         listed={listed}
         onList={toggleList}
         connected={props.connected}

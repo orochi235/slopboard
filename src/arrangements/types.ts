@@ -32,6 +32,9 @@ export type SlopStrategy = {
 
 export type Arrangement = {
   name: string
+  /** Zones are not a level of this wall: the renderer draws no zone cells,
+   *  labels or counts, and a card opens straight from the wall. */
+  flat?: boolean
   camera?: Camera
   strategy: SlopStrategy
 }

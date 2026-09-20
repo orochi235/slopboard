@@ -109,8 +109,9 @@ arrives (newest-first) or expires (oldest-first), moving every neighbour.
 
 ### The set
 
-One. Seven were sketched to span the space, on the plan that most would be
-thrown away — and they were. `stack` is what the wall does.
+Two: `stack`, and `inbox` (below), which `[` / `]` swap between. Seven were
+sketched to span the space, on the plan that most would be thrown away — and
+they were.
 
 The six flat ones went with the DOM backend: `grid`, `tide` and `erode` were
 built and are deleted, and `recede`, `settle` and `spiral` were never written.
@@ -171,8 +172,8 @@ of any level.
 
 ### The stack's camera
 
-`stack` is the only 3D arrangement, so the camera belongs to its design rather
-than to the renderer.
+The camera belongs to `stack`'s design rather than to the renderer; `inbox`
+borrows it unchanged.
 
 **A pile is a volume, and nothing models it as one.** Its depth is
 `rank × step.z` — 0.035 world units a card, against cards 0.22 on a side and a
@@ -521,12 +522,32 @@ arranges in the space that's left. One rule that works for every arrangement,
 rather than an independent "reflow around a hole" packing problem per
 arrangement.
 
-### Inbox — not built
+### Inbox
 
-The second arrangement, and the reason the registry cycles at all: every
-artifact on the wall at once, zones ignored, newest first. `stack` answers
-"what is this project doing"; inbox answers "what has arrived", which is the
-question a wall nobody has looked at for an hour actually raises.
+Every artifact on the wall at once, zones ignored, newest first. `stack`
+answers "what is each project doing"; inbox answers "what has arrived", which
+is the question a wall nobody has looked at for an hour actually raises.
+
+How it lays them out is `inbox.mode`, in the prefs sheet's inbox tab, because
+which reads best is as unknown as which arrangement did:
+
+- **`grid`** — equal square cells in reading order, newest top-left.
+- **`mosaic`** — size is age: the newest `big` take three cells square, the next
+  `mid` take two, the rest one.
+- **`river`** — distance from the left edge is age. Cards are dealt to `lanes`
+  in arrival order, and one that would overlap the newer card ahead of it is
+  pushed right, so at a high arrival rate position is rank more than age.
+
+In every mode cards shrink as the count grows, down to `inbox.floor`; past it
+the oldest leave the wall and the band says how many (`· 44 off wall`). Age
+fades a card through the same `fade` window `stack` uses.
+
+**Inbox is flat**: `Arrangement.flat` tells the renderer zones are not a level
+of this wall. It draws no zone cells, so every piece of zone chrome — labels,
+count chips, the plan, the wall cursor, floating badge shelves — goes with
+them. A card opens straight from the wall and Escape returns there; in the
+lightbox → is older and ← newer, across zones. Every card wears an age chip
+if it is at least four chip heights wide.
 
 ## Ingest contract
 
