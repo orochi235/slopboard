@@ -8,6 +8,7 @@ import { BackdropSwatches, INHERIT as SWATCH_INHERIT } from '@/BackdropSwatches.
 import type { ZoneSettings } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
 import type { ZonePatch } from '@/useWall.ts'
+import { closesDialog } from '@/scrim.ts'
 import { lifetimeFromChoice, lifetimeLabel, lifetimeOptions } from '@/wall-settings.ts'
 import './zone-config.css'
 
@@ -57,6 +58,8 @@ export function ZoneConfig({
   onClose: () => void
 }) {
   const stage = useRef<HTMLDivElement>(null)
+  /** What the press that this click ends landed on. See `closesDialog`. */
+  const pressed = useRef<EventTarget | null>(null)
   /** The expire row, clicked once and waiting to be meant. The menu asks the
    *  same question the same way. */
   const [armed, setArmed] = useState(false)
@@ -103,12 +106,17 @@ export function ZoneConfig({
       aria-modal="true"
       aria-label={`Configure ${zone}`}
       ref={stage}
-      onClick={onClose}
+      onPointerDown={(e) => {
+        pressed.current = e.target
+      }}
+      onClick={(e) => {
+        if (closesDialog(pressed.current, e.target, e.currentTarget)) onClose()
+      }}
     >
       {/* Classes in here are static and state rides on attributes: delamin8r
           writes `dl-plane` onto these elements, and React setting `className`
           strips it. */}
-      <div className="zcfg__sheet wzl-skin" onClick={(e) => e.stopPropagation()}>
+      <div className="zcfg__sheet wzl-skin">
         <div className="zcfg__head" data-dl-lift="1">
           <span className="zcfg__title">{zone}</span>
           <button type="button" className="zcfg__close" onClick={onClose} aria-label="Close">

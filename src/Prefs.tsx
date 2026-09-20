@@ -12,6 +12,7 @@ import { controlsOf } from '@/params.controls.ts'
 import { categoriesFor } from '@/params.tabs.ts'
 import type { StackParams } from '@/params.ts'
 import { GENERAL, prefsTabs, resolveTab, stepTab } from '@/prefs.tabs.ts'
+import { closesDialog } from '@/scrim.ts'
 import { WallBody } from '@/WallBody.tsx'
 import './prefs.css'
 
@@ -53,6 +54,8 @@ export function Prefs({
   const tab = resolveTab(tabs, tabId)
   const stage = useRef<HTMLDivElement>(null)
   const body = useRef<HTMLDivElement>(null)
+  /** What the press that this click ends landed on. See `closesDialog`. */
+  const pressed = useRef<EventTarget | null>(null)
   const [fits, setFits] = useState(false)
   const look = params.prefs
 
@@ -144,12 +147,17 @@ export function Prefs({
       aria-modal="true"
       aria-label="Preferences"
       ref={stage}
-      onClick={onClose}
+      onPointerDown={(e) => {
+        pressed.current = e.target
+      }}
+      onClick={(e) => {
+        if (closesDialog(pressed.current, e.target, e.currentTarget)) onClose()
+      }}
     >
       {/* Classes in here are static and state rides on attributes: delamin8r
           writes `dl-plane` onto these elements, and React setting `className`
           strips it. */}
-      <div className="prefs__sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="prefs__sheet">
         <div className="prefs__head" data-dl-lift="1">
           <span className="prefs__title">preferences</span>
           <button type="button" className="prefs__close" onClick={onClose} aria-label="Close">
