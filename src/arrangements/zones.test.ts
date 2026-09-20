@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createZoneGrid, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
+import { colsFor, createZoneGrid, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { defaultParams } from '@/params.ts'
 
 const container = { w: 16 / 9, h: 1 }
@@ -119,5 +119,28 @@ describe('reversing an axis', () => {
 
   it('leaves the placements untouched when neither axis is reversed', () => {
     expect(place({})).toEqual(place({}))
+  })
+})
+
+describe('colsFor', () => {
+  it('takes the column count that gives the biggest square cell', () => {
+    // Ten cells in a container half again as tall as it is wide. windease
+    // would answer four on the count alone; three is what fits.
+    expect(colsFor(10, { w: 10, h: 15 }, 0)).toBe(3)
+    expect(colsFor(10, { w: 15, h: 10 }, 0)).toBe(4)
+  })
+
+  it('reads the container, not the count — the same count answers differently', () => {
+    expect(colsFor(6, { w: 30, h: 5 }, 0)).toBe(6)
+    expect(colsFor(6, { w: 5, h: 30 }, 0)).toBe(1)
+  })
+
+  it('counts the gap, which a narrow container spends more of per column', () => {
+    expect(colsFor(4, { w: 10, h: 10 }, 0)).toBe(2)
+    expect(colsFor(4, { w: 10, h: 10 }, 4)).toBe(2)
+  })
+
+  it('takes the narrower grid where two answers tie', () => {
+    expect(colsFor(12, { w: 10, h: 10 }, 0)).toBe(3)
   })
 })

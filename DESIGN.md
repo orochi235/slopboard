@@ -143,6 +143,16 @@ give that up by definition — a wall ordered by severity or by arrival
 reshuffles as artifacts land — and take cells in the order the sort implies
 instead.
 
+**The column count fits the container, not the count of zones.** windease
+auto-balances a grid on `sqrt(n)` alone — its `orientation` biases which way a
+non-square count rounds and is a fixed bias, never a fit — which keeps the grid
+square and says nothing about the shape it is squaring inside. Ten zones in a
+container half again as tall as it is wide got four columns and three short
+rows, every pile smaller than it needed to be. `colsFor` in
+`src/arrangements/zones.ts` picks the count that gives the biggest square cell
+and hands it over, since a card is square and the cell to maximize is the
+square one. A `cols` or `rows` set by hand is an answer already given and wins.
+
 A zone pinned from its right-click menu leads whatever the key says. Pinned
 zones among themselves fall back to the key rather than to when each was
 pinned, because the order they were pinned in is nowhere on the wall. A pin is

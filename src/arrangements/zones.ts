@@ -4,6 +4,40 @@ import { createSlots } from './slots.ts'
 import type { StackParams } from '@/params.ts'
 
 /**
+ * How many columns to lay `count` cells out in, for the biggest square cell the
+ * container will hold.
+ *
+ * windease auto-balances on the count alone — `ceil(sqrt(n))` columns for
+ * `wide`, `floor(sqrt(n))` for `tall` — which keeps the *grid* square and says
+ * nothing about the container it is squaring inside. Ten zones in a container
+ * half again as tall as it is wide get four columns and three short rows, and
+ * every pile is smaller than it needed to be. Orientation is the only lever the
+ * kit offers and it is a fixed bias, not a fit, so the count is worked out here
+ * and handed over.
+ *
+ * A card is square, so the cell to maximize is the square one: the score is the
+ * shorter side of a cell, not its area.
+ */
+export function colsFor(count: number, container: WeSize, gap: number): number {
+  let best = 1
+  let bestSide = -1
+  for (let cols = 1; cols <= count; cols++) {
+    const rows = Math.ceil(count / cols)
+    const w = (container.w - gap * (cols - 1)) / cols
+    const h = (container.h - gap * (rows - 1)) / rows
+    const side = Math.min(w, h)
+    // Strictly greater, so the fewest columns that reach the best cell win —
+    // a tie between 3x4 and 4x3 in a square container takes the narrower grid
+    // rather than letting the loop's last pass decide it.
+    if (side > bestSide) {
+      bestSide = side
+      best = cols
+    }
+  }
+  return best
+}
+
+/**
  * Every cell the grid lays out for `count` items, in the order the strategy
  * placed them. Pure, so the wall can ask for the cells of a grid it is not
  * laying out — which is how it frames the room a spare cell reserves without
@@ -15,6 +49,12 @@ export function gridCells(
   cfg: StackParams['zoneGrid'],
 ): Rect[] {
   if (count <= 0) return []
+  // Only where neither axis is pinned: a set `cols` or `rows` is an answer
+  // already given, and fitting over the top of it would ignore it.
+  const fitted =
+    cfg.cols === undefined && cfg.rows === undefined
+      ? colsFor(count, container, cfg.gap)
+      : undefined
   const out = gridStrategy.layout({
     items: Array.from({ length: count }, (_, i) => ({ id: String(i) })),
     container,
@@ -22,7 +62,7 @@ export function gridCells(
     options: {
       gap: cfg.gap,
       orientation: cfg.orientation,
-      ...(cfg.cols === undefined ? {} : { cols: cfg.cols }),
+      ...(cfg.cols === undefined ? (fitted === undefined ? {} : { cols: fitted }) : { cols: cfg.cols }),
       ...(cfg.rows === undefined ? {} : { rows: cfg.rows }),
     },
   })
