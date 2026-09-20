@@ -191,7 +191,7 @@ export function controlFor(path: string, value: number | string | boolean): Cont
  *  is the swatch grid, and the density that belongs beside it rides along with
  *  it — a pitch slider stranded further down the list is the same decision
  *  taken twice, out of sight of the pattern it applies to. */
-const BESPOKE = new Set(['zones.hatchSpacing'])
+const BESPOKE = new Set(['zones.hatchSpacing', 'zones.hatchPeriod', 'zones.hatchAngleDeg'])
 
 export function controlsOf(params: StackParams): Control[] {
   return leafPathsOf(params).flatMap((path) => {

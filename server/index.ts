@@ -176,6 +176,8 @@ app.post('/api/zones/:zone/settings', express.json(), async (req, res) => {
     color: field<string>('color'),
     backdrop: field<never>('backdrop'),
     spacing: field<number>('spacing'),
+    period: field<number>('period'),
+    angle: field<number>('angle'),
     lifetime: field<Lifetime>('lifetime'),
   })
   console.log(`[zone] ${req.params.zone} ${JSON.stringify(settings)}`)

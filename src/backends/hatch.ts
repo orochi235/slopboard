@@ -17,6 +17,7 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
       uColor: { value: new THREE.Color('#64748b') },
       uOpacity: { value: 0.14 },
       uSpacing: { value: 0.014 },
+      uPeriod: { value: 0.028 },
       uWidth: { value: 0.001 },
       uAngle: { value: Math.PI / 4 },
       uPattern: { value: 1 },
@@ -33,6 +34,7 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
       uniform vec3 uColor;
       uniform float uOpacity;
       uniform float uSpacing;
+      uniform float uPeriod;
       uniform float uWidth;
       uniform float uAngle;
       uniform int uPattern;
@@ -123,14 +125,20 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
           float stitch = max(lines(a, 1.0, stitchW), lines(b, 1.0, stitchW));
           cover = max(fill, stitch);
         } else if (uPattern == 8) {
-          // Chevron: one ruling creased into a zigzag. The crease is a triangle
-          // wave two spacings wide and one tall, so the arms meet at a right
-          // angle however the wall is turned.
-          float zig = abs(fract(u / (2.0 * uSpacing)) - 0.5) * 4.0 * uSpacing;
-          cover = lines(v + zig, 2.0 * uSpacing, uWidth);
+          // Chevron: one ruling creased into a zigzag. The two axes are set
+          // apart — how far apart the rules are, and how long one zigzag runs
+          // — because a chevron is read by the angle between them, and tying
+          // the two to one number fixes that angle at forty-five degrees.
+          float zig = abs(fract(u / uPeriod) - 0.5) * 2.0 * uSpacing;
+          cover = lines(v + zig, uSpacing, uWidth);
         } else if (uPattern == 9) {
-          // The same ruling bent on a sine rather than a crease.
-          cover = lines(v + sin(u / uSpacing * 3.14159265) * uSpacing * 0.5, uSpacing, uWidth);
+          // The same ruling bent on a sine rather than a crease, and split the
+          // same way: \`uPeriod\` is one wave, \`uSpacing\` the gap between rules.
+          cover = lines(
+            v + sin(u / uPeriod * 6.28318531) * uSpacing * 0.5,
+            uSpacing,
+            uWidth
+          );
         } else if (uPattern == 10) {
           // Scales: a circle per cell, alternate rows shifted half a cell, so
           // each one sits in the notch between the two above it.

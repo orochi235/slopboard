@@ -367,6 +367,10 @@ export type StackParams = {
      *  world units rather than cell fractions, so the hatch reads at one
      *  density across the wall however the cells are sized. */
     hatchSpacing: number
+    /** How long one repeat of a pattern that has a second axis runs — the
+     *  zigzag of `chevron`, the wave of `waves`. Every other pattern is ruled
+     *  at `hatchSpacing` both ways and never reads this. */
+    hatchPeriod: number
     hatchWidth: number
     hatchAngleDeg: number
   }
@@ -626,6 +630,7 @@ export const defaultParams: StackParams = {
     huedMinLight: 0.34,
     backdropOpacity: 0.69,
     hatchSpacing: 0.015,
+    hatchPeriod: 0.03,
     hatchWidth: 0.002,
     hatchAngleDeg: 46,
   },

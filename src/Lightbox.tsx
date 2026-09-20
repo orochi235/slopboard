@@ -581,6 +581,9 @@ function VideoLightbox({
  */
 export function Lightbox(props: {
   item: WallItem
+  /** The zone's lifted project color. Absent for a zone with no `.hued`, which
+   *  keeps the wall's own accent. */
+  tint?: string
   now: number
   quietMs: number
   /** Playing its way out, after a reply. The caller unmounts it once done. */
@@ -589,9 +592,14 @@ export function Lightbox(props: {
   onAnswer: (id: string, text: string) => void
   onDismiss: (id: string) => void
 }) {
-  const { quietMs, onAnswer, onDismiss, closing, ...rest } = props
+  const { quietMs, onAnswer, onDismiss, closing, tint, ...rest } = props
   return (
-    <>
+    // One property for the lot: the frame, the keyline and the glow all read
+    // it, and each falls back to the wall's accent where a zone has no color.
+    <div
+      className="lightbox__tint"
+      style={tint ? ({ '--lb-accent': tint } as CSSProperties) : undefined}
+    >
       {rest.item.kind === 'page' ? (
         <PageLightbox {...rest} closing={closing} />
       ) : rest.item.kind === 'video' ? (
@@ -609,6 +617,6 @@ export function Lightbox(props: {
         onAnswer={(text) => onAnswer(rest.item.id, text)}
         onDismiss={() => onDismiss(rest.item.id)}
       />
-    </>
+    </div>
   )
 }

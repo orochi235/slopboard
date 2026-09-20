@@ -9,7 +9,7 @@ import {
   Slider,
 } from '@weasel-js/ui'
 import type { Backdrop } from '@shared/backdrops.ts'
-import { BackdropDensity } from '@/BackdropDensity.tsx'
+import { BackdropRuling } from '@/BackdropRuling.tsx'
 import { BackdropSwatches } from '@/BackdropSwatches.tsx'
 import { controlsOf, formatStepped } from '@/params.controls.ts'
 import { groupControls } from '@/params.groups.ts'
@@ -170,6 +170,10 @@ export function ParamsBody({
                         max={control.max}
                         step={control.step}
                         density="slim"
+                        // A press on the bar sends the thumb there. Every
+                        // slider the panel generates has one thumb, which is
+                        // the case the kit turns this off for.
+                        trackClick="move-nearest"
                         readoutPlacement="inline-after"
                         renderReadout={(thumb) => (
                           <>
@@ -199,12 +203,30 @@ export function ParamsBody({
                           tint="currentColor"
                           onChange={set}
                         />
-                        <BackdropDensity
-                          value={params.zones.hatchSpacing}
-                          wall={params.zones.hatchSpacing}
-                          onChange={(next) =>
-                            next !== null && onChange(setAt(params, 'zones.hatchSpacing', next))
-                          }
+                        <BackdropRuling
+                          backdrop={value as Backdrop}
+                          own={{
+                            spacing: params.zones.hatchSpacing,
+                            period: params.zones.hatchPeriod,
+                            angle: params.zones.hatchAngleDeg,
+                          }}
+                          wall={{
+                            spacing: params.zones.hatchSpacing,
+                            period: params.zones.hatchPeriod,
+                            angle: params.zones.hatchAngleDeg,
+                          }}
+                          // The wall has nothing above it, so a row here never
+                          // clears — a null would leave the uniform unset.
+                          onChange={(patch) => {
+                            let next = params
+                            if (patch.spacing != null)
+                              next = setAt(next, 'zones.hatchSpacing', patch.spacing)
+                            if (patch.period != null)
+                              next = setAt(next, 'zones.hatchPeriod', patch.period)
+                            if (patch.angle != null)
+                              next = setAt(next, 'zones.hatchAngleDeg', patch.angle)
+                            onChange(next)
+                          }}
                         />
                       </Fragment>
                     )

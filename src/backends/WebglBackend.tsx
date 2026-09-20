@@ -2359,6 +2359,9 @@ export function WebglBackend(props: Props) {
       {lit && (
         <Lightbox
           item={lit}
+          // The pile's own color, so the frame says which zone the artifact
+          // came from rather than repeating the wall's one accent.
+          tint={planTints.get(lit.zone)}
           now={now}
           quietMs={props.params.nav.quietMs}
           onClose={() => dispatch({ type: 'out' })}

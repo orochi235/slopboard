@@ -29,3 +29,16 @@ export const backdropFor = (settings: ZoneSettings | undefined, wall: Backdrop):
 /** The pitch one zone is ruled at: its own, else the wall's. */
 export const spacingFor = (settings: ZoneSettings | undefined, wall: number): number =>
   settings?.spacing ?? wall
+
+/** How long one repeat runs along the other axis, for the patterns that have
+ *  one: the zone's own, else the wall's. */
+export const periodFor = (settings: ZoneSettings | undefined, wall: number): number =>
+  settings?.period ?? wall
+
+/** What one zone's ruling is turned to, in degrees: its own, else the wall's. */
+export const angleFor = (settings: ZoneSettings | undefined, wall: number): number =>
+  settings?.angle ?? wall
+
+/** The patterns built on two axes, which are the ones a second pitch reaches.
+ *  Everything else is ruled at one pitch both ways and ignores it. */
+export const TWO_AXIS: ReadonlySet<Backdrop> = new Set<Backdrop>(['chevron', 'waves'])

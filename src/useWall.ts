@@ -10,6 +10,8 @@ export type ZonePatch = {
   color?: string | null
   backdrop?: ZoneSettings['backdrop'] | null
   spacing?: number | null
+  period?: number | null
+  angle?: number | null
   lifetime?: Lifetime | null
 }
 

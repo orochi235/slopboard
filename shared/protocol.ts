@@ -91,6 +91,11 @@ export type ZoneSettings = {
   /** The pattern's pitch in world units, which the sheet offers as a density —
    *  the smaller the number, the denser the ruling. Wins over the wall's. */
   spacing?: number
+  /** The pitch along the other axis, for the patterns that have one. Wins
+   *  over the wall's, and is ignored by every pattern ruled one way. */
+  period?: number
+  /** What the ruling is turned to, in degrees. Wins over the wall's. */
+  angle?: number
   /** How long an artifact here lives when it carries no TTL of its own. A
    *  duration, or one of the two ways of being off the clock. */
   lifetime?: Lifetime

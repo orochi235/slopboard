@@ -1,0 +1,43 @@
+/* The ruling rows, beside the swatches they belong to. */
+.ruling__slider {
+  flex: 1 1 auto;
+}
+
+/* The kit paints the bar with a crosshair, which is honest while a press on it
+   does nothing. These take `trackClick`, so the bar is a control and says so. */
+.ruling__slider [class*='track'] {
+  cursor: pointer;
+}
+
+/* Tabular so the digits hold one width, and fixed so the control beside the
+   readout does not step sideways as the thumb moves. */
+.ruling__readout {
+  display: inline-block;
+  min-width: 4ch;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: pre;
+}
+
+.ruling__wall {
+  margin-inline-start: 8px;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+  border-radius: 3px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.ruling__wall[aria-pressed='true'] {
+  border-style: dashed;
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ruling__wall:not([aria-pressed='true']):hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  color: var(--accent);
+}

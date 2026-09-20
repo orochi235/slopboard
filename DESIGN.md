@@ -396,15 +396,22 @@ against every arrangement.
   which is the whole reason it exists. The answers get written back to
   `src/params.ts` once they settle.
 - **A plan view** in the corner names each zone, lights the one with focus, and
-  zooms to a pile when clicked.
+  zooms to a pile when clicked. It fills each icon with the zone's real
+  pattern, worn as a mask over the zone's tint — the same pictures the swatches
+  wear, drawn by the shader that draws the wall, so there is no second
+  implementation of seventeen patterns here to drift from the first.
 - **The `zones` group** owns how a zone presents itself: outline, label, and a
   backdrop filling its cell — a ruled hatch by default, or crosshatch, grid,
   chevron, waves, bricks, basketweave, parquet, triangles, hexagons, scales,
   dragonscale, dots, checks, argyle or a flat tint, all drawn by one shader in
   world space so it holds one density across the wall and costs the texture
-  budget nothing. **The pattern and its pitch are one decision**, so the density
-  slider sits with the swatches rather than in the parameter list, and a zone
-  overrides the wall's pitch the way it overrides the pattern.
+  budget nothing. **The pattern and how it is ruled are one decision**, so
+  density, repeat and rotation sit with the swatches rather than in the
+  parameter list, and a zone overrides each of them the way it overrides the
+  pattern. `chevron` and `waves` are the two built on two axes, so they are the
+  two that show a repeat: a chevron is read by the angle between its arms,
+  which is the ratio of its two pitches, and one pitch fixes that angle at
+  forty-five degrees.
   The backdrop sits a hair behind the zone outline rather than
   behind the pile: it writes no depth and draws ahead of the cards, so it never
   occludes them however deep they go, while a plane parked at the deepest rank

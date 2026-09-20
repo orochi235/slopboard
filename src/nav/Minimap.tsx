@@ -1,9 +1,10 @@
-import type { CSSProperties } from 'react'
+import { type CSSProperties, useMemo } from 'react'
 import type { Rect } from 'windease'
 import type { ZoneSettings } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
-import { backdropFor } from '@/zone-settings.ts'
+import { angleFor, backdropFor } from '@/zone-settings.ts'
 import { hatchRotation } from '@/nav/hatch-angle.ts'
+import { swatches } from '@/textures/swatches.ts'
 import { unionOf } from '@/nav/zone-cells.ts'
 import './minimap.css'
 
@@ -48,26 +49,32 @@ export function Minimap({
   const bounds = unionOf(cells.map((c) => c.box))
   if (!bounds || bounds.w <= 0 || bounds.h <= 0) return null
 
-  // Any line art draws as a hatch here, crossed where the pattern is; at this
-  // size the pattern is a texture, not a picture. Per zone, because a zone may
-  // rule itself differently from the wall.
+  // The real pattern, not a stand-in for it. These are the pictures the
+  // swatches wear, drawn by the shader that draws the wall — so the plan is
+  // never wrong about which pattern a zone is ruled in, and there is no second
+  // implementation of seventeen patterns here to drift from the first.
+  const masks = useMemo(() => swatches(), [])
+
   const ruleFor = (zone: string) => {
     const backdrop = backdropFor(zoneSettings[zone], zones.backdrop)
     return {
+      backdrop,
+      // `solid` has a swatch, but it is a filled square — the ground already
+      // draws that, and laying it over itself only doubles the tint.
       hatched: zones.huedBackdrop && backdrop !== 'none' && backdrop !== 'solid',
-      crossed: backdrop === 'crosshatch' || backdrop === 'grid' || backdrop === 'argyle',
-      // `crosshatch` and `argyle` are ruled on the wall's own angle, which at
-      // 45 degrees is what makes them read as diamonds; `grid` is the one
-      // turned back onto the axes. The plan has to turn the same way round.
-      turned: backdrop === 'grid' ? 0 : 45,
+      mask: masks[backdrop],
+      // A zone that turned its own ruling turns here too, or the plan says one
+      // thing about the wall while the wall says another.
+      angle: angleFor(zoneSettings[zone], zones.hatchAngleDeg),
     }
   }
   const hatched = [...tints.keys()].some((zone) => ruleFor(zone).hatched)
   // The plan is an icon, not a scale drawing. The wall's spacing is in these
   // same units, and at the size of this box it would lay down a hundred and
-  // fifty lines — a flat tint with a cost. The angle is the wall's; the pitch
-  // is whatever reads here.
-  const pitch = bounds.h / 18
+  // fifty lines — a flat tint with a cost. The angle is the zone's; the pitch
+  // is whatever reads here. A swatch already holds a few repeats of its
+  // pattern, so a tile here is several of the wall's.
+  const pitch = bounds.h / 6
 
   // Indexed rather than named: a zone is a directory name, and a URL reference
   // cannot carry everything one of those is allowed to hold.
@@ -83,6 +90,23 @@ export function Minimap({
       >
         {hatched && (
           <defs>
+            {[...tints].map(([zone]) => {
+              const mask = ruleFor(zone).mask
+              return (
+                mask && (
+                  <mask key={`${zone}-mask`} id={`${ids.get(zone)}-mask`}>
+                    <image
+                      href={mask}
+                      x={0}
+                      y={0}
+                      width={pitch}
+                      height={pitch}
+                      preserveAspectRatio="none"
+                    />
+                  </mask>
+                )
+              )
+            })}
             {[...tints].map(([zone, tint]) => (
               <pattern
                 key={zone}
@@ -90,29 +114,25 @@ export function Minimap({
                 patternUnits="userSpaceOnUse"
                 width={pitch}
                 height={pitch}
-                patternTransform={`rotate(${hatchRotation(zones.hatchAngleDeg) + ruleFor(zone).turned})`}
+                // The swatch is drawn on the wall's own angle already, so only
+                // what a zone turned on top of it is applied here.
+                patternTransform={`rotate(${hatchRotation(ruleFor(zone).angle)})`}
               >
-                {/* The zone's ground, then its hatch over it: one fill has to
+                {/* The zone's ground, then its pattern over it: one fill has to
                     carry both, and a pattern is the only fill that can. */}
                 <rect x={0} y={0} width={pitch} height={pitch} fill={tint} opacity={0.22} />
-                <line
-                  x1={0}
-                  y1={0}
-                  x2={0}
-                  y2={pitch}
-                  stroke={tint}
-                  strokeWidth={pitch / 5}
-                  opacity={zones.backdropOpacity}
-                />
-                {ruleFor(zone).crossed && (
-                  <line
-                    x1={0}
-                    y1={0}
-                    x2={pitch}
-                    y2={0}
-                    stroke={tint}
-                    strokeWidth={pitch / 5}
+                {/* The swatch is white on transparent, so it is worn as a mask
+                    over the zone's own tint rather than drawn — one render
+                    then serves every zone, the way the sheet wears it. */}
+                {ruleFor(zone).mask && (
+                  <rect
+                    x={0}
+                    y={0}
+                    width={pitch}
+                    height={pitch}
+                    fill={tint}
                     opacity={zones.backdropOpacity}
+                    mask={`url(#${ids.get(zone)}-mask)`}
                   />
                 )}
               </pattern>

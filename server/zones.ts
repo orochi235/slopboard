@@ -50,18 +50,34 @@ const heldSpacing = (raw: unknown): number | null =>
     ? raw
     : null
 
+/** An angle in degrees, wrapped into one turn. Any number is a legal angle, so
+ *  this refuses nothing a number can say — it only picks the representative. */
+const heldAngle = (raw: unknown): number | null =>
+  typeof raw === 'number' && Number.isFinite(raw) ? ((raw % 360) + 360) % 360 : null
+
 let zones: Record<string, ZoneSettings> = {}
 
 /** One stored entry, less anything this build cannot use. A zone whose record
  *  is junk inherits, which is what it did before anyone configured it. */
 function clean(raw: unknown): ZoneSettings {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return {}
-  const blob = raw as { color?: unknown; backdrop?: unknown; spacing?: unknown; ttl?: unknown }
+  const blob = raw as {
+    color?: unknown
+    backdrop?: unknown
+    spacing?: unknown
+    period?: unknown
+    angle?: unknown
+    ttl?: unknown
+  }
   const out: ZoneSettings = {}
   if (typeof blob.color === 'string' && HEX.test(blob.color)) out.color = blob.color
   if (isBackdrop(blob.backdrop)) out.backdrop = blob.backdrop
   const spacing = heldSpacing(blob.spacing)
   if (spacing !== null) out.spacing = spacing
+  const period = heldSpacing(blob.period)
+  if (period !== null) out.period = period
+  const angle = heldAngle(blob.angle)
+  if (angle !== null) out.angle = angle
   if (typeof blob.ttl === 'string') {
     const held = heldLifetime(parseLifetime(blob.ttl))
     if (held !== null) out.lifetime = held
@@ -78,6 +94,8 @@ const onDisk = (all: Record<string, ZoneSettings>) => ({
         ...(s.color ? { color: s.color } : {}),
         ...(s.backdrop ? { backdrop: s.backdrop } : {}),
         ...(s.spacing === undefined ? {} : { spacing: s.spacing }),
+        ...(s.period === undefined ? {} : { period: s.period }),
+        ...(s.angle === undefined ? {} : { angle: s.angle }),
         ...(s.lifetime === undefined ? {} : { ttl: formatLifetime(s.lifetime) }),
       },
     ]),
@@ -125,6 +143,8 @@ export async function set(
     color?: string | null
     backdrop?: ZoneSettings['backdrop'] | null
     spacing?: number | null
+    period?: number | null
+    angle?: number | null
     lifetime?: Lifetime | null
   },
 ): Promise<ZoneSettings> {
@@ -145,6 +165,18 @@ export async function set(
   else if (patch.spacing !== undefined) {
     const held = heldSpacing(patch.spacing)
     if (held !== null) next.spacing = held
+  }
+
+  if (patch.period === null) delete next.period
+  else if (patch.period !== undefined) {
+    const held = heldSpacing(patch.period)
+    if (held !== null) next.period = held
+  }
+
+  if (patch.angle === null) delete next.angle
+  else if (patch.angle !== undefined) {
+    const held = heldAngle(patch.angle)
+    if (held !== null) next.angle = held
   }
 
   if (patch.lifetime === null) delete next.lifetime

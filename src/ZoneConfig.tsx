@@ -3,7 +3,7 @@ import { CheckboxRow, ColorRow, PropertyList, SelectRow } from '@weasel-js/ui'
 import { delaminate } from 'delamin8r'
 import type { Backdrop } from '@shared/backdrops.ts'
 import { isEternal, type Lifetime } from '@shared/lifetime.ts'
-import { BackdropDensity } from '@/BackdropDensity.tsx'
+import { BackdropRuling } from '@/BackdropRuling.tsx'
 import { BackdropSwatches, INHERIT as SWATCH_INHERIT } from '@/BackdropSwatches.tsx'
 import type { ZoneSettings } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
@@ -41,7 +41,13 @@ export function ZoneConfig({
   count: number
   pinned: boolean
   /** The defaults this zone is overriding, for the rows that say so. */
-  wall: { backdrop: Backdrop; hatchSpacing: number; ttlMs: number }
+  wall: {
+    backdrop: Backdrop
+    hatchSpacing: number
+    hatchPeriod: number
+    hatchAngleDeg: number
+    ttlMs: number
+  }
   look: StackParams['prefs']
   /** The app-wide parallax gate. The sheet has no flag of its own. */
   allowParallax: boolean
@@ -125,11 +131,20 @@ export function ZoneConfig({
                 onChange({ backdrop: next === SWATCH_INHERIT ? null : next })
               }
             />
-            <BackdropDensity
-              value={settings.spacing ?? null}
-              wall={wall.hatchSpacing}
+            <BackdropRuling
+              backdrop={settings.backdrop ?? wall.backdrop}
+              own={{
+                spacing: settings.spacing ?? null,
+                period: settings.period ?? null,
+                angle: settings.angle ?? null,
+              }}
+              wall={{
+                spacing: wall.hatchSpacing,
+                period: wall.hatchPeriod,
+                angle: wall.hatchAngleDeg,
+              }}
               inherits
-              onChange={(next) => onChange({ spacing: next })}
+              onChange={onChange}
             />
             <SelectRow
               label="lifetime"

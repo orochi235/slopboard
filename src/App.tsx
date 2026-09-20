@@ -113,6 +113,8 @@ export function App() {
           wall={{
             backdrop: params.zones.backdrop,
             hatchSpacing: params.zones.hatchSpacing,
+            hatchPeriod: params.zones.hatchPeriod,
+            hatchAngleDeg: params.zones.hatchAngleDeg,
             ttlMs,
           }}
           look={params.prefs}
