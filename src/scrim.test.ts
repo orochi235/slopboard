@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { closesDialog } from '@/scrim.ts'
+import { closesDialog, pressedOn } from '@/scrim.ts'
 
 const scrim = new EventTarget()
 const sheet = new EventTarget()
@@ -23,5 +23,22 @@ describe('closesDialog', () => {
 
   it('holds open when the press target is unknown', () => {
     expect(closesDialog(null, scrim, scrim)).toBe(false)
+  })
+})
+
+describe('pressedOn', () => {
+  it('accepts a click whose press landed on the same element', () => {
+    expect(pressedOn(sheet, sheet)).toBe(true)
+  })
+
+  it('rejects the click that ends a drag started elsewhere', () => {
+    // The `wall` button beside a rotation track: drag the thumb to the end,
+    // release over the button, and its click put the row back to inheriting —
+    // which read as the slider working once and then undoing itself.
+    expect(pressedOn(thumb, sheet)).toBe(false)
+  })
+
+  it('rejects a click with no press recorded', () => {
+    expect(pressedOn(null, sheet)).toBe(false)
   })
 })

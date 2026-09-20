@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { PropertyRow, Slider } from '@weasel-js/ui'
 import type { Backdrop } from '@shared/backdrops.ts'
+import { pressedOn } from '@/scrim.ts'
 import { TWO_AXIS } from '@/zone-settings.ts'
 import './backdrop-ruling.css'
 
@@ -69,6 +70,10 @@ export function BackdropRuling({
    *  moving under a zone that inherits. */
   const sent = useRef<Partial<Record<Field, number>>>({})
   const wrote = useRef<Partial<Record<Field, number>>>({})
+  /** What the press that a click ends landed on. The `wall` button sits beside
+   *  the track, and a drag that overshoots onto it releases there — the click
+   *  that follows then cleared the value the drag had just set. */
+  const pressed = useRef<EventTarget | null>(null)
 
   const settled = (Object.keys(live) as Field[]).filter(
     (f) => (own[f] ?? wall[f]) === sent.current[f],
@@ -86,6 +91,9 @@ export function BackdropRuling({
   }, [settled.join()])
 
   const put = (f: Field, value: number, commit: boolean) => {
+    // This gesture is a drag on a track, so whatever press the button last
+    // recorded belongs to an older one and must not arm its click.
+    pressed.current = null
     setLive((held) => ({ ...held, [f]: value }))
     sent.current[f] = value
     const last = wrote.current[f]
@@ -137,7 +145,12 @@ export function BackdropRuling({
             aria-pressed={own[field] === null}
             disabled={own[field] === null}
             title={`back to the wall's ${label}`}
-            onClick={() => {
+            onPointerDown={(e) => {
+              pressed.current = e.currentTarget
+            }}
+            onClick={(e) => {
+              if (!pressedOn(pressed.current, e.currentTarget)) return
+              pressed.current = null
               setLive((held) => {
                 const next = { ...held }
                 delete next[field]
