@@ -276,11 +276,17 @@ function Wall({
     return out
   }, [zoneColors, huedMinLight])
 
+  // Where a card's pixels are is the daemon's answer, carried on the item —
+  // not a route rebuilt here, which the demo wall has no server to satisfy.
+  // Through a ref so an arrival does not rebuild the whole texture manager.
+  const urlById = useRef(new Map<string, string>())
+  urlById.current = useMemo(() => new Map(items.map((i) => [i.id, i.url])), [items])
+
   const textures = useMemo(
     () =>
       createTextureManager<THREE.Texture>({
         budgetBytes: params.lod.budgetBytes,
-        urlFor: (id) => `/img/${id}`,
+        urlFor: (id) => urlById.current.get(id) ?? '',
         load: async (url, edge) => {
           const bitmap = await loadBitmap(url, edge)
           if (!bitmap) return null

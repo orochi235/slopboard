@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "vite build"
+    "build": "vite build",
+    "demo:stage": "tsx tools/demo-set.ts stage",
+    "demo:pack": "tsx tools/demo-set.ts pack"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",

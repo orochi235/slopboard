@@ -7,8 +7,17 @@ import '@/styles.css'
 import '@weasel-js/ui/style.css'
 import '@/weasel.css'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+// The demo daemon installs before the first render, so the wall never opens a
+// socket it has no daemon for. `__SLOP_DEMO__` is a build-time literal, which
+// is how the daemon and its forty pictures stay out of the ordinary bundle.
+// Wrapped rather than awaited at the top level, which the build target refuses.
+const boot = async () => {
+  if (__SLOP_DEMO__) await import('@/demo/install.ts')
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}
+
+void boot()
