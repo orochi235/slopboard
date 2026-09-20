@@ -113,3 +113,50 @@ export function isZoomed(view: View, image: Size, port: Size): boolean {
 export function toggleScale(view: View, image: Size, port: Size): number {
   return isZoomed(view, image, port) ? fitScale(image, port) : 1
 }
+
+/**
+ * How little of the window a fitted image may use across its short axis before
+ * fitting stops being a way of seeing it. A 4800x600 panorama fitted to a
+ * 1600x1000 window stands 188px tall: every pixel is on screen and nothing in
+ * it can be read.
+ */
+export const SLIVER = 0.4
+
+/**
+ * The scale at which the image covers the window — its short axis filled, its
+ * long one running off to be panned. Never above 1, for the reason `fitScale`
+ * is never above 1.
+ */
+export function fillScale(image: Size, port: Size): number {
+  if (image.w <= 0 || image.h <= 0) return 1
+  return Math.min(1, Math.max((port.w * FIT_MARGIN) / image.w, (port.h * FIT_MARGIN) / image.h))
+}
+
+/**
+ * Whether this image is so much longer than it is deep that fitting it wastes
+ * the window. Measured against what fitting would actually draw rather than
+ * against a ratio of the image alone, because the same picture is a panorama
+ * on one monitor and an ordinary wide image on another.
+ */
+export function isPanorama(image: Size, port: Size, sliver = SLIVER): boolean {
+  if (image.w <= 0 || image.h <= 0) return false
+  const scale = fitScale(image, port)
+  return Math.min((image.w * scale) / port.w, (image.h * scale) / port.h) < sliver
+}
+
+/** What opening an artifact shows: fitted, unless fitting would make a sliver
+ *  of it, in which case filled and ready to be panned along. */
+export function openView(image: Size, port: Size): View {
+  return { scale: isPanorama(image, port) ? fillScale(image, port) : fitScale(image, port), x: 0, y: 0 }
+}
+
+/**
+ * What a panorama's own toggle alternates between: the whole thing at once, or
+ * enough of it to read. Distinct from `toggleScale`, which trades fit against
+ * the image's own pixels — for a panorama those are often the same number, so
+ * the double-click would appear to do nothing.
+ */
+export function togglePanorama(view: View, image: Size, port: Size): number {
+  const filled = fillScale(image, port)
+  return view.scale >= filled - 1e-6 ? fitScale(image, port) : filled
+}

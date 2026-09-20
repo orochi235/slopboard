@@ -7,7 +7,10 @@ import { sandboxFor } from '@/lightbox-sandbox.ts'
 import { KEY_MESSAGE } from '@shared/page-keys.ts'
 import {
   fitView,
+  isPanorama,
   isZoomed,
+  openView,
+  togglePanorama,
   panBy,
   toggleScale,
   zoomByWheel,
@@ -222,7 +225,12 @@ function ImageLightbox({
       setView((v) =>
         isZoomed(v, image, was)
           ? panBy(v, 0, 0, image, next)
-          : fitView(image, next),
+          : // `openView`, not `fitView`: a panorama that was filled is at a
+            // scale `isZoomed` reads as zoomed, so this arm only ever has an
+            // image that was showing whole — and a panorama resized into a
+            // window it now fits should still open filled rather than as a
+            // sliver of the new one.
+            openView(image, next),
       )
     }
     window.addEventListener('resize', onResize)
@@ -235,7 +243,7 @@ function ImageLightbox({
     const natural = { w: el.naturalWidth, h: el.naturalHeight }
     size.current = portOf()
     setImage(natural)
-    setView(fitView(natural, size.current))
+    setView(openView(natural, size.current))
     setLoaded(true)
     // A visible element can take focus, and until the first paint this one is
     // still transparent. Focus is what decides the wheel is ours.
@@ -284,6 +292,9 @@ function ImageLightbox({
   }
 
   const at = (e: { clientX: number; clientY: number }) => ({ x: e.clientX, y: e.clientY })
+  /** The anchor for a zoom nobody pointed at — the middle of the window, so a
+   *  toggle from the meta row keeps the middle of the picture in the middle. */
+  const center = () => ({ x: size.current.w / 2, y: size.current.h / 2 })
 
   const onDoubleClick = (e: MouseEvent<HTMLDivElement>) => {
     setEased(true)
@@ -370,6 +381,25 @@ function ImageLightbox({
             {part}
           </span>
         ))}
+        {/* Only where fitting makes a sliver. A panorama opens filled and this
+            is the way to the whole of it; every other image is already whole,
+            and a button offering to shrink it would mean nothing. */}
+        {loaded && isPanorama(image, size.current) && (
+          <button
+            type="button"
+            className="lightbox__metaPart lightbox__metaButton"
+            onClick={() =>
+              setView((v) =>
+                zoomTo(v, togglePanorama(v, image, size.current), center(), image, size.current),
+              )
+            }
+          >
+            {isZoomed(view, image, size.current) ? 'whole' : 'fill'}
+          </button>
+        )}
+        {/* Last in the row: it changes on every wheel notch, and anything after
+            a readout that changes width is a control that shifts under the
+            hand. */}
         {zoomed && (
           <span className="lightbox__metaPart lightbox__zoom">
             {Math.round(view.scale * 100)}%

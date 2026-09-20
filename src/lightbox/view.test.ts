@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
   clampPan,
+  fillScale,
   fitScale,
   fitView,
+  isPanorama,
   isZoomed,
+  openView,
   MAX_SCALE,
   panBy,
   toggleScale,
+  togglePanorama,
   zoomTo,
 } from '@/lightbox/view.ts'
 
@@ -118,5 +122,46 @@ describe('toggleScale', () => {
 
   it('returns to fit from any zoom, not only from 1:1', () => {
     expect(toggleScale({ scale: 3.7, x: 0, y: 0 }, big, port)).toBeCloseTo(fitScale(big, port))
+  })
+})
+
+describe('panoramas', () => {
+  const port = { w: 1600, h: 1000 }
+  const wide = { w: 4800, h: 600 }
+  const tall = { w: 600, h: 4800 }
+  const ordinary = { w: 3000, h: 2000 }
+
+  it('calls an image a panorama when fitting it leaves a sliver', () => {
+    expect(isPanorama(wide, port)).toBe(true)
+    expect(isPanorama(tall, port)).toBe(true)
+  })
+
+  it('leaves an ordinary image alone however large it is', () => {
+    expect(isPanorama(ordinary, port)).toBe(false)
+    expect(isPanorama({ w: 800, h: 600 }, port)).toBe(false)
+  })
+
+  it('fills the short axis rather than fitting the long one', () => {
+    // Fit gives 0.31 here — the whole 4800px visible at 188px tall, which is
+    // every pixel of it and none of it readable.
+    expect(fitScale(wide, port)).toBeCloseTo(0.313, 2)
+    // Fill shows it at its own height and lets the length be panned.
+    expect(fillScale(wide, port)).toBeCloseTo(1, 5)
+  })
+
+  it('never magnifies to fill, the way fit never does', () => {
+    expect(fillScale({ w: 200, h: 40 }, port)).toBeLessThanOrEqual(1)
+  })
+
+  it('opens a panorama filled and everything else fitted', () => {
+    expect(openView(wide, port).scale).toBeCloseTo(fillScale(wide, port), 10)
+    expect(openView(ordinary, port).scale).toBeCloseTo(fitScale(ordinary, port), 10)
+  })
+
+  it('toggles a panorama between whole and readable', () => {
+    const filled = openView(wide, port)
+    expect(togglePanorama(filled, wide, port)).toBeCloseTo(fitScale(wide, port), 10)
+    const fitted = { scale: fitScale(wide, port), x: 0, y: 0 }
+    expect(togglePanorama(fitted, wide, port)).toBeCloseTo(fillScale(wide, port), 10)
   })
 })
