@@ -8,7 +8,8 @@
  * thing to run first when the wall does not do what the code says it should.
  */
 import { execFileSync } from 'node:child_process'
-import { agree, describe, UNKNOWN, type Build } from '@shared/build.ts'
+import { agree, DAEMON_PATHS, describe, type Build } from '@shared/build.ts'
+import { stamp } from '../server/build.ts'
 
 const DAEMON = 8787
 const CLIENT = 5183
@@ -21,11 +22,6 @@ const run = (cmd: string, ...args: string[]): string => {
   }
 }
 
-const head = (): Build => {
-  const sha = run('git', 'rev-parse', '--short', 'HEAD')
-  if (!sha) return UNKNOWN
-  return { sha, dirty: run('git', 'status', '--porcelain').length > 0, startedAt: 0 }
-}
 
 const pidOn = (port: number): string => run('lsof', '-ti', `:${port}`, '-sTCP:LISTEN').split('\n')[0] ?? ''
 
@@ -51,7 +47,7 @@ const agents = (): string[] =>
     })
 
 const main = async () => {
-  const code = head()
+  const code = stamp()
   const daemon = await daemonBuild()
   const daemonPid = pidOn(DAEMON)
   const clientPid = pidOn(CLIENT)
@@ -63,9 +59,9 @@ const main = async () => {
     console.log(`               build ${describe(daemon)}`)
     console.log(`               started ${startedAt(daemonPid)}`)
     if (!agree(daemon, code)) {
-      const behind = run('git', 'rev-list', '--count', `${daemon.sha}..HEAD`)
+      const behind = run('git', 'rev-list', '--count', `${daemon.sha}..HEAD`, '--', ...DAEMON_PATHS)
       console.log(
-        `               STALE — ${behind ? `${behind} commits behind` : 'a different build'}.`,
+        `               STALE — ${behind ? `${behind} daemon commits behind` : 'a different build'}.`,
       )
       console.log('               Fix: npm run daemon:restart')
     }

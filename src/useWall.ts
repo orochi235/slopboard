@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ALERTS } from '@shared/attention.ts'
 import type { Alert, WallItem, ZoneSettings } from '@shared/protocol.ts'
-import type { Build } from '@shared/build.ts'
+import { agree, type Build } from '@shared/build.ts'
 import { actions, type ZonePatch } from '@/actions.ts'
 import { subscribe } from '@/transport.ts'
 
@@ -26,9 +26,10 @@ export type Wall = {
   /** Add to Date.now() to get the daemon's clock. Keeps decay server-anchored. */
   clockOffset: number
   connected: boolean
-  /** What build the daemon is running, once it has said. Null before the first
-   *  snapshot, and in demo mode where there is no daemon at all. */
-  daemonBuild: Build | null
+  /** Whether the daemon is running older code than is on disk. False until
+   *  both have been heard from, and always in demo mode, where there is no
+   *  daemon at all. */
+  daemonStale: boolean
   /** The last arrival whose level asks to be opened on sight. Held rather than
    *  fired so a wall that was closed does not open a queue of them at once —
    *  only the newest is still worth looking at. */
@@ -38,6 +39,10 @@ export type Wall = {
   alerts: Alert[]
   dismissAlert: (id: string) => void
 }
+
+/** How often to ask the daemon what its code on disk looks like. A commit is
+ *  the only thing that moves it, and the chip is a nudge, not an alarm. */
+const CODE_POLL_MS = 30_000
 
 /** More than this and the newest sound is what matters; the rest have been
  *  heard and not read, and a column of them explains nothing. */
@@ -51,6 +56,7 @@ export function useWall(): Wall {
   const [ttlMs, setTtlMs] = useState(300_000)
   const [connected, setConnected] = useState(false)
   const [daemonBuild, setDaemonBuild] = useState<Build | null>(null)
+  const [daemonCode, setDaemonCode] = useState<Build | null>(null)
   const [announce, setAnnounce] = useState<WallItem | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const clockOffset = useRef(0)
@@ -66,6 +72,17 @@ export function useWall(): Wall {
   const postTtl = useCallback((ms: number) => {
     actions.setTtl(ms)
   }, [])
+
+  useEffect(() => {
+    if (__SLOP_DEMO__ || !connected) return
+    const read = () =>
+      fetch('/api/code')
+        .then((res) => (res.ok ? (res.json() as Promise<Build>) : null))
+        .then(setDaemonCode, () => {})
+    void read()
+    const timer = setInterval(read, CODE_POLL_MS)
+    return () => clearInterval(timer)
+  }, [connected])
 
   useEffect(
     () =>
@@ -154,7 +171,7 @@ export function useWall(): Wall {
     setTtlMs: postTtl,
     clockOffset: clockOffset.current,
     connected,
-    daemonBuild,
+    daemonStale: daemonBuild !== null && daemonCode !== null && !agree(daemonBuild, daemonCode),
     announce,
     alerts,
     dismissAlert,

@@ -17,8 +17,10 @@ prints what holds each port, when it started, and whether the daemon's build
 matches this checkout. `npm run daemon:restart` kickstarts it.
 
 The wall says so too: the band shows a `daemon stale` chip when the build the
-daemon reports on its snapshot disagrees with the one the client was compiled
-from. Vite reloads itself, so the client half is never the stale one.
+daemon started from disagrees with its code on disk (`/api/code`). Both are the
+last commit touching `server/`, `shared/` or the package files, so a
+client-only commit never trips it. Vite reloads itself, so the client half is
+never the stale one.
 
 `npm run dev` refuses to start a second daemon behind the LaunchAgent rather
 than dying with `EADDRINUSE` where the message scrolls past.

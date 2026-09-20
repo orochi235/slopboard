@@ -4,6 +4,3 @@
  *  `src/demo/daemon.ts` instead of a WebSocket. Replaced at build time, so the
  *  demo is absent from the ordinary bundle rather than merely switched off. */
 declare const __SLOP_DEMO__: boolean
-
-/** What the client was compiled from. See `shared/build.ts`. */
-declare const __SLOP_BUILD__: import('../shared/build.ts').Build

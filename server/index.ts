@@ -1,5 +1,5 @@
 import express from 'express'
-import { build } from './build.ts'
+import { build, stamp } from './build.ts'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
@@ -58,6 +58,13 @@ wss.on('connection', (ws) => {
 // needs to know whether the process is older than the code.
 app.get('/api/build', (_req, res) => {
   res.json(build)
+})
+
+// The daemon's code on disk now, read per request, for the wall to set against
+// `build`. The client cannot read git, and a stamp compiled into it is frozen at
+// whenever vite last loaded its config.
+app.get('/api/code', (_req, res) => {
+  res.json(stamp())
 })
 
 app.get('/img/:id', (req, res) => {

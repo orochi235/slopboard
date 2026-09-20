@@ -8,14 +8,20 @@
  * like a bug in the feature the daemon has not heard of yet.
  */
 export type Build = {
-  /** Short git sha the process started from, or `unknown` outside a checkout. */
+  /** Short sha of the last commit that changed the daemon's code as of when the
+   *  process started, or `unknown` outside a checkout. Not HEAD: a commit that
+   *  touches only the client leaves a running daemon current. */
   sha: string
-  /** Whether the working tree had uncommitted changes at that moment. A dirty
+  /** Whether the daemon's code had uncommitted changes at that moment. A dirty
    *  tree makes the sha a weaker claim, not a wrong one. */
   dirty: boolean
   /** When the process started, which dates the sha. */
   startedAt: number
 }
+
+/** What the daemon runs: its own source, the code it shares with the wall, and
+ *  its dependencies. */
+export const DAEMON_PATHS = ['server', 'shared', 'package.json', 'package-lock.json']
 
 export const UNKNOWN: Build = { sha: 'unknown', dirty: false, startedAt: 0 }
 
