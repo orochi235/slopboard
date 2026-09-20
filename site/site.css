@@ -1,0 +1,150 @@
+/* The wall's own faces and palette, so the page and the thing it links to are
+   plainly the same object. Both files are copied out of `src/` by the site
+   build rather than duplicated here. */
+@font-face {
+  font-family: 'Tektur';
+  src: url('./fonts/tektur.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Oxanium';
+  src: url('./fonts/oxanium.woff2') format('woff2');
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #0a0a0c;
+  --sky-base: #05060a;
+  --sky-glow: #2b3f6b;
+  --ink: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --edge: #22d3ee;
+}
+
+html {
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: radial-gradient(120% 90% at 50% -10%, var(--sky-glow), var(--sky-base) 55%)
+    var(--bg);
+  color: var(--ink);
+  font-family: 'Oxanium', ui-monospace, monospace;
+  font-size: 17px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+
+main {
+  max-width: 62ch;
+  margin: 0 auto;
+  padding: 14vh 16px 18vh;
+}
+
+h1 {
+  font-family: 'Tektur', 'Oxanium', ui-monospace, monospace;
+  font-weight: 600;
+  font-size: clamp(2.6rem, 11vw, 4.2rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--edge);
+}
+
+h2 {
+  font-family: 'Tektur', 'Oxanium', ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.6rem;
+}
+
+.lede {
+  font-size: 1.2rem;
+  margin: 1.2rem 0 2rem;
+}
+
+section {
+  margin-top: 3.5rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 1.2rem;
+}
+
+.button {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--edge) 14%, transparent);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.button:hover,
+.button:focus-visible {
+  background: color-mix(in srgb, var(--edge) 26%, transparent);
+}
+
+.button--quiet {
+  border-color: color-mix(in srgb, var(--muted) 50%, transparent);
+  background: transparent;
+}
+
+.button--quiet:hover,
+.button--quiet:focus-visible {
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+}
+
+.note {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+code {
+  font-family: ui-monospace, 'Fira Code', monospace;
+  font-size: 0.94em;
+}
+
+pre {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1.1rem;
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+
+pre code {
+  color: var(--edge);
+  font-size: 1rem;
+}

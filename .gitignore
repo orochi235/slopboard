@@ -5,3 +5,4 @@ CLAUDE.local.md
 .playwright-mcp/
 .superpowers/
 demo/staging
+_site
