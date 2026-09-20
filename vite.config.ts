@@ -1,6 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+
+// Source, not dist, for a sibling checkout: windease and delamin8r are
+// co-designed with this repo, and each `main` points at a dist an edit to its
+// src does not reach — a stale answer with no error. A clone with no siblings
+// falls through to the published package in node_modules.
+const sibling = (name: string, entries: Record<string, string>) => {
+  const root = new URL(`../${name}/`, import.meta.url)
+  if (!existsSync(fileURLToPath(root))) return {}
+  return Object.fromEntries(
+    Object.entries(entries).map(([from, to]) => [from, fileURLToPath(new URL(to, root))]),
+  )
+}
 
 const daemon = `http://localhost:${process.env.SLOP_PORT ?? 8787}`
 const proxy = { target: daemon, ws: true, changeOrigin: false }
@@ -11,14 +24,11 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
-      // Source, not dist: windease is co-designed with this repo, and its
-      // `main` points at dist, where an edit to its src is invisible until a
-      // rebuild — a stale answer with no error.
-      windease: fileURLToPath(new URL('../windease/src/index.ts', import.meta.url)),
-      // Source for the same reason windease is: co-designed with this repo,
-      // and its `main` points at a dist an edit does not reach.
-      'delamin8r/react': fileURLToPath(new URL('../delamin8r/src/react.ts', import.meta.url)),
-      delamin8r: fileURLToPath(new URL('../delamin8r/src/index.ts', import.meta.url)),
+      ...sibling('windease', { windease: 'src/index.ts' }),
+      ...sibling('delamin8r', {
+        'delamin8r/react': 'src/react.ts',
+        delamin8r: 'src/index.ts',
+      }),
     },
   },
   server: {

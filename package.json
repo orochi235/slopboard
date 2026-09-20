@@ -17,13 +17,13 @@
     "@weasel-js/core": "^1.4.4",
     "@weasel-js/ui": "^1.4.4",
     "chokidar": "^4.0.3",
-    "delamin8r": "file:../delamin8r",
+    "delamin8r": "^0.2.1",
     "express": "^5.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sharp": "^0.35.4",
     "three": "^0.169.0",
-    "windease": "file:../windease",
+    "windease": "^2.0.0",
     "ws": "^8.18.2"
   },
   "devDependencies": {
