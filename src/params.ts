@@ -38,7 +38,7 @@ export type StackParams = {
   /**
    * Where a pile hangs in its cell, 0..1 on each axis. The same relative point
    * of the card meets that point of the cell, so 0,0 is top-left corner to
-   * top-left corner and 0.5,0.5 is centred.
+   * top-left corner and 0.5,0.5 is centered.
    */
   origin: { x: number; y: number }
   /** Constant card angles, radians. */
@@ -352,7 +352,7 @@ export type StackParams = {
     labelAlign: number
     /** What fills a zone's cell behind its pile. */
     backdrop: Backdrop
-    /** Borrow the colour of the project bound to a zone, where it has a
+    /** Borrow the color of the project bound to a zone, where it has a
      *  `.hued`. Falls back to the palette for every zone that has none. */
     /** The zone's frame — its outline, its name and its count — in the color
      *  of the project bound to it. One switch, because three parts of one frame
@@ -360,9 +360,9 @@ export type StackParams = {
     huedFrame: boolean
     huedBackdrop: boolean
     huedCardEdge: boolean
-    /** Floor under a project colour's lightness. A `.hued` background is picked
+    /** Floor under a project color's lightness. A `.hued` background is picked
      *  to sit behind an editor's text, so some are near-black — weasel's is
-     *  #470013 — and unlifted they read as no colour at all on this wall. */
+     *  #470013 — and unlifted they read as no color at all on this wall. */
     huedMinLight: number
     /** 0 is invisible, 1 is flat. */
     backdropOpacity: number
@@ -391,7 +391,7 @@ export type StackParams = {
     /** Cycles of the first noise octave across a radian of sky. */
     scale: number
     octaves: number
-    /** Ceiling on how far the glow travels from the base colour. */
+    /** Ceiling on how far the glow travels from the base color. */
     intensity: number
     /** Pulls the clouds away from the empty sky between them. */
     contrast: number
@@ -399,7 +399,7 @@ export type StackParams = {
     starIntensity: number
   }
   /**
-   * Every colour the wall picks, in one place so a theme has one surface to
+   * Every color the wall picks, in one place so a theme has one surface to
    * drive. Alpha variants are derived in CSS with `color-mix`, so one entry
    * here covers all of its uses rather than one entry per declaration.
    */

@@ -44,7 +44,7 @@ export function TopBar({
   onSort: (next: SortKey) => void
   /** The zone the view is inside, or null for the wall itself. */
   where: string | null
-  /** That zone's project colour, where it has one. The wall's own accent
+  /** That zone's project color, where it has one. The wall's own accent
    *  stands for the wall itself and for a zone with no `.hued` behind it. */
   whereColor?: string
   /** How the wall is laid out, and how many artifacts are on it. */
@@ -207,7 +207,7 @@ export function TopBar({
           filtering. */}
       <Panel name="view" tight pushed>
         <div className="topbar__view">
-          {/* A colour per zone cannot be a class, so the value rides in as a
+          {/* A color per zone cannot be a class, so the value rides in as a
               custom property and the stylesheet decides what to do with it. */}
           <span
             className="topbar__where"

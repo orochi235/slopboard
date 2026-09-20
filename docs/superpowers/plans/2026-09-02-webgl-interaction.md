@@ -53,7 +53,7 @@ describe('framePose', () => {
     expect(pose.z).toBeCloseTo(UNIT_Z, 6)
   })
 
-  it('centres on the box rather than the origin', () => {
+  it('centers on the box rather than the origin', () => {
     const pose = framePose({ x: 2, y: 4, w: 1, h: 1 }, { fovDeg: FOV, aspect: 1, margin: 1 })
     expect(pose.x).toBeCloseTo(2.5, 6)
     expect(pose.y).toBeCloseTo(4.5, 6)
@@ -307,7 +307,7 @@ import type { Rect } from 'windease'
 
 export type Direction = 'left' | 'right' | 'up' | 'down'
 
-const centre = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 })
+const center = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 })
 
 /** Drift off the axis costs more than distance along it, so a cell straight
  *  ahead beats a nearer one to the side. */
@@ -324,12 +324,12 @@ export function neighbourOf(
 ): string | null {
   const source = cells.get(from)
   if (!source) return null
-  const origin = centre(source)
+  const origin = center(source)
 
   let best: { id: string; score: number } | null = null
   for (const [id, rect] of cells) {
     if (id === from) continue
-    const c = centre(rect)
+    const c = center(rect)
     const dx = c.x - origin.x
     const dy = c.y - origin.y
 

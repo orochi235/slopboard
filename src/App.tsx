@@ -43,7 +43,7 @@ export function App() {
   const [params, setParams] = useState(() => loadParams(defaultParams))
   // createStack closes over its params, so a change rebuilds the arrangement
   // and resets its rank allocators — one frame of snapping, the same contract
-  // every cache here already honours. Keyed on the layout half alone so that
+  // every cache here already honors. Keyed on the layout half alone so that
   // turning the camera, which no strategy reads, does not reshuffle the piles.
   const layoutKey = layoutKeyOf(params)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- layoutKey is params, minus the display half

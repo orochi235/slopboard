@@ -18,7 +18,7 @@ const DISPLAY_ONLY_LEAVES = ['lod.revealHoldMs', 'lod.revealFadeMs', 'lod.budget
 
 /**
  * Identity for the arrangement memo. Rebuilding resets the rank allocators, so
- * every pile on the wall snaps — turning the camera or dragging a colour must
+ * every pile on the wall snaps — turning the camera or dragging a color must
  * not do that.
  */
 export function layoutKeyOf(params: StackParams): string {

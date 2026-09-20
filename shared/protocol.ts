@@ -107,7 +107,7 @@ export type ServerMessage =
       now: number
       ttlMs: number
       items: WallItem[]
-      /** Zone name to the colour of the project bound to it, where one has a
+      /** Zone name to the color of the project bound to it, where one has a
        *  `.hued`. Only the daemon can read those files. */
       zoneColors: Record<string, string>
       /** Zone name to when it was pinned, for the zones held at the top of

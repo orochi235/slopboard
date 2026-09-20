@@ -148,7 +148,7 @@ export function createStack(
           if (!target) continue
           const cell = cellFor(zone, target, now)
           // The same relative point of the card meets that point of the cell,
-          // so origin 0,0 hangs the pile corner-to-corner and 0.5,0.5 centres it.
+          // so origin 0,0 hangs the pile corner-to-corner and 0.5,0.5 centers it.
           const originX = params.origin.x * (cell.w - params.side)
           const originY = params.origin.y * (cell.h - params.side)
           const held = ranksFor(zone)(

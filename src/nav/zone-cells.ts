@@ -3,7 +3,7 @@ import type { Rect } from 'windease'
 /**
  * One bounding box per zone. A placement's x/y is its **top-left**, the
  * convention windease's own strategies place on, so a box is the union of
- * `x..x+w` rather than a half-extent either side of a centre.
+ * `x..x+w` rather than a half-extent either side of a center.
  *
  * The strategy does not publish its cells and re-deriving them here is cheaper
  * than widening its return type. It also covers what is actually drawn, which

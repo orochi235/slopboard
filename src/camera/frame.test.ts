@@ -23,7 +23,7 @@ describe('framePose', () => {
     expect(pose.halfHeight).toBeCloseTo(0.5, 6)
   })
 
-  it('centres on the box rather than the origin', () => {
+  it('centers on the box rather than the origin', () => {
     const pose = framePose({ x: 2, y: 4, w: 1, h: 1 }, persp(1, 1))
     expect(pose.x).toBeCloseTo(2.5, 6)
     expect(pose.y).toBeCloseTo(4.5, 6)

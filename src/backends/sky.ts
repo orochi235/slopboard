@@ -19,7 +19,7 @@ export type SkyUniforms = {
 export type SkyMaterial = THREE.ShaderMaterial & { uniforms: SkyUniforms }
 
 /**
- * An authored hex kept raw. three converts a colour into its linear working
+ * An authored hex kept raw. three converts a color into its linear working
  * space on the way in, and built-in materials convert back on the way out —
  * but this shader writes gl_FragColor straight to an sRGB framebuffer, so a
  * converted value renders several stops too dark. `Color.set` is the obvious

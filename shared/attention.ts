@@ -54,7 +54,7 @@ export type Alerts = {
 
 export const ALERTS: Record<Level, Alerts> = {
   look: { lightbox: false, sound: false, notify: false, raise: false },
-  // A deadline that has not passed yet earns a line in Notification Centre and
+  // A deadline that has not passed yet earns a line in Notification Center and
   // nothing more: it is not asking to be looked at now.
   soon: { lightbox: false, sound: true, notify: true, raise: false },
   urgent: { lightbox: true, sound: true, notify: true, raise: false },

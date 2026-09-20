@@ -164,7 +164,7 @@
   padding-top: 4px;
 }
 
-/* The level's own colour on the left edge rather than the whole button: these
+/* The level's own color on the left edge rather than the whole button: these
    sit beside the fake-flag controls, and four solid neon plates in a debug
    panel read as the wall itself asking for something. */
 .sidebar__alert {

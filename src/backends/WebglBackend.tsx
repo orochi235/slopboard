@@ -144,7 +144,7 @@ const IDLE_MS = 1000
 const DEG_PER_PX = 0.25
 
 /** Clear of its own card, so the plate never z-fights the border it sits on. */
-/** Drawn as text, so it wears whatever colour emoji font the system has. */
+/** Drawn as text, so it wears whatever color emoji font the system has. */
 const PIN_GLYPH = '📌'
 
 /** What a card wears when its picture is one moment of several — an animation
@@ -1733,7 +1733,7 @@ function Wall({
       if (edge) {
         // The halo wins the line where both want it: a flagged card is not
         // also reporting its slot extent. A card wearing a plate wears the
-        // plate's colour on its border too, so the two read as one thing.
+        // plate's color on its border too, so the two read as one thing.
         const halo = (emphasis > 0 || wearsBadge) && tier.haloWidth > 0
         edge.visible = halo || cardEdges
         const zone = zoneFor.get(id)
@@ -1743,7 +1743,7 @@ function Wall({
         else edge.material.color.set(cardEdgeColor)
         const thicken = hovered.current === id ? params.attention.hoverEdge : 1
         // No thinner than `soon`'s when it is there to match a plate: the
-        // `look` halo alone is the ordinary card edge in another colour.
+        // `look` halo alone is the ordinary card edge in another color.
         const haloWidth = wearsBadge
           ? Math.max(tier.haloWidth, params.attention.levels.soon.haloWidth)
           : tier.haloWidth

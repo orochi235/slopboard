@@ -12,7 +12,7 @@ const MAX_WIDTH = PX * 9
 
 /** A triangle pointing up, ahead of the name, on a zone held at the top of the
  *  wall. Drawn rather than set in the text: the vendored faces carry no such
- *  glyph, and an emoji would fall back to the system's colour font and ignore
+ *  glyph, and an emoji would fall back to the system's color font and ignore
  *  the ink the rest of the label is drawn in. */
 const MARK = PX * 0.42
 const MARK_GAP = PX * 0.24
@@ -40,7 +40,7 @@ export function labelTexture(
   // Sizing the canvas resets the context, so everything is set again here.
   ctx.font = font
   ctx.textBaseline = 'middle'
-  // The alpha stays here rather than in the colour: a picker cannot express it.
+  // The alpha stays here rather than in the color: a picker cannot express it.
   ctx.globalAlpha = 0.92
   ctx.fillStyle = color
   if (marked) {

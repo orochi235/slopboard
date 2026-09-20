@@ -22,7 +22,7 @@ function formatOf(item: WallItem): string | null {
  * how big it is, and the commit it was made at where `bin/slop` could see one.
  *
  * Parts rather than a string, so the caller can space them and give the zone
- * its colour without parsing text back apart.
+ * its color without parsing text back apart.
  */
 export function metaOf(item: WallItem, now: number): string[] {
   const parts = [item.zone, ago(now - item.bornAt)]

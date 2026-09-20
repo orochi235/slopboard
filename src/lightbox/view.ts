@@ -2,8 +2,8 @@
  * Where a lightbox image sits and how big it is drawn, as pure arithmetic over
  * two sizes and a pointer.
  *
- * `scale` is CSS pixels per image pixel, and `x`/`y` offset the image's centre
- * from the viewport's centre in CSS pixels. Everything else is derived, so the
+ * `scale` is CSS pixels per image pixel, and `x`/`y` offset the image's center
+ * from the viewport's center in CSS pixels. Everything else is derived, so the
  * component holds one small object and no measurements of its own.
  */
 export type Size = { w: number; h: number }
@@ -34,14 +34,14 @@ export function fitScale(image: Size, port: Size): number {
   return Math.min(1, (port.w * FIT_MARGIN) / image.w, (port.h * FIT_MARGIN) / image.h)
 }
 
-/** The fitted, centred view — what opening an artifact shows. */
+/** The fitted, centered view — what opening an artifact shows. */
 export function fitView(image: Size, port: Size): View {
   return { scale: fitScale(image, port), x: 0, y: 0 }
 }
 
 /**
  * Pan held inside the viewport. An axis whose image is smaller than the window
- * is centred and cannot be dragged; an axis larger than it may travel exactly
+ * is centered and cannot be dragged; an axis larger than it may travel exactly
  * far enough to bring either edge to the window's edge and no further. Letting
  * a large image drift off into the scrim is the usual sloppy-viewer failure.
  */
@@ -61,7 +61,7 @@ const clampScale = (scale: number, image: Size, port: Size) =>
 
 /**
  * Zoom to `scale`, keeping whatever image point is under `at` under it still.
- * Anchoring on the pointer rather than the centre is the whole difference
+ * Anchoring on the pointer rather than the center is the whole difference
  * between aiming a zoom and chasing one.
  */
 export function zoomTo(
@@ -72,7 +72,7 @@ export function zoomTo(
   port: Size,
 ): View {
   const next = clampScale(scale, image, port)
-  // Where the anchored point sits relative to the image's centre, in image
+  // Where the anchored point sits relative to the image's center, in image
   // pixels — the one quantity a zoom must not change.
   const ix = (at.x - port.w / 2 - view.x) / view.scale
   const iy = (at.y - port.h / 2 - view.y) / view.scale

@@ -33,7 +33,7 @@ type Props = {
    *  way the wall is. */
   zoneSettings: Record<string, ZoneSettings>
   colors: StackParams['colors']
-  /** A zone's project colour, where the daemon found one. */
+  /** A zone's project color, where the daemon found one. */
   hued: Map<string, THREE.Color>
   /** Filled with each zone's label sprite, so the wall's pick can treat the
    *  name as part of the zone it names. The label is drawn outside the zone's
@@ -133,7 +133,7 @@ export function ZoneOverlay({
   const labels = useMemo(() => {
     return new Map(
       zones.map((zone) => {
-        // A label is a canvas texture, so its colour is baked at build time
+        // A label is a canvas texture, so its color is baked at build time
         // rather than set per frame like the outline's.
         const own = settings.huedFrame ? hued.get(zone) : undefined
         const ink = own ? `#${own.getHexString()}` : colors.label
@@ -189,7 +189,7 @@ export function ZoneOverlay({
       mesh.visible = backdrop !== 'none' && !!box
       if (!box || !mesh.visible) continue
       mesh.scale.set(box.w, box.h, 1)
-      // A rect's x/y is its top-left and three positions a plane by its centre,
+      // A rect's x/y is its top-left and three positions a plane by its center,
       // in a world whose y grows the other way.
       mesh.position.set(box.x + box.w / 2, -(box.y + box.h / 2), BACKDROP_Z)
 

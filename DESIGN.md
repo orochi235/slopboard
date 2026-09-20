@@ -197,7 +197,7 @@ still open.
 
 **Piles hang from a corner.** `origin` is where a pile meets its cell: the same
 relative point of the card meets that point of the cell, so 0,0 is corner to
-corner and 0.5,0.5 centres. Top-left by default, which is what lines up the top
+corner and 0.5,0.5 centers. Top-left by default, which is what lines up the top
 and left edge of every pile on the wall.
 
 **The camera orbits.** `camera.yawDeg`/`pitchDeg` place it around what it
@@ -230,8 +230,8 @@ clock for the same reason `age01` is, so a reload does not restart a hold.
   card is exactly as still as it ever was. This costs nothing extra: the canvas
   has no `frameloop` prop, so r3f is on `always` and the wall already redraws
   every frame.
-- **It wears a plate**, the note in the level's colour, and the halo takes the
-  same colour so the two read as one thing. A pile's plates stand together as a
+- **It wears a plate**, the note in the level's color, and the halo takes the
+  same color so the two read as one thing. A pile's plates stand together as a
   ladder that steps the way the pile does, each plate level with its own card,
   on one side of the pile, with a line from the center of the plate's facing
   edge to the card's nearest border. The one plate of a front card rests on the
@@ -303,7 +303,7 @@ close it is to expiry. A busy zone buries a card in minutes; a quiet one holds
 its second card for a day. So both earn a curve.
 
 **Detail falls off with rank, and so does presence.** The LOD tiers already
-drop a card from 512 to 128 to 32 to a flat colour chip as it is buried, which
+drop a card from 512 to 128 to 32 to a flat color chip as it is buried, which
 means depth read as *loses detail* and nothing else — a buried card came out
 blocky and at full luminance at once, and turned off head-on the deep tail was
 the brightest thing on the wall. `distance` is the other half: presence falls
@@ -441,7 +441,7 @@ against every arrangement.
   because a breathing background is decoration competing with the cards. Not
   for the cost: the canvas sets no `frameloop`, so r3f is on `always` and the
   wall already redraws every frame whether or not anything moved.
-- **A raw shader writes sRGB, so its colours must not be converted.** three
+- **A raw shader writes sRGB, so its colors must not be converted.** three
   takes an authored hex into its linear working space on the way in and its
   built-in materials convert back on the way out; a `ShaderMaterial` writing
   `gl_FragColor` does neither, so `Color.set` renders several stops too dark.
@@ -502,7 +502,7 @@ against every arrangement.
 - **`colors` is the wall's whole palette**, ten entries driving both halves: the
   scene reads them as `THREE.Color`, and `applyColors` writes them to the root as
   custom properties for the DOM chrome. Alpha variants are `color-mix` in the
-  stylesheets, so one entry covers every use of a colour rather than one entry
+  stylesheets, so one entry covers every use of a color rather than one entry
   per declaration. This is the surface a theme would drive.
 - **A tuned set moves by clipboard or by file.** The clipboard is the fast path,
   since what it holds pastes into `src/params.ts`; the file is for keeping named

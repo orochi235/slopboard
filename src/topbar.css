@@ -15,7 +15,7 @@
   padding: 8px 10px;
   background: color-mix(in srgb, var(--scrim) 78%, transparent);
   backdrop-filter: blur(6px);
-  /* One line colour for the whole band. The block borders, the run the legend
+  /* One line color for the whole band. The block borders, the run the legend
      displaces and the keys all have to agree — a legend notch shows any
      mismatch at once — so it is named here rather than repeated. */
   --band-line: color-mix(in srgb, var(--accent) 34%, transparent);
@@ -92,13 +92,13 @@
 }
 
 /* The accent stands for the wall itself, and for a zone with no project
-   colour behind it. */
+   color behind it. */
 .topbar__where {
   color: var(--accent);
 }
 
-/* Lifted toward the ink, the way the wall lifts a zone's colour before it
-   draws with it: a `.hued` colour is picked to sit behind text and is often
+/* Lifted toward the ink, the way the wall lifts a zone's color before it
+   draws with it: a `.hued` color is picked to sit behind text and is often
    too dark to be text. */
 .topbar__where[data-hued] {
   color: color-mix(in srgb, var(--where) 72%, var(--ink));

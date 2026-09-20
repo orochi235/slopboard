@@ -1,4 +1,4 @@
-/** What a project's `.hued` file says about its colour. */
+/** What a project's `.hued` file says about its color. */
 export type Hued = { background?: string; foreground?: string; accent?: string }
 
 /**

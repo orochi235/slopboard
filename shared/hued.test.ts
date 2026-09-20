@@ -16,7 +16,7 @@ describe('parseHued', () => {
     expect(parseHued(text)).toEqual({ background: '#470013', accent: '#89fe05' })
   })
 
-  it('keeps a named colour, which some projects use instead of hex', () => {
+  it('keeps a named color, which some projects use instead of hex', () => {
     expect(parseHued('background=yellow\nforeground=black')).toEqual({
       background: 'yellow',
       foreground: 'black',

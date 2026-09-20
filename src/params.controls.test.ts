@@ -52,11 +52,11 @@ describe('controlFor', () => {
     expect(controlFor('lod.0.maxRank', 1).kind).toBe('slider')
   })
 
-  it('gives a hex colour a picker, chosen by the value rather than by a list', () => {
+  it('gives a hex color a picker, chosen by the value rather than by a list', () => {
     expect(controlFor('colors.accent', '#38bdf8')).toEqual({ kind: 'color', path: 'colors.accent' })
   })
 
-  it('leaves a string that is not a colour alone', () => {
+  it('leaves a string that is not a color alone', () => {
     expect(controlFor('colors.accent', '#38bd').kind).toBe('number')
     expect(controlFor('camera.projection', 'orthographic').kind).toBe('choice')
   })

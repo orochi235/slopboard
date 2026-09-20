@@ -7,7 +7,7 @@ import type { Projection } from '@/params.ts'
  * survives an orbit and both projections describe framing the same way.
  */
 export type Pose = {
-  /** The framed box's centre, in rect space — y grows downward. */
+  /** The framed box's center, in rect space — y grows downward. */
   x: number
   y: number
   /** How far the camera sits from that point along its view axis. */

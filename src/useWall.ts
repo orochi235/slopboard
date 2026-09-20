@@ -8,7 +8,7 @@ export type { ZonePatch }
 
 export type Wall = {
   items: WallItem[]
-  /** Zone to the colour of the project bound to it, where it has a `.hued`. */
+  /** Zone to the color of the project bound to it, where it has a `.hued`. */
   zoneColors: Record<string, string>
   /** The zones held at the top of the wall, each to when it was pinned. */
   pinnedZones: Record<string, number>

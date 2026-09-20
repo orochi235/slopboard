@@ -57,7 +57,7 @@ describe('averageColorOf', () => {
     expect(canvas.height).toBe(1)
   })
 
-  it('falls back to mid grey when the context is unavailable', () => {
+  it('falls back to mid gray when the context is unavailable', () => {
     const canvas = { width: 0, height: 0, getContext: () => null }
     expect(averageColorOf({ width: 1, height: 1 } as never, canvas as never)).toEqual({
       r: 0.5,

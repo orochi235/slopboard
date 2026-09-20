@@ -126,7 +126,7 @@
 }
 
 /* The first part is the zone, and it wears the accent to say so. A status
-   ahead of it takes that place, so the zone gets its own colour back. */
+   ahead of it takes that place, so the zone gets its own color back. */
 .lightbox__status + .lightbox__metaPart {
   color: var(--accent);
 }

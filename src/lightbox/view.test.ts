@@ -32,7 +32,7 @@ describe('fitScale', () => {
 })
 
 describe('clampPan', () => {
-  it('centres an axis the image does not fill, however hard it is dragged', () => {
+  it('centers an axis the image does not fill, however hard it is dragged', () => {
     const held = clampPan({ scale: 1, x: 400, y: -300 }, small, port)
     expect(held.scale).toBe(1)
     // Clamping a negative into a zero-width range yields -0, which is 0 to

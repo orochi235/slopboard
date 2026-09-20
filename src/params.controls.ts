@@ -168,7 +168,7 @@ export function controlFor(path: string, value: number | string | boolean): Cont
   if (typeof value === 'boolean') return { kind: 'toggle', path }
   const choices = CHOICES[path]
   if (choices) return { kind: 'choice', path, options: choices }
-  // By the value's shape rather than a list of paths, so a colour added later
+  // By the value's shape rather than a list of paths, so a color added later
   // gets a picker without being registered anywhere.
   if (typeof value === 'string') return HEX.test(value) ? { kind: 'color', path } : { kind: 'number', path }
   if (path.endsWith('.edge')) return { kind: 'choice', path, options: EDGES }

@@ -17,7 +17,7 @@ const RADIUS = 22
 /**
  * A filled plate with one line or two: what a flagged artifact wears on its top
  * edge. A plate rather than bare text because the loud levels have to read as
- * signage — white on red — and text alone cannot carry a field colour.
+ * signage — white on red — and text alone cannot carry a field color.
  *
  * Sized in world units here rather than by the caller, because how wide the
  * plate may run and how tall it ends up are the same question: the text is
