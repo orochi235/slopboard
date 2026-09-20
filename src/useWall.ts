@@ -1,19 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ALERTS } from '@shared/attention.ts'
-import { BEAT_MS, type Alert, type ServerMessage, type WallItem, type ZoneSettings } from '@shared/protocol.ts'
-import type { Lifetime } from '@shared/lifetime.ts'
-import { createWatchdog, type Watchdog } from '@/watchdog.ts'
+import type { Alert, WallItem, ZoneSettings } from '@shared/protocol.ts'
+import { actions, type ZonePatch } from '@/actions.ts'
+import { subscribe } from '@/transport.ts'
 
-/** One write to a zone's overrides. A field left out is untouched; a field
- *  passed as null goes back to inheriting the wall's. */
-export type ZonePatch = {
-  color?: string | null
-  backdrop?: ZoneSettings['backdrop'] | null
-  spacing?: number | null
-  period?: number | null
-  angle?: number | null
-  lifetime?: Lifetime | null
-}
+export type { ZonePatch }
 
 export type Wall = {
   items: WallItem[]
@@ -64,133 +55,88 @@ export function useWall(): Wall {
   )
 
   const postZone = useCallback((zone: string, patch: ZonePatch) => {
-    void fetch(`/api/zones/${encodeURIComponent(zone)}/settings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    }).catch(() => {})
+    actions.setZoneSettings(zone, patch)
   }, [])
 
   const postTtl = useCallback((ms: number) => {
-    void fetch('/api/settings/ttl', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ms }),
-    }).catch(() => {})
+    actions.setTtl(ms)
   }, [])
 
-  useEffect(() => {
-    let socket: WebSocket | null = null
-    let watchdog: Watchdog | null = null
-    let retry: ReturnType<typeof setTimeout>
-    let closed = false
-
-    const retryLater = () => {
-      setConnected(false)
-      if (!closed) retry = setTimeout(connect, 1000)
-    }
-
-    const connect = () => {
-      const proto = location.protocol === 'https:' ? 'wss' : 'ws'
-      const ws = new WebSocket(`${proto}://${location.host}/ws`)
-      socket = ws
-
-      // A daemon that dies behind vite's proxy can leave this end open and
-      // quiet, so silence has to count as a close.
-      const dog = createWatchdog(BEAT_MS * 3, () => {
-        ws.onclose = null
-        ws.onmessage = null
-        ws.close()
-        retryLater()
-      })
-      watchdog = dog
-
-      ws.onclose = () => {
-        dog.stop()
-        retryLater()
-      }
-      ws.onmessage = (ev) => {
-        dog.feed()
-        const msg: ServerMessage = JSON.parse(ev.data)
-        if (msg.type === 'snapshot') {
-          // Connected once the daemon has answered, not when a socket opens.
-          setConnected(true)
-          clockOffset.current = msg.now - Date.now()
-          setTtlMs(msg.ttlMs)
-          setItems(msg.items)
-          setZoneColors(msg.zoneColors ?? {})
-          setPinnedZones(msg.pinnedZones ?? {})
-          holdZoneSettings(msg.zoneSettings ?? {})
-        } else if (msg.type === 'ttl') {
-          setTtlMs(msg.ttlMs)
-        } else if (msg.type === 'zoneColors') {
-          setZoneColors(msg.zoneColors)
-        } else if (msg.type === 'zoneSettings') {
-          holdZoneSettings((prev) => {
-            // A zone back to inheriting everything leaves no entry, the shape
-            // the snapshot has: `zoneSettings[zone]` is absent, never empty.
-            if (Object.keys(msg.settings).length === 0) {
-              const { [msg.zone]: _inherits, ...rest } = prev
-              return rest
-            }
-            return { ...prev, [msg.zone]: msg.settings }
-          })
-        } else if (msg.type === 'zonePin') {
-          setPinnedZones((prev) => {
-            if (msg.pinnedAt === null) {
-              const { [msg.zone]: _released, ...rest } = prev
-              return rest
-            }
-            return { ...prev, [msg.zone]: msg.pinnedAt }
-          })
-        } else if (msg.type === 'arrive') {
-          setItems((prev) => [...prev, msg.item])
-          const level = msg.item.attention?.level
-          if (level && ALERTS[level].lightbox) setAnnounce(msg.item)
-        } else if (msg.type === 'alert') {
-          setAlerts((prev) => [...prev.filter((a) => a.id !== msg.alert.id), msg.alert].slice(-ALERTS_SHOWN))
-        } else if (msg.type === 'expire') {
-          setItems((prev) => prev.filter((i) => i.id !== msg.id))
-        } else if (msg.type === 'keep') {
-          setItems((prev) =>
-            prev.map((i) => {
-              if (i.id !== msg.id) return i
-              if (msg.keptAt === null) {
-                const { keptAt: _released, ...rest } = i
+  useEffect(
+    () =>
+      subscribe({
+        connected: setConnected,
+        message: (msg) => {
+          if (msg.type === 'snapshot') {
+            clockOffset.current = msg.now - Date.now()
+            setTtlMs(msg.ttlMs)
+            setItems(msg.items)
+            setZoneColors(msg.zoneColors ?? {})
+            setPinnedZones(msg.pinnedZones ?? {})
+            holdZoneSettings(msg.zoneSettings ?? {})
+          } else if (msg.type === 'ttl') {
+            setTtlMs(msg.ttlMs)
+          } else if (msg.type === 'zoneColors') {
+            setZoneColors(msg.zoneColors)
+          } else if (msg.type === 'zoneSettings') {
+            holdZoneSettings((prev) => {
+              // A zone back to inheriting everything leaves no entry, the shape
+              // the snapshot has: `zoneSettings[zone]` is absent, never empty.
+              if (Object.keys(msg.settings).length === 0) {
+                const { [msg.zone]: _inherits, ...rest } = prev
                 return rest
               }
-              return { ...i, keptAt: msg.keptAt }
-            }),
-          )
-        } else if (msg.type === 'dismiss') {
-          // The item stays; only its flag goes.
-          setItems((prev) =>
-            prev.map((i) => {
-              if (i.id !== msg.id) return i
-              const { attention: _cleared, ...rest } = i
-              return rest
-            }),
-          )
-        } else if (msg.type === 'reply') {
-          setItems((prev) =>
-            prev.map((i) => {
-              if (i.id !== msg.id) return i
-              const { attention: _cleared, ...rest } = i
-              return { ...rest, reply: msg.reply }
-            }),
-          )
-        }
-      }
-    }
-
-    connect()
-    return () => {
-      closed = true
-      clearTimeout(retry)
-      watchdog?.stop()
-      socket?.close()
-    }
-  }, [])
+              return { ...prev, [msg.zone]: msg.settings }
+            })
+          } else if (msg.type === 'zonePin') {
+            setPinnedZones((prev) => {
+              if (msg.pinnedAt === null) {
+                const { [msg.zone]: _released, ...rest } = prev
+                return rest
+              }
+              return { ...prev, [msg.zone]: msg.pinnedAt }
+            })
+          } else if (msg.type === 'arrive') {
+            setItems((prev) => [...prev, msg.item])
+            const level = msg.item.attention?.level
+            if (level && ALERTS[level].lightbox) setAnnounce(msg.item)
+          } else if (msg.type === 'alert') {
+            setAlerts((prev) => [...prev.filter((a) => a.id !== msg.alert.id), msg.alert].slice(-ALERTS_SHOWN))
+          } else if (msg.type === 'expire') {
+            setItems((prev) => prev.filter((i) => i.id !== msg.id))
+          } else if (msg.type === 'keep') {
+            setItems((prev) =>
+              prev.map((i) => {
+                if (i.id !== msg.id) return i
+                if (msg.keptAt === null) {
+                  const { keptAt: _released, ...rest } = i
+                  return rest
+                }
+                return { ...i, keptAt: msg.keptAt }
+              }),
+            )
+          } else if (msg.type === 'dismiss') {
+            // The item stays; only its flag goes.
+            setItems((prev) =>
+              prev.map((i) => {
+                if (i.id !== msg.id) return i
+                const { attention: _cleared, ...rest } = i
+                return rest
+              }),
+            )
+          } else if (msg.type === 'reply') {
+            setItems((prev) =>
+              prev.map((i) => {
+                if (i.id !== msg.id) return i
+                const { attention: _cleared, ...rest } = i
+                return { ...rest, reply: msg.reply }
+              }),
+            )
+          }
+        },
+      }),
+    [],
+  )
 
   return {
     items,

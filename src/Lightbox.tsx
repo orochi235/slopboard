@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
 import { metaOf, statusOf } from '@/lightbox-meta.ts'
+import { actions } from '@/actions.ts'
 import { createQuietGate } from '@/nav/quiet.ts'
 import { sandboxFor } from '@/lightbox-sandbox.ts'
 import { KEY_MESSAGE } from '@shared/page-keys.ts'
@@ -558,9 +559,7 @@ function VideoLightbox({
         <button
           type="button"
           className="lightbox__metaPart lightbox__metaButton"
-          onClick={() => {
-            void fetch(`/api/items/${item.id}/open`, { method: 'POST' })
-          }}
+          onClick={() => actions.openInApp(item.id)}
         >
           open in app
         </button>

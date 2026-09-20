@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createStack } from '@/arrangements/stack.ts'
+import { actions } from '@/actions.ts'
 import { arrangements } from '@/arrangements/index.ts'
 import { WebglBackend } from '@/backends/WebglBackend.tsx'
 import { ParallaxModal } from '@/ParallaxModal.tsx'
@@ -120,15 +121,9 @@ export function App() {
           look={params.prefs}
           allowParallax={params.general.parallax}
           onChange={(patch) => setZoneSettings(configuring, patch)}
-          onPin={(on) => {
-            void fetch(`/api/zones/${encodeURIComponent(configuring)}/pin?on=${on ? '1' : '0'}`, {
-              method: 'POST',
-            }).catch(() => {})
-          }}
+          onPin={(on) => actions.pinZone(configuring, on)}
           onExpire={() => {
-            void fetch(`/api/zones/${encodeURIComponent(configuring)}/expire`, {
-              method: 'POST',
-            }).catch(() => {})
+            actions.expireZone(configuring)
             setConfiguring(null)
           }}
           onClose={() => setConfiguring(null)}

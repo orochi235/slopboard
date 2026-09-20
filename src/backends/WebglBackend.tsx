@@ -11,6 +11,7 @@ import {
 } from 'react'
 import * as THREE from 'three'
 import type { Rect } from 'windease'
+import { actions } from '@/actions.ts'
 import type { Arrangement, SlopChannels } from '@/arrangements/index.ts'
 import { frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { frameExtent, framePose, type Pose } from '@/camera/frame.ts'
@@ -2004,7 +2005,7 @@ export function WebglBackend(props: Props) {
     if (card === null) return
     dropFake(card)
     if (openedAsks) return
-    void fetch(`/api/items/${card}/dismiss`, { method: 'POST' }).catch(() => {})
+    actions.dismiss(card)
   }, [card, openedAsks, dropFake])
 
   // The daemon has no record of a fabricated flag, so the row's × has to clear
@@ -2012,7 +2013,7 @@ export function WebglBackend(props: Props) {
   const dismiss = useCallback(
     (id: string) => {
       dropFake(id)
-      void fetch(`/api/items/${id}/dismiss?question=close`, { method: 'POST' }).catch(() => {})
+      actions.dismiss(id, 'close')
     },
     [dropFake],
   )
@@ -2069,11 +2070,7 @@ export function WebglBackend(props: Props) {
 
   const answer = useCallback(
     (id: string, text: string) => {
-      void fetch(`/api/items/${id}/answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      }).catch(() => {})
+      actions.answer(id, text)
       leaveAfterReply(id)
     },
     [leaveAfterReply],
@@ -2138,12 +2135,9 @@ export function WebglBackend(props: Props) {
    *  opened before then, the prune bounces the view off a card the wall lacks. */
   const [reopen, setReopen] = useState<string | null>(null)
   const undo = useCallback(() => {
-    void fetch('/api/undo', { method: 'POST' })
-      .then((r) => r.json() as Promise<{ restored?: string[] }>)
-      .then(({ restored }) => {
-        if (restored?.length === 1 && cardOf(viewNow.current)) setReopen(restored[0]!)
-      })
-      .catch(() => {})
+    void actions.undo().then((restored) => {
+      if (restored.length === 1 && cardOf(viewNow.current)) setReopen(restored[0]!)
+    })
   }, [])
   useEffect(() => {
     const item = reopen === null ? undefined : props.items.find((i) => i.id === reopen)
@@ -2168,9 +2162,7 @@ export function WebglBackend(props: Props) {
         setArmed(null)
         setMenu(null)
         setExpired(true)
-        return void fetch(`/api/zones/${encodeURIComponent(target.zone)}/expire`, {
-          method: 'POST',
-        }).catch(() => {})
+        return actions.expireZone(target.zone)
       }
       if (action === 'configureZone' && target?.kind === 'zone') {
         setArmed(null)
@@ -2180,10 +2172,7 @@ export function WebglBackend(props: Props) {
       if ((action === 'pinZone' || action === 'unpinZone') && target?.kind === 'zone') {
         setArmed(null)
         setMenu(null)
-        const on = action === 'pinZone' ? '1' : '0'
-        return void fetch(`/api/zones/${encodeURIComponent(target.zone)}/pin?on=${on}`, {
-          method: 'POST',
-        }).catch(() => {})
+        return actions.pinZone(target.zone, action === 'pinZone')
       }
       setArmed(null)
       setMenu(null)
@@ -2196,13 +2185,10 @@ export function WebglBackend(props: Props) {
         return void copyArtifact(menuItem).catch((e) => console.warn('[menu] copy failed', e))
       if (action === 'copyPath' && menuItem)
         return void navigator.clipboard?.writeText(menuItem.path).catch(() => {})
-      if (action === 'pin' || action === 'unpin') {
-        const on = action === 'pin' ? '1' : '0'
-        return void fetch(`/api/items/${id}/keep?on=${on}`, { method: 'POST' }).catch(() => {})
-      }
+      if (action === 'pin' || action === 'unpin') return actions.keep(id, action === 'pin')
       if (action === 'expire') {
         setExpired(true)
-        return void fetch(`/api/items/${id}/expire`, { method: 'POST' }).catch(() => {})
+        return actions.expire(id)
       }
     },
     [menu, menuItem, dispatch, dismiss, undo, armed, props.onConfigureZone],
@@ -2210,7 +2196,7 @@ export function WebglBackend(props: Props) {
 
   const deleteCard = useCallback((id: string) => {
     setExpired(true)
-    void fetch(`/api/items/${id}/expire`, { method: 'POST' }).catch(() => {})
+    actions.expire(id)
   }, [])
 
   const toggleList = useCallback(() => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { usePersistedFlag } from '@/usePersistedFlag.ts'
+import { actions, type Plan } from '@/actions.ts'
 import type { Dispatch, SetStateAction } from 'react'
 import { ParamsBody } from '@/Params.tsx'
 import { ago } from '@/age.ts'
@@ -107,7 +108,7 @@ function Flags({
   )
 }
 
-type Plan = { sound: boolean; notify: boolean; raise: 'none' | 'front' | 'start' }
+
 
 /** What a plan did, in the words of the things that happened. */
 const readPlan = (level: Level, plan: Plan, opened: boolean): string => {
@@ -142,11 +143,10 @@ function AlertButtons({
     setSaid(`${level}…`)
     const shown = ALERTS[level].lightbox ? items[Math.floor(Math.random() * items.length)] : undefined
     try {
-      const res = await fetch(`/api/debug/alert/${level}`, { method: 'POST' })
-      const body = (await res.json()) as { ok: boolean; plan?: Plan }
-      if (!body.ok || !body.plan) return setSaid(`${level}: the daemon refused it`)
+      const plan = await actions.fireAlert(level)
+      if (!plan) return setSaid(`${level}: the daemon refused it`)
       if (shown) onOpen(shown)
-      setSaid(readPlan(level, body.plan, !!shown))
+      setSaid(readPlan(level, plan, !!shown))
     } catch {
       setSaid(`${level}: no daemon`)
     }
