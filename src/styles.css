@@ -81,3 +81,35 @@ body,
 .scene--moving {
   cursor: move;
 }
+
+/* The chrome is controls, not copy. A drag that starts on a panel belongs to
+   whatever is under the pointer — a slider, the wall behind it — and sweeping
+   a blue selection across a menu while setting a value is never what was
+   meant. The wall's own text is drawn in WebGL and was never selectable. */
+.menu,
+.prefs,
+.zcfg,
+.panel,
+.keys,
+.minimap,
+.axes,
+.toast,
+.reset-view,
+.pxm,
+.swatches,
+.lightbox {
+  user-select: none;
+}
+
+/* Back on for what a person would want to take: a caption an agent wrote, the
+   repo and commit a render came from, the question on a card and its answer —
+   and anything typed into, where a selection is how you edit. */
+.lightbox__caption,
+.lightbox__meta,
+.lightbox__question,
+.lightbox__ask,
+.lightbox__reply,
+input,
+textarea {
+  user-select: text;
+}

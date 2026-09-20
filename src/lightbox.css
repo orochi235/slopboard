@@ -111,16 +111,16 @@
 
 /* The zone leads and is the one part worth finding at a glance. */
 .lightbox__metaPart:first-child {
-  color: var(--accent);
+  color: var(--lb-accent, var(--accent));
 }
 
 /* State, not description: what is true of the artifact now, set apart from the
    settled facts beside it so it is not scanned past as one more of them. */
 .lightbox__status {
   padding: 0 6px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lb-accent, var(--accent)) 45%, transparent);
   border-radius: 999px;
-  color: var(--accent);
+  color: var(--lb-accent, var(--accent));
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -128,13 +128,13 @@
 /* The first part is the zone, and it wears the accent to say so. A status
    ahead of it takes that place, so the zone gets its own color back. */
 .lightbox__status + .lightbox__metaPart {
-  color: var(--accent);
+  color: var(--lb-accent, var(--accent));
 }
 
 /* Present only while the view is off its fitted size, so the line answers
    "am I at 1:1" without carrying a 100% that means nothing at rest. */
 .lightbox__zoom {
-  color: var(--accent);
+  color: var(--lb-accent, var(--accent));
 }
 
 /* Under the image rather than over it: a caption that covers the thing it
@@ -185,7 +185,7 @@
 
 .lightbox__close:hover,
 .lightbox__close:focus-visible {
-  color: var(--accent);
+  color: var(--lb-accent, var(--accent));
 }
 
 /* Inset rather than full-bleed: the meta line above and the caption below are
@@ -227,7 +227,7 @@
 
 .lightbox__metaButton:hover,
 .lightbox__metaButton:focus-visible {
-  color: var(--accent);
+  color: var(--lb-accent, var(--accent));
 }
 
 /* Under the meta line, in the same chip treatment, and wider: a question is
@@ -243,7 +243,7 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: 6px;
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--lb-accent, var(--accent));
   background: color-mix(in srgb, var(--scrim) 88%, transparent);
   color: var(--ink);
   font: 500 calc(12px * var(--ui-type))/1.4 var(--chrome-face);
@@ -277,7 +277,7 @@
 .lightbox__choice,
 .lightbox__skip {
   padding: 3px 10px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--lb-accent, var(--accent));
   border-radius: 4px;
   background: transparent;
   color: var(--ink);
@@ -288,7 +288,7 @@
 
 .lightbox__choice:hover,
 .lightbox__choice:focus-visible {
-  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 30%, transparent);
 }
 
 .lightbox__choice:disabled {
@@ -319,8 +319,8 @@
 }
 
 .lightbox__ask[data-closed] .lightbox__choice[data-chosen] {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  border-color: var(--lb-accent, var(--accent));
+  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 30%, transparent);
   color: var(--ink);
 }
 
