@@ -1,4 +1,5 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
+import { save } from './atomic.ts'
 import { join } from 'node:path'
 import { config } from './config.ts'
 
@@ -43,6 +44,6 @@ export async function setPinned(zone: string, on: boolean): Promise<number | nul
 
   const held: Record<string, string> = {}
   for (const [name, when] of Object.entries(zones)) held[name] = new Date(when).toISOString()
-  await writeFile(file, `${JSON.stringify({ zones: held })}\n`)
+  await save(file, `${JSON.stringify({ zones: held })}\n`)
   return at
 }

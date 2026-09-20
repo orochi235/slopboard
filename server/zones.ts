@@ -1,4 +1,5 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, rename } from 'node:fs/promises'
+import { save } from './atomic.ts'
 import { join } from 'node:path'
 import { config } from './config.ts'
 import { isBackdrop } from '@shared/backdrops.ts'
@@ -104,11 +105,25 @@ const onDisk = (all: Record<string, ZoneSettings>) => ({
 
 export async function load(): Promise<void> {
   zones = {}
+  let text: string
+  try {
+    text = await readFile(file, 'utf8')
+  } catch {
+    // No file yet. Every zone inherits, which is what it did before anyone
+    // configured one.
+    return
+  }
   let blob: unknown
   try {
-    blob = JSON.parse(await readFile(file, 'utf8'))
+    blob = JSON.parse(text)
   } catch {
-    // No file yet, or one nobody can read. Every zone inherits.
+    // A file that exists and will not parse is somebody's settings, not an
+    // absence — carrying on as though every zone inherits loses them the
+    // moment the next write rebuilds the file from an empty map. Moved aside
+    // rather than read or overwritten, and said out loud.
+    const kept = `${file}.corrupt-${Date.now()}`
+    await rename(file, kept).catch(() => {})
+    console.error(`[zone] ${file} did not parse. Moved to ${kept}; every zone inherits until it is put back.`)
     return
   }
   const stored = (blob as { zones?: unknown })?.zones
@@ -192,6 +207,6 @@ export async function set(
   if (Object.keys(next).length > 0) zones[zone] = next
   else delete zones[zone]
 
-  await writeFile(file, `${JSON.stringify(onDisk(zones), null, 2)}\n`)
+  await save(file, `${JSON.stringify(onDisk(zones), null, 2)}\n`)
   return settingsFor(zone)
 }

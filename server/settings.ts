@@ -1,4 +1,5 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
+import { save } from './atomic.ts'
 import { join } from 'node:path'
 import { config } from './config.ts'
 import { formatDuration, parseDuration } from '@shared/duration.ts'
@@ -40,6 +41,6 @@ export async function setTtl(ms: number): Promise<number | null> {
   const held = inBounds(ms)
   if (held === null) return null
   ttl = held
-  await writeFile(file, `${JSON.stringify({ ttl: formatDuration(held) })}\n`)
+  await save(file, `${JSON.stringify({ ttl: formatDuration(held) })}\n`)
   return held
 }
