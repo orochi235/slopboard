@@ -4,38 +4,33 @@ slopboard becomes a public GitHub repo, a Pages site at `michaelbaker.tech/slopb
 with a running demo, and a tile on the portfolio. This is the design for that work;
 the reader is whoever implements it and already knows what slopboard does.
 
-The one thing here that slopboard cannot do alone is a windease release. Everything
-else is local.
+Steps 1 and 2 are done. The rest — demo mode, the image set, Pages and the
+portfolio tile — is unbuilt, and all of it is local.
 
-## What blocks a stranger today
+## What blocked a stranger
 
-`vite.config.ts` aliases `windease` and `delamin8r` to `../windease/src` and
-`../delamin8r/src`, and `package.json` names both as `file:` dependencies. A clone
-with no sibling checkouts fails at install and again at resolve.
+`vite.config.ts` aliased `windease` and `delamin8r` to `../windease/src` and
+`../delamin8r/src`, and `package.json` named both as `file:` dependencies. A clone
+with no sibling checkouts failed at install and again at resolve.
 
-Both packages are now on npm — `delamin8r@0.1.0` and `windease@1.3.0` — but 1.3.0 was
-published before `Rect.z` and `LayoutResult.channels` landed on windease's `main`
-(`447ce8b`, still reading 1.3.0 in its `package.json`). `src/arrangements/stack.ts`
-and `src/backends/WebglBackend.tsx` read both fields, so 1.3.0 does not typecheck here.
+Nothing else blocks: one author at `contact@michaelbaker.tech`, no home paths in
+tracked files, 2 MB of history. No rewrite.
 
-Nothing else blocks: 225 commits, one author at `contact@michaelbaker.tech`, no home
-paths in tracked files, 2 MB of history. No rewrite.
+## 1. Unlink the siblings — done
 
-## 1. Unlink the siblings
-
-The two aliases become conditional on the sibling directory existing. Present, they
+The two aliases are conditional on the sibling directory existing. Present, they
 win and local dev is unchanged — windease is co-designed with this repo and its `main`
 points at a `dist` an edit does not reach, which is why the aliases exist at all.
 Absent, resolution falls through to `node_modules`.
 
-`package.json` takes `"windease": "^2.0.0"` and `"delamin8r": "^0.1.0"`.
+`package.json` takes `"windease": "^2.0.0"` and `"delamin8r": "^0.2.1"`, and the
+lockfile records registry tarballs. Verified against a copy of the tree with no
+siblings beside it: `npm ci`, `tsc --noEmit` and `vite build` all clean.
 
-## 2. Cut windease 2.0.0
+## 2. Cut windease 2.0.0 — done
 
 Required `Rect.z` and the removal of `windease/react`'s shadowing `Rect` are both
-breaking, so this is 2.0.0 — the version `feat/2.0-removals` already carries. Done in
-windease, not here. Until it publishes, slopboard's `package.json` is written against
-a version that does not exist and CI cannot install.
+breaking, so this was 2.0.0. Published; the tarball carries both fields.
 
 ## 3. Demo mode
 
