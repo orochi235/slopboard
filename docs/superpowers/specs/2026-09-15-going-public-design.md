@@ -4,8 +4,10 @@ slopboard becomes a public GitHub repo, a Pages site at `michaelbaker.tech/slopb
 with a running demo, and a tile on the portfolio. This is the design for that work;
 the reader is whoever implements it and already knows what slopboard does.
 
-Steps 1 and 2 are done. The rest — demo mode, the image set, Pages and the
-portfolio tile — is unbuilt, and all of it is local.
+Steps 1–5 are done. What is left is **making the repo public**, which is a
+decision rather than a build, and the portfolio tile in step 6. Nothing is
+published until the repo flips: the Pages workflow is committed and has never
+run.
 
 ## What blocked a stranger
 
@@ -32,7 +34,7 @@ siblings beside it: `npm ci`, `tsc --noEmit` and `vite build` all clean.
 Required `Rect.z` and the removal of `windease/react`'s shadowing `Rect` are both
 breaking, so this was 2.0.0. Published; the tarball carries both fields.
 
-## 3. Demo mode
+## 3. Demo mode — done
 
 `useWall` is the only transport seam: it opens one WebSocket and reduces the
 `ServerMessage` union into state. Demo mode is a second producer of that same stream,
@@ -43,15 +45,19 @@ real daemon owns. It emits `snapshot` on subscribe, then `arrive`, `expire` and 
 against a manifest. Items carry real `bornAt` offsets so a viewer arrives at a wall
 with depth already in the piles rather than an empty one that fills.
 
-**`src/actions.ts`** — the nine scattered `fetch('/api/…')` calls in `WebglBackend.tsx`
-and `Sidebar.tsx` move behind one module: `keep`, `expire`, `dismiss`, `undo`,
-`expireZone`, `pinZone`. Demo mode points them at the fake daemon's reducer. This is
-the only change to existing client code, and it is worth making regardless — the call
-sites currently each carry their own `.catch(() => {})`.
+**`src/actions.ts`** — eleven scattered `fetch('/api/…')` calls across five components
+moved behind one `Actions` interface, and the socket came out of `useWall` into
+`src/transport.ts` beside it. Demo mode installs its own of each.
 
-**The flag is build-time**, `import.meta.env.VITE_SLOP_DEMO`. The Pages bundle must not
-ship a WebSocket that retries forever against a daemon that isn't there. Local demo
-work runs `VITE_SLOP_DEMO=1 npm run dev:client`.
+Two things the demo found that were wrong on the live wall too: `urlFor` rebuilt
+`/img/${id}` instead of reading the `url` the item already carries, and the set has
+to be dealt round-robin across its zones or the wall opens showing one pile.
+
+**The flag is build-time** — but as `__SLOP_DEMO__`, a vite `define`, not
+`import.meta.env.VITE_SLOP_DEMO`. Rollup has to see the literal `false` to drop the
+branch; read through `import.meta.env` it kept the daemon and all forty pictures in
+the ordinary bundle. Local demo work still runs `VITE_SLOP_DEMO=1 npm run dev:client`,
+which is what sets the define.
 
 Three behaviors differ in demo mode, because a browser has no filesystem behind it:
 
@@ -59,20 +65,25 @@ Three behaviors differ in demo mode, because a browser has no filesystem behind 
 - **Copy path** copies the demo image's URL instead.
 - `kind: 'page'` artifacts are out of scope. The manifest carries pictures only.
 
-## 4. The demo image set
+## 4. The demo image set — done
 
-**`tools/demo-set.mjs`** walks `~/slop/inbox/` and stages candidates for pruning by
-hand. What survives is committed under `demo/img/` with a manifest of zone, name,
+**`tools/demo-set.ts`** (TypeScript, so it reuses the daemon's own `captionFor`) walks
+`~/slop/inbox/` and stages candidates for pruning by hand. What survives is committed under `demo/img/` with a manifest of zone, name,
 dimensions and `bornAt` offset.
 
 It takes an **allowlist** of zones, never a denylist. The real wall carries work zones,
 and a new one must fail closed — a denylist ships a Point Wild render to a public site
 the first time a repo nobody updated the list for produces something.
 
-Images go out at the wall's own 1024px longest edge as WebP. Fifty of them is roughly
-6 MB, which is the repo's whole weight gain.
+Images go out at the wall's own 1024px longest edge as WebP. The allowed zones held
+forty between them — `slopboard` and `weasel`; `brick-icons` had only expired
+sidecars — for 1.3 MB, which is the repo's whole weight gain. Two zones is a thin
+wall: widening the allowlist is the way to a fuller one.
 
-## 5. Pages
+The manifest also carries each zone's color, read off the project's own `.hued`
+through its registration file, so the demo is tinted the way the real wall is.
+
+## 5. Pages — done
 
 `.github/workflows/site.yml` on perch's shape — `push` to `main` plus
 `workflow_dispatch`, `concurrency: pages` with `cancel-in-progress`,
@@ -88,7 +99,7 @@ The build assembles `_site/`:
 A stranger who lands on the wall alone sees a pretty screensaver. The landing page
 exists to say the images arrive from agents and die on a timer.
 
-## 6. Portfolio tile
+## 6. Portfolio tile — not done
 
 Configuration only. `ProjectMedia` already supports `kind: 'embed'` with `eager: false`,
 which holds at a still showing **▶ RUN DEMO** until the tile is engaged — which is the
