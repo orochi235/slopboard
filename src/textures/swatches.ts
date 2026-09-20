@@ -1,13 +1,23 @@
 import * as THREE from 'three'
 import { BACKDROPS, type Backdrop } from '@shared/backdrops.ts'
-import { PATTERN_INDEX } from '@/backdrops.ts'
+import { PATTERN_INDEX, PATTERNS } from '@/backdrops.ts'
 import { createBackdropMaterial } from '@/backends/hatch.ts'
 
-let cached: Partial<Record<Backdrop, string>> | null = null
+/** A drawn pattern and the shape of the tile it repeats on. Consumers need the
+ *  aspect because several patterns do not repeat on a square. */
+export type Swatch = { url: string; aspect: number }
+
+let cached: Partial<Record<Backdrop, Swatch>> | null = null
 
 /** The set, drawn once for the page. Two panels offer these and a sheet is
  *  opened repeatedly; the patterns do not change between openings. */
-export function swatches(): Partial<Record<Backdrop, string>> {
+const SPACING = 0.2
+const PERIOD = 0.4
+/** How many repeats a swatch shows. One would read as a single motif rather
+ *  than as a pattern; more than two and the picker's 96px is a flat tint. */
+const REPEATS = 2
+
+export function swatches(): Partial<Record<Backdrop, Swatch>> {
   cached ??= renderSwatches()
   return cached
 }
@@ -32,8 +42,8 @@ export function swatches(): Partial<Record<Backdrop, string>> {
  * live context per swatch would spend nine of the handful a browser gives a
  * page, and nothing here animates.
  */
-export function renderSwatches(size = 96): Partial<Record<Backdrop, string>> {
-  const out: Partial<Record<Backdrop, string>> = {}
+export function renderSwatches(size = 96): Partial<Record<Backdrop, Swatch>> {
+  const out: Partial<Record<Backdrop, Swatch>> = {}
   let renderer: THREE.WebGLRenderer | null = null
   try {
     renderer = new THREE.WebGLRenderer({
@@ -42,12 +52,9 @@ export function renderSwatches(size = 96): Partial<Record<Backdrop, string>> {
       // Without this the buffer may be cleared before toDataURL reads it.
       preserveDrawingBuffer: true,
     })
-    renderer.setSize(size, size, false)
     renderer.setClearAlpha(0)
 
     const scene = new THREE.Scene()
-    // The plane is one unit, so world space here runs -0.5 to 0.5 and the
-    // spacing below is read as a fraction of the swatch.
     const camera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0, 10)
     camera.position.z = 1
 
@@ -59,13 +66,6 @@ export function renderSwatches(size = 96): Partial<Record<Backdrop, string>> {
     // zone's — so an angle baked in here is added to that one, and the plan
     // was ruled forty-five degrees off the wall it describes.
     material.uniforms.uAngle!.value = 0
-    // A sixth, so the pattern meets its own edge: the swatch is repeated as a
-    // tile, and a pitch that does not divide the square leaves a visible step
-    // at every repeat. Six takes the patterns built on one, two and three
-    // spacings — plain rules, brick and basketweave, parquet — all of which
-    // land on a whole number of periods across.
-    material.uniforms.uSpacing!.value = 1 / 6
-    material.uniforms.uWidth!.value = 0.022
 
     const geometry = new THREE.PlaneGeometry(1, 1)
     const mesh = new THREE.Mesh(geometry, material)
@@ -76,9 +76,34 @@ export function renderSwatches(size = 96): Partial<Record<Backdrop, string>> {
       // stays at the initial 1.0, so asking for it would hand back a solid
       // square and offer the opposite of what it means.
       if (backdrop === 'none') continue
+
+      // Framed on the pattern's own repeat rather than on a square, so the
+      // image meets its own edge and can be tiled. `grid` repeats on root two
+      // and `hexagons` on root three, so no single square frame could hold
+      // both — which is why every swatch carries the aspect it was drawn at.
+      const tile = PATTERNS[backdrop].tile(SPACING, PERIOD)
+      const aspect = tile.u / tile.v
+      const w = aspect >= 1 ? size : Math.round(size * aspect)
+      const h = aspect >= 1 ? Math.round(size / aspect) : size
+      renderer.setSize(w, h, false)
+      // The mesh is the tile, so world space across it runs exactly one
+      // repeat: the spacing below is then read against the pattern's own
+      // measure rather than against the picture's.
+      mesh.scale.set(tile.u * REPEATS, tile.v * REPEATS, 1)
+      camera.left = (-tile.u * REPEATS) / 2
+      camera.right = (tile.u * REPEATS) / 2
+      camera.top = (tile.v * REPEATS) / 2
+      camera.bottom = (-tile.v * REPEATS) / 2
+      camera.updateProjectionMatrix()
+
+      material.uniforms.uSpacing!.value = SPACING
+      material.uniforms.uPeriod!.value = PERIOD
+      // Proportional to the pitch rather than fixed, so a pattern framed on a
+      // large repeat is not drawn in hairlines.
+      material.uniforms.uWidth!.value = SPACING * 0.13
       material.uniforms.uPattern!.value = PATTERN_INDEX[backdrop]
       renderer.render(scene, camera)
-      out[backdrop] = renderer.domElement.toDataURL()
+      out[backdrop] = { url: renderer.domElement.toDataURL(), aspect }
     }
 
     geometry.dispose()

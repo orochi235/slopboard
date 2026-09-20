@@ -62,7 +62,7 @@ export function Minimap({
       // `solid` has a swatch, but it is a filled square — the ground already
       // draws that, and laying it over itself only doubles the tint.
       hatched: zones.huedBackdrop && backdrop !== 'none' && backdrop !== 'solid',
-      mask: masks[backdrop],
+      swatch: masks[backdrop],
       // A zone that turned its own ruling turns here too, or the plan says one
       // thing about the wall while the wall says another.
       angle: angleFor(zoneSettings[zone], zones.hatchAngleDeg),
@@ -75,6 +75,14 @@ export function Minimap({
   // is whatever reads here. A swatch already holds a few repeats of its
   // pattern, so a tile here is several of the wall's.
   const pitch = bounds.h / 6
+  /** The tile one zone repeats on. A swatch is framed on the pattern's own
+   *  repeat, which is not square for every pattern — `hexagons` stands root
+   *  three taller than it is wide — so the tile has to carry that or the
+   *  pattern is stretched to fit a square and stops meeting its own edge. */
+  const tileFor = (zone: string) => {
+    const aspect = ruleFor(zone).swatch?.aspect ?? 1
+    return { w: pitch * aspect, h: pitch }
+  }
 
   // Indexed rather than named: a zone is a directory name, and a URL reference
   // cannot carry everything one of those is allowed to hold.
@@ -91,16 +99,17 @@ export function Minimap({
         {hatched && (
           <defs>
             {[...tints].map(([zone]) => {
-              const mask = ruleFor(zone).mask
+              const swatch = ruleFor(zone).swatch
+              const tile = tileFor(zone)
               return (
-                mask && (
+                swatch && (
                   <mask key={`${zone}-mask`} id={`${ids.get(zone)}-mask`}>
                     <image
-                      href={mask}
+                      href={swatch.url}
                       x={0}
                       y={0}
-                      width={pitch}
-                      height={pitch}
+                      width={tile.w}
+                      height={tile.h}
                       preserveAspectRatio="none"
                     />
                   </mask>
@@ -112,8 +121,8 @@ export function Minimap({
                 key={zone}
                 id={ids.get(zone)}
                 patternUnits="userSpaceOnUse"
-                width={pitch}
-                height={pitch}
+                width={tileFor(zone).w}
+                height={tileFor(zone).h}
                 // The swatch is drawn square on, so the whole angle is applied
                 // here — the zone's own where it set one, the wall's where it
                 // did not. An angle baked into the render would be added to
@@ -123,16 +132,23 @@ export function Minimap({
               >
                 {/* The zone's ground, then its pattern over it: one fill has to
                     carry both, and a pattern is the only fill that can. */}
-                <rect x={0} y={0} width={pitch} height={pitch} fill={tint} opacity={0.22} />
+                <rect
+                  x={0}
+                  y={0}
+                  width={tileFor(zone).w}
+                  height={tileFor(zone).h}
+                  fill={tint}
+                  opacity={0.22}
+                />
                 {/* The swatch is white on transparent, so it is worn as a mask
                     over the zone's own tint rather than drawn — one render
                     then serves every zone, the way the sheet wears it. */}
-                {ruleFor(zone).mask && (
+                {ruleFor(zone).swatch && (
                   <rect
                     x={0}
                     y={0}
-                    width={pitch}
-                    height={pitch}
+                    width={tileFor(zone).w}
+                    height={tileFor(zone).h}
                     fill={tint}
                     opacity={zones.backdropOpacity}
                     mask={`url(#${ids.get(zone)}-mask)`}

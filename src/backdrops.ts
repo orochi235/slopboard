@@ -20,3 +20,68 @@ export const PATTERN_INDEX: Record<Backdrop, number> = {
   parquet: 14,
   dragonscale: 15,
 }
+
+/** A control the ruling offers, and a uniform the shader reads. */
+export type Rule = 'spacing' | 'period' | 'width' | 'angle'
+
+/**
+ * What one pattern answers to, and how far it goes before it repeats.
+ *
+ * `reads` is which of the ruling's controls reach this pattern. Every pattern
+ * used to be offered density and rotation whatever it did with them, and a
+ * second pitch only if it was one of two named in a set — so `checks` offered
+ * a line width it never draws, and adding a pattern meant remembering to edit
+ * that set somewhere else.
+ *
+ * `tile` is the pattern's repeat in world units, along the ruling and across
+ * it, given the two pitches. A swatch is repeated as a tile, so it has to be
+ * framed on exactly this or it will not meet its own edge — and several of
+ * these are irrational against the spacing (`grid` at root two, `hexagons` at
+ * root three), which is why the frame is computed rather than assumed square.
+ */
+export type PatternSpec = {
+  reads: readonly Rule[]
+  tile: (spacing: number, period: number) => { u: number; v: number }
+}
+
+const R2 = Math.SQRT2
+const R3 = 1.73205081
+
+/** Ruled one way: a pitch across the rules, a width, and an angle. */
+const RULED: readonly Rule[] = ['spacing', 'width', 'angle']
+/** Ruled on two axes set apart, so the second pitch is the pattern's shape. */
+const TWO_PITCH: readonly Rule[] = ['spacing', 'period', 'width', 'angle']
+
+export const PATTERNS: Record<Backdrop, PatternSpec> = {
+  // Draws nothing and fills flat: neither reads a pitch or an angle.
+  none: { reads: [], tile: () => ({ u: 1, v: 1 }) },
+  solid: { reads: [], tile: () => ({ u: 1, v: 1 }) },
+
+  hatch: { reads: RULED, tile: (s) => ({ u: s, v: s }) },
+  crosshatch: { reads: RULED, tile: (s) => ({ u: s, v: s }) },
+  // Turned a further forty-five degrees, so its lattice steps by the diagonal.
+  grid: { reads: RULED, tile: (s) => ({ u: s * R2, v: s * R2 }) },
+  // Two courses, because alternate ones are shifted half a brick.
+  bricks: { reads: RULED, tile: (s) => ({ u: 2 * s, v: 2 * s }) },
+  dots: { reads: RULED, tile: (s) => ({ u: s, v: s }) },
+  // Two cells each way: the alternation is the pattern, not the cell.
+  checks: { reads: ['spacing', 'angle'], tile: (s) => ({ u: 2 * s, v: 2 * s }) },
+  // Diamonds on the turned lattice, taller than they are wide by 1.7.
+  argyle: { reads: RULED, tile: (s) => ({ u: 2 * R2 * s, v: 2 * R2 * 1.7 * s }) },
+  // The crease runs on its own period, which is the whole reason it has one.
+  chevron: { reads: TWO_PITCH, tile: (s, p) => ({ u: p, v: s }) },
+  waves: { reads: TWO_PITCH, tile: (s, p) => ({ u: p, v: s }) },
+  // Alternate courses notch into the one above, so two make the repeat.
+  scales: { reads: RULED, tile: (s) => ({ u: s, v: 2 * s }) },
+  hexagons: { reads: RULED, tile: (s) => ({ u: s, v: s * R3 }) },
+  // Three rulings sixty degrees apart: the across-repeat is the short leg.
+  triangles: { reads: RULED, tile: (s) => ({ u: s / (R3 / 2), v: 2 * s }) },
+  basketweave: { reads: RULED, tile: (s) => ({ u: 2 * s, v: 2 * s }) },
+  parquet: { reads: RULED, tile: (s) => ({ u: 3 * s, v: 3 * s }) },
+  // Courses are six tenths of a spacing, and alternate ones are shifted.
+  dragonscale: { reads: RULED, tile: (s) => ({ u: s, v: 1.2 * s }) },
+}
+
+/** Whether a pattern answers to one of the ruling's controls. */
+export const reads = (backdrop: Backdrop, rule: Rule): boolean =>
+  PATTERNS[backdrop].reads.includes(rule)

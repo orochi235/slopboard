@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { PropertyRow, Slider } from '@weasel-js/ui'
 import type { Backdrop } from '@shared/backdrops.ts'
+import { reads } from '@/backdrops.ts'
 import { pressedOn } from '@/scrim.ts'
-import { TWO_AXIS } from '@/zone-settings.ts'
 import './backdrop-ruling.css'
 
 /**
@@ -170,23 +170,24 @@ export function BackdropRuling({
   const asDensity = { min: 0, max: 1, step: 0.01 }
   const readDensity = (stored: number) => pad(densityOf(stored) * 100, 3)
 
+  // Each pattern says which of these reach it, in `PATTERNS`. A row for a
+  // value the shader ignores is a control that does nothing — `solid` took a
+  // density and a rotation, and only two patterns read a second pitch.
   return (
     <>
-      {row('spacing', 'density', asDensity, densityOf, spacingOf, readDensity)}
-      {/* Only where the pattern is built on two axes. A chevron is read by the
-          angle between its arms, which is the ratio of the two pitches; every
-          other pattern is ruled at one and a second slider would move
-          nothing. */}
-      {TWO_AXIS.has(backdrop) &&
+      {reads(backdrop, 'spacing') &&
+        row('spacing', 'density', asDensity, densityOf, spacingOf, readDensity)}
+      {reads(backdrop, 'period') &&
         row('period', 'repeat', asDensity, densityOf, spacingOf, readDensity)}
-      {row(
-        'angle',
-        'rotation',
-        { min: 0, max: 360, step: 1 },
-        (a) => a,
-        (a) => a,
-        (a) => `${pad(a, 3)}°`,
-      )}
+      {reads(backdrop, 'angle') &&
+        row(
+          'angle',
+          'rotation',
+          { min: 0, max: 360, step: 1 },
+          (a) => a,
+          (a) => a,
+          (a) => `${pad(a, 3)}°`,
+        )}
     </>
   )
 }

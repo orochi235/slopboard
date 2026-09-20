@@ -39,6 +39,3 @@ export const periodFor = (settings: ZoneSettings | undefined, wall: number): num
 export const angleFor = (settings: ZoneSettings | undefined, wall: number): number =>
   settings?.angle ?? wall
 
-/** The patterns built on two axes, which are the ones a second pitch reaches.
- *  Everything else is ruled at one pitch both ways and ignores it. */
-export const TWO_AXIS: ReadonlySet<Backdrop> = new Set<Backdrop>(['chevron', 'waves'])
