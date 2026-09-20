@@ -1,24 +1,25 @@
 # The params panel and the filter band, on weasel's controls
 
-For whoever builds this. It says which `@weasel-js/ui` components replace the
-wall's hand-rolled chrome, where the theme tokens live once two surfaces need
-them, and which of the two bugs found on the way is fixed by construction
-rather than by a CSS patch.
+Which `@weasel-js/ui` components replaced the wall's hand-rolled chrome, where
+the theme tokens live now that two surfaces need them, and which of the two bugs
+found on the way is fixed by construction rather than by a CSS patch.
 
-Not built yet.
+**Built**, 2026-09-08/09 — `c081e8a` the token bridge, `20cc948` the params rows,
+`4e20af8` the band's histogram, ending at `8e7c804`. One deviation from what is
+written below, marked where it applies.
 
-## What is wrong today
+## What was wrong
 
-**The params panel is native form controls in a hand-rolled grid.** A
+**The params panel was native form controls in a hand-rolled grid.** A
 `<input type="range">` with `accent-color`, a native `<select>`, a native
 color input and a native checkbox, laid out by a three-column
-`grid-template-columns: 132px 116px 52px`. It works. It does not look like the
-wall, the checkboxes are whatever the OS draws, and the value column is ragged
-— `0.305` sits above `420` sits above `1`, so a column meant to be compared
-down has to be read across.
+`grid-template-columns: 132px 116px 52px`. It worked. It did not look like the
+wall, the checkboxes were whatever the OS drew, and the value column was ragged
+— `0.305` sat above `420` sat above `1`, so a column meant to be compared down
+had to be read across.
 
-**The band's slider is 82px wide over a 520px histogram.** The thumbs do not
-point at the times they select. Measured on the running wall, not inferred.
+**The band's slider was 82px wide over a 520px histogram.** The thumbs did not
+point at the times they selected. Measured on the running wall, not inferred.
 
 The cause is one property of ours. Weasel's `.slider` is already a column flex
 container, and `.topbar__range` adds `align-items: center` to sit it over the
@@ -73,7 +74,7 @@ weasel already has for it:
 
 | `Control` kind | Row |
 |---|---|
-| `slider` | `SliderRow` |
+| `slider` | `PropertyRow` + a bare `Slider` — **the deviation.** `SliderRow` puts its readout up beside the label, and the readout belongs after the track it reads. `.params__slider` gives the bare slider the width `SliderRow` was giving it. |
 | `choice` | `SelectRow` |
 | `color` | `ColorRow` |
 | `toggle` | `CheckboxRow` |
@@ -87,10 +88,10 @@ groups.
 `step.z`'s `invert` is unchanged: negate on the way in, negate on the way out.
 The reason it exists is in `params.controls.ts` and does not move.
 
-`params.css` loses `.params__row`, `.params__name`, `.params__slider`,
-`.params__value`, `.params__wide`, `.params__toggle` and `.params__color`. It
-keeps the group, transfer, button, note and file rules, which are the panel's
-own chrome rather than a control's. `sidebar.css` loses its
+`params.css` loses `.params__row`, `.params__name`, `.params__value`,
+`.params__wide`, `.params__toggle` and `.params__color`. It keeps the group,
+transfer, button, note and file rules, which are the panel's own chrome rather
+than a control's — and `.params__slider`, which the deviation above still needs. `sidebar.css` loses its
 `.sidebar .params__row` column override, which has nothing left to widen.
 
 `SelectRow` and `ToggleRow` are typed `<T extends string>`, and `choice`
