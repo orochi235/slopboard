@@ -17,4 +17,6 @@ export const PATTERN_INDEX: Record<Backdrop, number> = {
   hexagons: 11,
   triangles: 12,
   basketweave: 13,
+  parquet: 14,
+  dragonscale: 15,
 }

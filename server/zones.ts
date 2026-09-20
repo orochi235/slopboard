@@ -120,6 +120,11 @@ export async function set(
 
   if (patch.backdrop === null) delete next.backdrop
   else if (isBackdrop(patch.backdrop)) next.backdrop = patch.backdrop
+  // Said out loud: a page served by a newer build offers patterns this daemon
+  // has never heard of, and dropping those without a word looks from the sheet
+  // exactly like a swatch that cannot be picked.
+  else if (patch.backdrop !== undefined)
+    console.warn(`[zone] ${zone} asked for backdrop ${JSON.stringify(patch.backdrop)} — restart me`)
 
   if (patch.lifetime === null) delete next.lifetime
   else if (patch.lifetime !== undefined) {

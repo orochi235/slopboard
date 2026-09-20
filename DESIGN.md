@@ -399,8 +399,8 @@ against every arrangement.
   zooms to a pile when clicked.
 - **The `zones` group** owns how a zone presents itself: outline, label, and a
   backdrop filling its cell — a ruled hatch by default, or crosshatch, grid,
-  chevron, waves, bricks, basketweave, triangles, hexagons, scales, dots,
-  checks, argyle or a flat tint, all drawn by one shader in world space so it
+  chevron, waves, bricks, basketweave, parquet, triangles, hexagons, scales,
+  dragonscale, dots, checks, argyle or a flat tint, all drawn by one shader in world space so it
   holds one density across the wall and costs the texture budget nothing. The backdrop sits a hair behind the zone outline rather than
   behind the pile: it writes no depth and draws ahead of the cards, so it never
   occludes them however deep they go, while a plane parked at the deepest rank

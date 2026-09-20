@@ -46,8 +46,13 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
       }
 
       // Cover of the outline at \`radius\` of whatever \`d\` measures distance to.
+      //
+      // Capped at the line's own width: the curved patterns measure \`d\` from a
+      // cell coordinate, which jumps at the cell seam, and an uncapped fwidth
+      // there widens the smoothstep across a whole cell — the seam then shows
+      // as a dotted rule cutting diagonally through the pattern.
       float ring(float d, float radius, float width) {
-        float aa = max(fwidth(d), 1e-6);
+        float aa = clamp(fwidth(d), 1e-6, width);
         return 1.0 - smoothstep(width * 0.5 - aa, width * 0.5 + aa, abs(d - radius));
       }
 
@@ -169,6 +174,31 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
             : lines(u + uSpacing, 2.0 * uSpacing, uWidth);
           float edge = max(lines(u, 2.0 * uSpacing, uWidth), lines(v, 2.0 * uSpacing, uWidth));
           cover = max(split, edge);
+        } else if (uPattern == 14) {
+          // Parquet: blocks three strips wide, the strips turning a quarter on
+          // every other block. Basketweave's larger cousin — same construction,
+          // same reason for the half in the block index.
+          float block = 3.0 * uSpacing;
+          float turn = mod(floor(u / block + 0.5) + floor(v / block + 0.5), 2.0);
+          float strips = turn < 0.5 ? lines(v, uSpacing, uWidth) : lines(u, uSpacing, uWidth);
+          cover = max(strips, max(lines(u, block, uWidth), lines(v, block, uWidth)));
+        } else if (uPattern == 15) {
+          // Dragon scale: one arc per cell, rising from the cell's two bottom
+          // corners to the middle of its top edge, with alternate courses
+          // shifted half a scale so each arc springs from where its two
+          // neighbors below already meet.
+          //
+          // The circle is the one through those three points, so its center is
+          // on the cell's axis at \`rise\` and its radius is what is left of the
+          // course. Taking the radius as the corner-to-top distance instead —
+          // which is the same three points read as a diameter — puts the whole
+          // arc outside the cell, and the pattern vanishes but for its corners.
+          float course = uSpacing * 0.6;
+          float shift = mod(floor(v / course), 2.0) * 0.5;
+          float x = (fract(u / uSpacing + shift) - 0.5) * uSpacing;
+          float y = fract(v / course) * course;
+          float rise = (course * course - uSpacing * uSpacing * 0.25) / (2.0 * course);
+          cover = ring(length(vec2(x, y - rise)), course - rise, uWidth);
         }
         if (cover <= 0.001) discard;
         gl_FragColor = vec4(uColor, uOpacity * cover);
