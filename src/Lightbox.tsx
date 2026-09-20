@@ -489,6 +489,11 @@ function PageLightbox({
  * those hooks would change the hook count when the arrows page from a picture
  * to a video on the same element.
  */
+/** How tall the browser's own video controls stand at the foot of the element.
+ *  Chrome draws about forty; the few extra keep a press aimed at the scrubber
+ *  from landing on the picture instead. */
+const CONTROLS_BAND = 48
+
 function VideoLightbox({
   item,
   now,
@@ -507,6 +512,9 @@ function VideoLightbox({
   // there is no case where the video sits on its first frame waiting for a
   // second click.
   const [muted, setMuted] = useState(true)
+  /** Whether the press this click ends began on the picture rather than on the
+   *  control strip. See the handlers below. */
+  const onPicture = useRef(false)
 
   return (
     <div
@@ -530,6 +538,26 @@ function VideoLightbox({
         loop
         playsInline
         controls
+        // A click on the picture stops and starts it, the way a click on a
+        // video anywhere else does. The native control strip is drawn inside
+        // this same element and reports its clicks as the element's, so there
+        // is no target to tell them apart by — the bottom band is left to the
+        // controls by measure instead, or every press on play would arrive
+        // here as well and undo itself.
+        onPointerDown={(e) => {
+          onPicture.current =
+            e.clientY <= e.currentTarget.getBoundingClientRect().bottom - CONTROLS_BAND
+        }}
+        onClick={(e) => {
+          const el = e.currentTarget
+          // Both ends of the press, because a scrub dragged up out of the
+          // strip releases over the picture and its click would otherwise
+          // pause whatever the viewer just finished seeking to.
+          if (!onPicture.current) return
+          if (e.clientY > el.getBoundingClientRect().bottom - CONTROLS_BAND) return
+          if (el.paused) void el.play()
+          else el.pause()
+        }}
         // Left unfocused on purpose: the wall's arrows page the pile, and a
         // focused video would take them for a seek before they got there.
         // Clicking it is how a viewer asks for that trade.
