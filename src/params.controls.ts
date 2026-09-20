@@ -135,7 +135,7 @@ const CHOICES: Record<string, readonly (number | string)[]> = {
   'distance.combine': ['ceiling', 'min'],
   'zones.backdrop': BACKDROPS,
   'camera.projection': ['orthographic', 'perspective'],
-  'zoneGrid.orientation': ['wide', 'tall'],
+  'zoneGrid.orientation': ['wide', 'tall', 'fit'],
   'menu.mode': ['window', 'tilt'],
 }
 

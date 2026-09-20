@@ -197,7 +197,10 @@ export type StackParams = {
   }
   zoneGrid: {
     gap: number
-    orientation: 'wide' | 'tall'
+    /** How the column count is chosen when neither `cols` nor `rows` is set.
+     *  `wide` and `tall` square the zone count; `fit` squares the cells for
+     *  the container, which is what a wall that changes shape wants. */
+    orientation: 'wide' | 'tall' | 'fit'
     cols?: number
     rows?: number
     /**
@@ -560,7 +563,7 @@ export const defaultParams: StackParams = {
   },
   zoneGrid: {
     gap: 0.425,
-    orientation: 'wide',
+    orientation: 'fit',
     reverseX: false,
     reverseY: false,
     minCells: 4,
