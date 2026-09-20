@@ -25,3 +25,7 @@ export function tintsFor(
 /** What one zone is ruled with: its own pattern, else the wall's. */
 export const backdropFor = (settings: ZoneSettings | undefined, wall: Backdrop): Backdrop =>
   settings?.backdrop ?? wall
+
+/** The pitch one zone is ruled at: its own, else the wall's. */
+export const spacingFor = (settings: ZoneSettings | undefined, wall: number): number =>
+  settings?.spacing ?? wall

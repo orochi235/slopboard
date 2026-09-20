@@ -5,7 +5,7 @@ import type { Rect } from 'windease'
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { createBackdropMaterial } from '@/backends/hatch.ts'
 import { PATTERN_INDEX } from '@/backdrops.ts'
-import { backdropFor } from '@/zone-settings.ts'
+import { backdropFor, spacingFor } from '@/zone-settings.ts'
 import type { ZoneSettings } from '@shared/protocol.ts'
 import { createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
 import type { StackParams } from '@/params.ts'
@@ -199,7 +199,7 @@ export function ZoneOverlay({
       if (ownBackdrop) u.uColor.value.copy(ownBackdrop)
       else u.uColor.value.set(colors.zoneBackdrop)
       u.uOpacity.value = settings.backdropOpacity
-      u.uSpacing.value = Math.max(1e-4, settings.hatchSpacing)
+      u.uSpacing.value = Math.max(1e-4, spacingFor(zoneSettings[zone], settings.hatchSpacing))
       u.uWidth.value = settings.hatchWidth
       u.uAngle.value = angle
       u.uPattern.value = PATTERN_INDEX[backdrop]

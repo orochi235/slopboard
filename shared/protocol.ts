@@ -88,6 +88,9 @@ export type ZoneSettings = {
   /** Wins over the `.hued` color. Cleared to fall back to the project again. */
   color?: string
   backdrop?: Backdrop
+  /** The pattern's pitch in world units, which the sheet offers as a density —
+   *  the smaller the number, the denser the ruling. Wins over the wall's. */
+  spacing?: number
   /** How long an artifact here lives when it carries no TTL of its own. A
    *  duration, or one of the two ways of being off the clock. */
   lifetime?: Lifetime

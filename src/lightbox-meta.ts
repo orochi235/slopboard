@@ -36,6 +36,24 @@ export function metaOf(item: WallItem, now: number): string[] {
   // Same job for a video: how much of it there is, which the poster cannot say.
   if (item.duration) parts.push(formatClock(item.duration))
   if (item.w > 0 && item.h > 0) parts.push(`${item.w}×${item.h}`)
+  return parts
+}
+
+/**
+ * What is true of the artifact right now, as against what it is: kept from the
+ * sweeper, flagged, asking a question, asking to be looked at.
+ *
+ * Apart from `metaOf` because these are read differently. A format and a pixel
+ * size are settled facts and a reader scans past them; state is the reason to
+ * look at the line at all, and set in the same row in the same ink it reads as
+ * one more fact about the file — which is how `kept` sat unnoticed at the end
+ * of six of them.
+ */
+export function statusOf(item: WallItem): string[] {
+  const parts: string[] = []
   if (item.keptAt) parts.push('kept')
+  if (item.note) parts.push(item.note)
+  if (item.attention) parts.push(item.attention.level)
+  if (item.question) parts.push(item.reply ? item.reply.status : 'asked')
   return parts
 }

@@ -9,6 +9,7 @@ import { createWatchdog, type Watchdog } from '@/watchdog.ts'
 export type ZonePatch = {
   color?: string | null
   backdrop?: ZoneSettings['backdrop'] | null
+  spacing?: number | null
   lifetime?: Lifetime | null
 }
 

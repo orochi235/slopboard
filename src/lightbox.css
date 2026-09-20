@@ -105,6 +105,23 @@
   color: var(--accent);
 }
 
+/* State, not description: what is true of the artifact now, set apart from the
+   settled facts beside it so it is not scanned past as one more of them. */
+.lightbox__status {
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The first part is the zone, and it wears the accent to say so. A status
+   ahead of it takes that place, so the zone gets its own colour back. */
+.lightbox__status + .lightbox__metaPart {
+  color: var(--accent);
+}
+
 /* Present only while the view is off its fitted size, so the line answers
    "am I at 1:1" without carrying a 100% that means nothing at rest. */
 .lightbox__zoom {

@@ -400,8 +400,12 @@ against every arrangement.
 - **The `zones` group** owns how a zone presents itself: outline, label, and a
   backdrop filling its cell — a ruled hatch by default, or crosshatch, grid,
   chevron, waves, bricks, basketweave, parquet, triangles, hexagons, scales,
-  dragonscale, dots, checks, argyle or a flat tint, all drawn by one shader in world space so it
-  holds one density across the wall and costs the texture budget nothing. The backdrop sits a hair behind the zone outline rather than
+  dragonscale, dots, checks, argyle or a flat tint, all drawn by one shader in
+  world space so it holds one density across the wall and costs the texture
+  budget nothing. **The pattern and its pitch are one decision**, so the density
+  slider sits with the swatches rather than in the parameter list, and a zone
+  overrides the wall's pitch the way it overrides the pattern.
+  The backdrop sits a hair behind the zone outline rather than
   behind the pile: it writes no depth and draws ahead of the cards, so it never
   occludes them however deep they go, while a plane parked at the deepest rank
   parallaxes away from its own border as soon as the wall turns.
@@ -426,7 +430,8 @@ against every arrangement.
   `gl_FragColor` does neither, so `Color.set` renders several stops too dark.
   `srgb()` in `sky.ts` keeps the value raw. The zone hatch still uses
   `Color.set` and reads darker than its palette entry says.
-- **Preferences have two surfaces** — the corner panel and a sheet on `,` —
+- **Preferences have two surfaces** — the corner panel and a sheet on `,`, and
+  a double-click on any zone's bare backdrop opens the sheet too —
   rendering one `ParamsBody` so they cannot drift while prefs is still a copy
   of params. The sheet's left column leads with `general`, then lists surfaces
   with six areas of the wall nested under `params` — piles, cards, flags,

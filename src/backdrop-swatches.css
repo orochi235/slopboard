@@ -27,6 +27,15 @@
   flex: 1 1 auto;
 }
 
+/* The picked pattern's name, on its own line below the grid. Its own row so a
+   long name never widens a column and shifts every tile under it. */
+.swatches__picked {
+  grid-column: 1 / -1;
+  margin-top: 1px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
 /* Square, because a pattern ruled in world space has no aspect of its own and
    a wide tile would read as a preview of a cell rather than of the ruling. */
 .swatch {

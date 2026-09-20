@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { metaOf } from '@/lightbox-meta.ts'
+import { metaOf, statusOf } from '@/lightbox-meta.ts'
 import type { WallItem } from '@shared/protocol.ts'
 
 const item = (over: Partial<WallItem> = {}): WallItem => ({
@@ -30,10 +30,6 @@ describe('metaOf', () => {
 
   it('says nothing about provenance for a file dropped in by hand', () => {
     expect(metaOf(item(), 0)).toEqual(['slopboard', '0s', 'png', '1024×576'])
-  })
-
-  it('marks a rescued item, since nothing else about it says so', () => {
-    expect(metaOf(item({ keptAt: 5 }), 0)).toContain('kept')
   })
 
   it('names the format the original is in, not the thumbnail the card drew', () => {
@@ -69,5 +65,28 @@ describe('metaOf', () => {
       '0s',
       '1024×576',
     ])
+  })
+})
+
+describe('statusOf', () => {
+  it('says nothing about an artifact that is in no particular state', () => {
+    expect(statusOf(item())).toEqual([])
+  })
+
+  it('marks a rescued item, since nothing else about it says so', () => {
+    expect(statusOf(item({ keptAt: 5 }))).toEqual(['kept'])
+  })
+
+  it('carries the flag and the level an asking card wears on the wall', () => {
+    expect(statusOf(item({ note: 'broken', attention: { level: 'urgent', holdMs: null } }))).toEqual(
+      ['broken', 'urgent'],
+    )
+  })
+
+  it('says whether a question is still open, and how it closed if it is not', () => {
+    expect(statusOf(item({ question: 'ship it?' }))).toEqual(['asked'])
+    expect(
+      statusOf(item({ question: 'ship it?', reply: { status: 'answered', text: 'yes', at: 1 } })),
+    ).toEqual(['answered'])
   })
 })

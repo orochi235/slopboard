@@ -39,16 +39,29 @@ const heldLifetime = (lifetime: Lifetime | null): Lifetime | null => {
   return lifetime >= bounds.min && lifetime <= bounds.max ? lifetime : null
 }
 
+/** The pitches the wall will rule at, matching the range the panel's own
+ *  slider offers. Below the floor the pattern is a flat tint and above the
+ *  ceiling a cell holds one line, so neither end says anything. */
+const pitch = { min: 0.002, max: 0.1 }
+
+/** A pitch the wall will rule at, or null. */
+const heldSpacing = (raw: unknown): number | null =>
+  typeof raw === 'number' && Number.isFinite(raw) && raw >= pitch.min && raw <= pitch.max
+    ? raw
+    : null
+
 let zones: Record<string, ZoneSettings> = {}
 
 /** One stored entry, less anything this build cannot use. A zone whose record
  *  is junk inherits, which is what it did before anyone configured it. */
 function clean(raw: unknown): ZoneSettings {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return {}
-  const blob = raw as { color?: unknown; backdrop?: unknown; ttl?: unknown }
+  const blob = raw as { color?: unknown; backdrop?: unknown; spacing?: unknown; ttl?: unknown }
   const out: ZoneSettings = {}
   if (typeof blob.color === 'string' && HEX.test(blob.color)) out.color = blob.color
   if (isBackdrop(blob.backdrop)) out.backdrop = blob.backdrop
+  const spacing = heldSpacing(blob.spacing)
+  if (spacing !== null) out.spacing = spacing
   if (typeof blob.ttl === 'string') {
     const held = heldLifetime(parseLifetime(blob.ttl))
     if (held !== null) out.lifetime = held
@@ -64,6 +77,7 @@ const onDisk = (all: Record<string, ZoneSettings>) => ({
       {
         ...(s.color ? { color: s.color } : {}),
         ...(s.backdrop ? { backdrop: s.backdrop } : {}),
+        ...(s.spacing === undefined ? {} : { spacing: s.spacing }),
         ...(s.lifetime === undefined ? {} : { ttl: formatLifetime(s.lifetime) }),
       },
     ]),
@@ -110,6 +124,7 @@ export async function set(
   patch: {
     color?: string | null
     backdrop?: ZoneSettings['backdrop'] | null
+    spacing?: number | null
     lifetime?: Lifetime | null
   },
 ): Promise<ZoneSettings> {
@@ -125,6 +140,12 @@ export async function set(
   // exactly like a swatch that cannot be picked.
   else if (patch.backdrop !== undefined)
     console.warn(`[zone] ${zone} asked for backdrop ${JSON.stringify(patch.backdrop)} — restart me`)
+
+  if (patch.spacing === null) delete next.spacing
+  else if (patch.spacing !== undefined) {
+    const held = heldSpacing(patch.spacing)
+    if (held !== null) next.spacing = held
+  }
 
   if (patch.lifetime === null) delete next.lifetime
   else if (patch.lifetime !== undefined) {

@@ -187,8 +187,15 @@ export function controlFor(path: string, value: number | string | boolean): Cont
     : { kind: 'slider', path, min, max, step }
 }
 
+/** Paths the panel draws by hand instead of from this list. `zones.backdrop`
+ *  is the swatch grid, and the density that belongs beside it rides along with
+ *  it — a pitch slider stranded further down the list is the same decision
+ *  taken twice, out of sight of the pattern it applies to. */
+const BESPOKE = new Set(['zones.hatchSpacing'])
+
 export function controlsOf(params: StackParams): Control[] {
   return leafPathsOf(params).flatMap((path) => {
+    if (BESPOKE.has(path)) return []
     const value = leafAt(params, path)
     return value === undefined ? [] : [controlFor(path, value)]
   })

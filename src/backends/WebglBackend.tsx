@@ -95,6 +95,8 @@ type Props = {
   zoneSettings: Record<string, ZoneSettings>
   /** Opens the zone's own settings sheet, which lives above this backend. */
   onConfigureZone: (zone: string) => void
+  /** Opens the wall's preferences, which live above this backend too. */
+  onPrefs: () => void
   /** An arrival whose level asks to be opened the moment it lands. */
   announce: WallItem | null
   /** Whether the daemon is still on the other end of the socket. */
@@ -157,6 +159,11 @@ const DRAG_SLOP_PX = 4
 /** `PointerEvent.button` for the wheel pressed as a button. */
 const MIDDLE_BUTTON = 1
 
+/** How long a click on a zone's own cell waits to see whether a second one is
+ *  coming. Only a bare cell waits: a card opens on the first click, and paying
+ *  this on every card would be felt on every artifact on the wall. */
+const DOUBLE_MS = 250
+
 /** The corners of a unit quad, for turning a plane into a screen rectangle. */
 const CORNERS = [
   [-1, -1],
@@ -190,6 +197,7 @@ function Wall({
   dispatch,
   onPlan,
   onMenu,
+  onPrefs,
   dimmed,
   listed,
   onDelete,
@@ -715,8 +723,11 @@ function Wall({
   const stepDrag = useRef(params.nav.dragCardSetsStep)
   stepDrag.current = params.nav.dragCardSetsStep
 
-  const act = useRef({ chainAt, navigate, hoverAt, rankAt })
-  act.current = { chainAt, navigate, hoverAt, rankAt }
+  const act = useRef({ chainAt, navigate, hoverAt, rankAt, onPrefs })
+  act.current = { chainAt, navigate, hoverAt, rankAt, onPrefs }
+  /** A click on a zone's cell, held back for DOUBLE_MS in case it turns out to
+   *  be the first half of a double. */
+  const pendingZone = useRef<number | null>(null)
   const backOff = useRef(onBackOff)
   backOff.current = onBackOff
   const backedOffRef = useRef(backedOff)
@@ -818,7 +829,20 @@ function Wall({
       el.classList.toggle('scene--pointing', over !== null)
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
       if (turned || moved || e.button !== 0) return
-      act.current.navigate(act.current.chainAt(e.clientX, e.clientY))
+      const chain = act.current.chainAt(e.clientX, e.clientY)
+      // One rung is a zone's own cell with no card under the pointer — the
+      // backdrop. That is the one target that can be double-clicked, so it is
+      // the one that waits.
+      if (chain.length !== 1) return act.current.navigate(chain)
+      if (pendingZone.current !== null) {
+        window.clearTimeout(pendingZone.current)
+        pendingZone.current = null
+        return act.current.onPrefs()
+      }
+      pendingZone.current = window.setTimeout(() => {
+        pendingZone.current = null
+        act.current.navigate(chain)
+      }, DOUBLE_MS)
     }
 
     // Chrome starts autoscroll from mousedown, not pointerdown, so the
@@ -849,6 +873,7 @@ function Wall({
       el.removeEventListener('pointermove', onMove)
       el.removeEventListener('pointerup', onUp)
       el.removeEventListener('pointercancel', onUp)
+      if (pendingZone.current !== null) window.clearTimeout(pendingZone.current)
     }
   }, [gl, onParams, onMenu])
 

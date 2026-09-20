@@ -97,6 +97,7 @@ export function App() {
         pinnedZones={pinnedZones}
         zoneSettings={zoneSettings}
         onConfigureZone={setConfiguring}
+        onPrefs={() => setPrefs(true)}
         announce={announce}
         connected={connected}
       />
@@ -109,7 +110,11 @@ export function App() {
           hued={zoneColors[configuring]}
           count={items.filter((i) => i.zone === configuring).length}
           pinned={configuring in pinnedZones}
-          wall={{ backdrop: params.zones.backdrop, ttlMs }}
+          wall={{
+            backdrop: params.zones.backdrop,
+            hatchSpacing: params.zones.hatchSpacing,
+            ttlMs,
+          }}
           look={params.prefs}
           allowParallax={params.general.parallax}
           onChange={(patch) => setZoneSettings(configuring, patch)}

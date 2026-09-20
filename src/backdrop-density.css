@@ -1,0 +1,37 @@
+/* The density row, beside the swatches it belongs to. */
+.density__slider {
+  flex: 1 1 auto;
+}
+
+/* Tabular so the three digits hold one width, and fixed so the control beside
+   the readout does not step sideways as the thumb moves. */
+.density__readout {
+  display: inline-block;
+  min-width: 3ch;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: pre;
+}
+
+.density__wall {
+  margin-inline-start: 8px;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+  border-radius: 3px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.density__wall[aria-pressed='true'] {
+  border-style: dashed;
+  opacity: 0.6;
+  cursor: default;
+}
+
+.density__wall:not([aria-pressed='true']):hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  color: var(--accent);
+}

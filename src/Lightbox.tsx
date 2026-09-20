@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
-import { metaOf } from '@/lightbox-meta.ts'
+import { metaOf, statusOf } from '@/lightbox-meta.ts'
 import { createQuietGate } from '@/nav/quiet.ts'
 import { sandboxFor } from '@/lightbox-sandbox.ts'
 import { KEY_MESSAGE } from '@shared/page-keys.ts'
@@ -359,6 +359,11 @@ function ImageLightbox({
       {/* Above the image, where the caption cannot go: what this is and how
           long it has left is context for the picture, not part of it. */}
       <div className="lightbox__meta">
+        {statusOf(item).map((part) => (
+          <span className="lightbox__metaPart lightbox__status" key={part}>
+            {part}
+          </span>
+        ))}
         {metaOf(item, now).map((part) => (
           <span className="lightbox__metaPart" key={part}>
             {part}
@@ -458,6 +463,11 @@ function PageLightbox({
       </button>
 
       <div className="lightbox__meta">
+        {statusOf(item).map((part) => (
+          <span className="lightbox__metaPart lightbox__status" key={part}>
+            {part}
+          </span>
+        ))}
         {metaOf(item, now).map((part) => (
           <span className="lightbox__metaPart" key={part}>
             {part}
@@ -526,6 +536,11 @@ function VideoLightbox({
       />
 
       <div className="lightbox__meta">
+        {statusOf(item).map((part) => (
+          <span className="lightbox__metaPart lightbox__status" key={part}>
+            {part}
+          </span>
+        ))}
         {metaOf(item, now).map((part) => (
           <span className="lightbox__metaPart" key={part}>
             {part}

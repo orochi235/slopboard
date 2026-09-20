@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import {
   CheckboxRow,
   ColorRow,
@@ -9,6 +9,7 @@ import {
   Slider,
 } from '@weasel-js/ui'
 import type { Backdrop } from '@shared/backdrops.ts'
+import { BackdropDensity } from '@/BackdropDensity.tsx'
 import { BackdropSwatches } from '@/BackdropSwatches.tsx'
 import { controlsOf, formatStepped } from '@/params.controls.ts'
 import { groupControls } from '@/params.groups.ts'
@@ -191,13 +192,21 @@ export function ParamsBody({
                   // pattern is the whole question.
                   if (control.path === 'zones.backdrop') {
                     return (
-                      <BackdropSwatches
-                        key={control.path}
-                        label={label}
-                        value={value as Backdrop}
-                        tint="currentColor"
-                        onChange={set}
-                      />
+                      <Fragment key={control.path}>
+                        <BackdropSwatches
+                          label={label}
+                          value={value as Backdrop}
+                          tint="currentColor"
+                          onChange={set}
+                        />
+                        <BackdropDensity
+                          value={params.zones.hatchSpacing}
+                          wall={params.zones.hatchSpacing}
+                          onChange={(next) =>
+                            next !== null && onChange(setAt(params, 'zones.hatchSpacing', next))
+                          }
+                        />
+                      </Fragment>
                     )
                   }
                   return (

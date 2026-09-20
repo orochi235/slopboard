@@ -68,12 +68,18 @@ export function BackdropSwatches({
     )
   }
 
+  // Shown rather than named is the point of the grid, but one of seventeen
+  // squares is picked and a picture cannot say what it is called. The name of
+  // the picked one is written out; the rest answer to a hover.
+  const picked = value === INHERIT ? `the wall's (${inherits})` : value
+
   return (
     <div className="swatches" role="group" aria-label={label}>
       <span className="swatches__label">{label}</span>
       <div className="swatches__grid">
         {inherits !== undefined && tile(INHERIT, `the wall's (${inherits})`, inherits)}
         {BACKDROPS.map((backdrop) => tile(backdrop, backdrop, backdrop))}
+        <span className="swatches__picked">{picked}</span>
       </div>
     </div>
   )
