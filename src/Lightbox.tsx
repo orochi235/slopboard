@@ -512,9 +512,38 @@ function VideoLightbox({
   // there is no case where the video sits on its first frame waiting for a
   // second click.
   const [muted, setMuted] = useState(true)
+  // Off unless asked for. A render is usually a few seconds and a wall that
+  // repeats one forever is a wall that will not let it finish — the loop is
+  // worth having for a cycle somebody wants to watch twice, not by default.
+  const [looping, setLooping] = useState(false)
   /** Whether the press this click ends began on the picture rather than on the
    *  control strip. See the handlers below. */
   const onPicture = useRef(false)
+
+  // Space, ahead of the wall's own handler, which reads it as "go in" and
+  // takes it before a focused video ever sees it. Bound to the window rather
+  // than the element for the same reason the element is left unfocused: the
+  // arrows belong to the pile, so the video never holds focus to receive a
+  // key through it.
+  useEffect(() => {
+    // `KeyboardEvent` is React's in this file, so the DOM one is named.
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== ' ' || e.metaKey || e.ctrlKey || e.altKey) return
+      const target = e.target as HTMLElement | null
+      // Typing a space is typing a space — a question's answer box is open on
+      // the same card.
+      if (target?.isContentEditable) return
+      if (target && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')) return
+      const el = video.current
+      if (!el) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (el.paused) void el.play()
+      else el.pause()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [])
 
   return (
     <div
@@ -535,7 +564,7 @@ function VideoLightbox({
         src={`/orig/${item.id}`}
         muted={muted}
         autoPlay
-        loop
+        loop={looping}
         playsInline
         controls
         // A click on the picture stops and starts it, the way a click on a
@@ -581,6 +610,14 @@ function VideoLightbox({
           onClick={() => setMuted((m) => !m)}
         >
           {muted ? 'unmute' : 'mute'}
+        </button>
+        <button
+          type="button"
+          className="lightbox__metaPart lightbox__metaButton"
+          aria-pressed={looping}
+          onClick={() => setLooping((on) => !on)}
+        >
+          {looping ? 'once' : 'loop'}
         </button>
         {/* The browser cannot call `open`, so the daemon does. Worth having for
             anything long enough to want a real player's scrubbing and PiP. */}
