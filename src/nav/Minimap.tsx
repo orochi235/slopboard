@@ -114,8 +114,11 @@ export function Minimap({
                 patternUnits="userSpaceOnUse"
                 width={pitch}
                 height={pitch}
-                // The swatch is drawn on the wall's own angle already, so only
-                // what a zone turned on top of it is applied here.
+                // The swatch is drawn square on, so the whole angle is applied
+                // here — the zone's own where it set one, the wall's where it
+                // did not. An angle baked into the render would be added to
+                // this one and the plan would be ruled off the wall it
+                // describes.
                 patternTransform={`rotate(${hatchRotation(ruleFor(zone).angle)})`}
               >
                 {/* The zone's ground, then its pattern over it: one fill has to

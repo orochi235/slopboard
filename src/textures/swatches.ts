@@ -23,6 +23,11 @@ export function swatches(): Partial<Record<Backdrop, string>> {
  * White on transparent, because the caller wears them as a CSS mask over its
  * own color: one render then serves every zone tint rather than one per zone.
  *
+ * Drawn square on and at a pitch that divides the square, because the minimap
+ * repeats these as a tile and turns them itself. Anything baked in here — an
+ * angle, a pitch that does not meet its own edge — shows up there as a pattern
+ * rotated twice, or as a stitch down every tile boundary.
+ *
  * Once, at mount. One context for the set, torn down before returning — a
  * live context per swatch would spend nine of the handful a browser gives a
  * page, and nothing here animates.
@@ -49,9 +54,17 @@ export function renderSwatches(size = 96): Partial<Record<Backdrop, string>> {
     const material = createBackdropMaterial()
     material.uniforms.uColor!.value = new THREE.Color('#ffffff')
     material.uniforms.uOpacity!.value = 1
-    // Coarser than the wall's: at this size the wall's own pitch lays down
-    // seventy lines and every pattern reads as the same flat tint.
-    material.uniforms.uSpacing!.value = 0.24
+    // Square on, never the material's default 45 degrees. A consumer applies
+    // the angle itself — the minimap turns its whole pattern tile by the
+    // zone's — so an angle baked in here is added to that one, and the plan
+    // was ruled forty-five degrees off the wall it describes.
+    material.uniforms.uAngle!.value = 0
+    // A sixth, so the pattern meets its own edge: the swatch is repeated as a
+    // tile, and a pitch that does not divide the square leaves a visible step
+    // at every repeat. Six takes the patterns built on one, two and three
+    // spacings — plain rules, brick and basketweave, parquet — all of which
+    // land on a whole number of periods across.
+    material.uniforms.uSpacing!.value = 1 / 6
     material.uniforms.uWidth!.value = 0.022
 
     const geometry = new THREE.PlaneGeometry(1, 1)
