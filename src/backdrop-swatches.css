@@ -34,12 +34,21 @@
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
   border-radius: 3px;
-  /* Set inline: the mask is the rendered pattern and the background is the
-     zone's own color, and both change per tile. */
   background: none;
+  cursor: pointer;
+}
+
+/* The pattern itself. Its own element so the mask never reaches the button:
+   in WebKit a mask clips hit testing, which left a hatch or dots tile
+   pickable only on the drawn lines. Set inline: the mask is the rendered
+   pattern and the background is the zone's own color, both per tile. */
+.swatch__face {
+  display: block;
+  width: 100%;
+  height: 100%;
   mask-size: 100% 100%;
   -webkit-mask-size: 100% 100%;
-  cursor: pointer;
+  pointer-events: none;
 }
 
 /* `none` has nothing to draw, so the tile is the absence — an empty cell, not

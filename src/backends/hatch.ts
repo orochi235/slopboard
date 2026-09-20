@@ -45,6 +45,12 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
         return 1.0 - smoothstep(width * 0.5 - aa, width * 0.5 + aa, gap);
       }
 
+      // Cover of the outline at \`radius\` of whatever \`d\` measures distance to.
+      float ring(float d, float radius, float width) {
+        float aa = max(fwidth(d), 1e-6);
+        return 1.0 - smoothstep(width * 0.5 - aa, width * 0.5 + aa, abs(d - radius));
+      }
+
       void main() {
         float c = cos(uAngle);
         float s = sin(uAngle);
@@ -97,8 +103,8 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
           // into slanted rectangles instead of making them taller. So the turn
           // is undone first, the diamond is formed here with its own aspect,
           // and the wall's angle still carries the result.
-          float gx = (u + v) * 0.70710678;
-          float gy = (u - v) * 0.70710678;
+          float gx = (u - v) * 0.70710678;
+          float gy = (u + v) * 0.70710678;
           float halfW = uSpacing;
           float halfH = uSpacing * 1.7;
           // Cell units: the lattice is the integer grid of a and b, whose
@@ -111,6 +117,58 @@ export function createBackdropMaterial(): THREE.ShaderMaterial {
           float stitchW = (uWidth / uSpacing) * 0.9;
           float stitch = max(lines(a, 1.0, stitchW), lines(b, 1.0, stitchW));
           cover = max(fill, stitch);
+        } else if (uPattern == 8) {
+          // Chevron: one ruling creased into a zigzag. The crease is a triangle
+          // wave two spacings wide and one tall, so the arms meet at a right
+          // angle however the wall is turned.
+          float zig = abs(fract(u / (2.0 * uSpacing)) - 0.5) * 4.0 * uSpacing;
+          cover = lines(v + zig, 2.0 * uSpacing, uWidth);
+        } else if (uPattern == 9) {
+          // The same ruling bent on a sine rather than a crease.
+          cover = lines(v + sin(u / uSpacing * 3.14159265) * uSpacing * 0.5, uSpacing, uWidth);
+        } else if (uPattern == 10) {
+          // Scales: a circle per cell, alternate rows shifted half a cell, so
+          // each one sits in the notch between the two above it.
+          float shift = mod(floor(v / uSpacing), 2.0) * 0.5;
+          vec2 cell = vec2(fract(u / uSpacing + shift) - 0.5, fract(v / uSpacing) - 0.5);
+          cover = ring(length(cell) * uSpacing, uSpacing * 0.5, uWidth);
+        } else if (uPattern == 11) {
+          // Hexagons. Two square lattices half a cell apart interleave into the
+          // honeycomb: a point belongs to whichever center it is nearer, and
+          // the hexagon's own edge is where its distance reads half a spacing.
+          vec2 p = vec2(u, v) / uSpacing;
+          vec2 h = vec2(1.0, 1.73205081);
+          vec2 a = mod(p, h) - h * 0.5;
+          vec2 b = mod(p + h * 0.5, h) - h * 0.5;
+          vec2 g = abs(dot(a, a) < dot(b, b) ? a : b);
+          cover = ring(max(dot(g, vec2(0.5, 0.86602540)), g.x) * uSpacing, uSpacing * 0.5, uWidth);
+        } else if (uPattern == 12) {
+          // Three rulings sixty degrees apart, which is the isometric grid.
+          float t2 = u * 0.86602540 + v * 0.5;
+          float t3 = u * 0.86602540 - v * 0.5;
+          cover = max(
+            lines(v, uSpacing, uWidth),
+            max(lines(t2, uSpacing, uWidth), lines(t3, uSpacing, uWidth))
+          );
+        } else if (uPattern == 13) {
+          // Basketweave: tiles two spacings square, each split into a pair of
+          // planks that turn a quarter on every other tile.
+          //
+          // The half in the tile index: lines() draws at spacing * (n + 0.5),
+          // so the tile borders fall at odd multiples of the spacing while a
+          // bare floor(u / 2 spacing) steps at the even ones. Index the tile
+          // without it and the planks turn a tile's width away from the border
+          // they are supposed to be inside, which scatters the whole weave.
+          float turn = mod(
+            floor(u / (2.0 * uSpacing) + 0.5) + floor(v / (2.0 * uSpacing) + 0.5),
+            2.0
+          );
+          // Offset by a spacing so the split lands on the tile's middle.
+          float split = turn < 0.5
+            ? lines(v + uSpacing, 2.0 * uSpacing, uWidth)
+            : lines(u + uSpacing, 2.0 * uSpacing, uWidth);
+          float edge = max(lines(u, 2.0 * uSpacing, uWidth), lines(v, 2.0 * uSpacing, uWidth));
+          cover = max(split, edge);
         }
         if (cover <= 0.001) discard;
         gl_FragColor = vec4(uColor, uOpacity * cover);

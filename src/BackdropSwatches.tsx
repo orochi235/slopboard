@@ -45,18 +45,26 @@ export function BackdropSwatches({
         data-on={value === key ? '' : undefined}
         data-empty={shows === 'none' ? '' : undefined}
         data-inherit={key === INHERIT ? '' : undefined}
-        // The mask and the tint are per-tile values that change with the zone,
-        // so they cannot be a class. Everything else about a swatch is.
-        style={
-          mask
-            ? { maskImage: `url(${mask})`, WebkitMaskImage: `url(${mask})`, background: tint }
-            : undefined
-        }
         aria-pressed={value === key}
         aria-label={name}
         title={name}
         onClick={() => onChange(key)}
-      />
+      >
+        {/* The pattern is worn by a face inside the button, not by the button.
+            A mask clips hit testing in WebKit, so masking the control itself
+            leaves only the drawn lines clickable — a hatch tile then has to be
+            hit on one of five hairlines, and dots is barely pickable at all.
+            The mask and the tint are per-tile and change with the zone, so
+            they cannot be a class; everything else about a swatch is. */}
+        <span
+          className="swatch__face"
+          style={
+            mask
+              ? { maskImage: `url(${mask})`, WebkitMaskImage: `url(${mask})`, background: tint }
+              : undefined
+          }
+        />
+      </button>
     )
   }
 

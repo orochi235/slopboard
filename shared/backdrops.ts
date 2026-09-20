@@ -14,10 +14,16 @@ export const BACKDROPS = [
   'hatch',
   'crosshatch',
   'grid',
+  'chevron',
+  'waves',
   'bricks',
-  'argyle',
+  'basketweave',
+  'triangles',
+  'hexagons',
+  'scales',
   'dots',
   'checks',
+  'argyle',
 ] as const
 
 export type Backdrop = (typeof BACKDROPS)[number]
