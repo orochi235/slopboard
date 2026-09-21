@@ -4,6 +4,7 @@ import { delaminate } from 'delamin8r'
 import { Panel, PanelRow, PanelRows } from '@/panel/index.ts'
 import { ago } from '@/age.ts'
 import { BUCKETS, bucketRange, filterFrom, histogram, resolve, spanOf, type Filter } from '@/nav/time-filter.ts'
+import { kindTally, type KindKey } from '@/nav/kind-filter.ts'
 import { SORTS, type SortKey } from '@/nav/sort.ts'
 import type { WallItem } from '@shared/protocol.ts'
 import type { StackParams } from '@/params.ts'
@@ -23,6 +24,8 @@ export function TopBar({
   onRange,
   sort,
   onSort,
+  kinds,
+  onKind,
   where,
   whereColor,
   arrangement,
@@ -44,6 +47,10 @@ export function TopBar({
   onRange: (next: Filter | null) => void
   sort: SortKey
   onSort: (next: SortKey) => void
+  /** The kinds the wall is narrowed to. Empty is every kind. */
+  kinds: ReadonlySet<KindKey>
+  /** One kind turned on or off; the band never sets the whole set. */
+  onKind: (key: KindKey) => void
   /** The zone the view is inside, or null for the wall itself. */
   where: string | null
   /** That zone's project color, where it has one. The wall's own accent
@@ -72,6 +79,7 @@ export function TopBar({
   onList: () => void
 }) {
   const bornAts = useMemo(() => items.map((i) => i.bornAt), [items])
+  const tally = useMemo(() => kindTally(items), [items])
   const span = useMemo(() => spanOf(bornAts, now), [bornAts, now])
   const bins = useMemo(() => histogram(bornAts, span, BINS), [bornAts, span])
   const tallest = Math.max(1, ...bins)
@@ -209,6 +217,28 @@ export function TopBar({
           ))}
         </PanelRows>
       </Panel>
+
+      {/* Beside the sort, because both are about which artifacts the eye is
+          meant to land on. Only the kinds the wall actually holds: a button
+          that filters nothing still has to be read before it can be ignored. */}
+      {tally.length > 0 && (
+        <Panel name="type" tight>
+          <div className="topbar__kinds">
+            {tally.map((kind) => (
+              <button
+                key={kind.key}
+                type="button"
+                className="topbar__bucket topbar__kind"
+                aria-pressed={kinds.has(kind.key)}
+                onClick={() => onKind(kind.key)}
+              >
+                <span>{kind.label}</span>
+                <span className="topbar__count">{kind.count}</span>
+              </button>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       {/* Where you are, held against the right edge and away from what you are
           filtering. */}

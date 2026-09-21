@@ -134,3 +134,43 @@ describe('streamFrom', () => {
     expect(streamFrom('o', 'right', stream, zones)).toBeNull()
   })
 })
+
+describe('skipping what the band filtered out', () => {
+  const skip = (...out: string[]) => {
+    const set = new Set(out)
+    return (card: string) => set.has(card)
+  }
+
+  it('pages past an excluded card to the next one in the pile', () => {
+    expect(pageFrom({ zone: 'a', card: 'a1' }, 'left', piles, null, skip('a2'))).toEqual(['a', 'a3'])
+  })
+
+  it('clamps when every card deeper in the pile is excluded and the list is off', () => {
+    expect(pageFrom({ zone: 'a', card: 'a1' }, 'left', piles, null, skip('a2', 'a3'))).toBeNull()
+  })
+
+  it('passes over a pile of nothing but excluded cards when the list is on', () => {
+    expect(pageFrom({ zone: 'a', card: 'a3' }, 'right', piles, order, skip('a2', 'a1'))).toEqual([
+      'b',
+      'b2',
+    ])
+  })
+
+  it('enters the next pile at the end the direction reverses onto, then walks inward', () => {
+    expect(pageFrom({ zone: 'b', card: 'b2' }, 'left', piles, order, skip('a1'))).toEqual(['a', 'a2'])
+  })
+
+  it('carries a delete past an excluded card', () => {
+    expect(afterDelete({ zone: 'a', card: 'a1' }, piles, null, skip('a2'))).toEqual(['a', 'a3'])
+  })
+
+  it('steps the flat wall past an excluded card', () => {
+    const zones = new Map([
+      ['n', 'a'],
+      ['m', 'b'],
+      ['o', 'a'],
+    ])
+    expect(streamFrom('n', 'right', ['n', 'm', 'o'], zones, skip('m'))).toEqual(['a', 'o'])
+    expect(streamFrom('n', 'right', ['n', 'm', 'o'], zones, skip('m', 'o'))).toBeNull()
+  })
+})

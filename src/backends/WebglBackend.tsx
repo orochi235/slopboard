@@ -32,6 +32,7 @@ import { Sky } from '@/backends/Sky.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { ago } from '@/age.ts'
 import { toStackItems } from '@/model.ts'
+import { keptByKind, toggleKind, type KindKey } from '@/nav/kind-filter.ts'
 import { DEFAULT_SORT, inZoneOrder, zoneOrder, type SortKey } from '@/nav/sort.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
 import { Axes } from '@/nav/Axes.tsx'
@@ -962,14 +963,19 @@ function Wall({
       const zone = zoneOf(viewRef.current)
       const card = cardOf(viewRef.current)
       const order = () => (listedRef.current ? readingOrder(bases.current) : null)
+      // What the band has filtered out is still on the wall, dimmed, and still
+      // opens on a click — but paging runs past it, because arrowing through
+      // the very cards you just excluded is not what narrowing the band asked
+      // for.
+      const skip = (id: string) => latest.current.dimmed.has(id)
       if (zone && card && deletes(e)) {
         e.preventDefault()
         // Moved first, or the expiry the daemon broadcasts prunes the view off
         // the card and the lightbox closes.
         const next = flatRef.current
-          ? (streamFrom(card, 'right', stream.current, zoneById.current) ??
-            streamFrom(card, 'left', stream.current, zoneById.current))
-          : afterDelete({ zone, card }, cardsByZone.current, order())
+          ? (streamFrom(card, 'right', stream.current, zoneById.current, skip) ??
+            streamFrom(card, 'left', stream.current, zoneById.current, skip))
+          : afterDelete({ zone, card }, cardsByZone.current, order(), skip)
         dispatch(next ? { type: 'to', path: next } : { type: 'out' })
         onDelete(card)
         return
@@ -995,12 +1001,12 @@ function Wall({
         const sideways = direction === 'left' || direction === 'right'
         const next = flatRef.current
           ? sideways
-            ? streamFrom(card, direction, stream.current, zoneById.current)
+            ? streamFrom(card, direction, stream.current, zoneById.current, skip)
             : null
           : e.shiftKey
             ? jumpFrom(zone, direction, cells.current, cardsByZone.current)
             : sideways
-              ? pageFrom({ zone, card }, direction, cardsByZone.current, order())
+              ? pageFrom({ zone, card }, direction, cardsByZone.current, order(), skip)
               : null
         if (next) dispatch({ type: 'to', path: next })
         return
@@ -2015,6 +2021,11 @@ export function WebglBackend(props: Props) {
   // and a wall that came back from a reload already reordered would read as
   // the arrangement having changed under it.
   const [sort, setSort] = useState<SortKey>(DEFAULT_SORT)
+  // Empty is every kind. Not persisted, for the same reason the sort is not:
+  // a wall that came back from a reload already narrowed reads as a wall
+  // missing half of what was pushed to it.
+  const [kinds, setKinds] = useState<ReadonlySet<KindKey>>(() => new Set())
+  const onKind = useCallback((key: KindKey) => setKinds((was) => toggleKind(was, key)), [])
   // The daemon's clock, ticking, so the band's axis ends at the same `now`
   // every age on the wall is measured against.
   const [now, setNow] = useState(() => Date.now() + props.clockOffset)
@@ -2045,11 +2056,11 @@ export function WebglBackend(props: Props) {
   const lastDimmed = useRef<ReadonlySet<string>>(new Set())
   const dimmed = useMemo(() => {
     const out = new Set<string>()
-    if (range) for (const i of items) if (!keptBy(i.bornAt, range)) out.add(i.id)
+    for (const i of items) if (!keptBy(i.bornAt, range) || !keptByKind(i, kinds)) out.add(i.id)
     if (sameIds(out, lastDimmed.current)) return lastDimmed.current
     lastDimmed.current = out
     return out
-  }, [items, range])
+  }, [items, range, kinds])
 
   const dropFake = useCallback((id: string) => {
     setFakes((was) => {
@@ -2374,6 +2385,8 @@ export function WebglBackend(props: Props) {
         onRange={setFilter}
         sort={sort}
         onSort={setSort}
+        kinds={kinds}
+        onKind={onKind}
       />
       <ResetView sidebarOpen={sidebarOpen} onReset={resetView} />
       <Sidebar
