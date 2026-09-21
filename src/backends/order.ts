@@ -8,3 +8,8 @@
  * overlay need it, and importing one from the other is a cycle.
  */
 export const CHROME_ORDER = 10
+
+/** Chips sit under the badges. Both composite over the wall, so with one order
+ *  between them which covers which is whatever three sorted last — and the
+ *  plate a flag stood off on the ladder is the thing being asked about. */
+export const CHIP_ORDER = CHROME_ORDER - 1

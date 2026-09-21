@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { CHROME_ORDER } from '@/backends/order.ts'
+import { CHIP_ORDER } from '@/backends/order.ts'
 import { CHIP_WEIGHT } from '@/typeface.ts'
 
 /** Drawn at a fixed pixel height and scaled into world units here, so a chip
@@ -159,7 +159,7 @@ export function createChips() {
           side: THREE.DoubleSide,
         }),
       )
-      plate.renderOrder = CHROME_ORDER
+      plate.renderOrder = CHIP_ORDER
       // A readout, not a target: the card underneath keeps the whole pick.
       plate.raycast = () => null
       held = { plate, key: '', aspect: 1 }
