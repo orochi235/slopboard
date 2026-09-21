@@ -94,10 +94,10 @@ extension ZonesResult {
 }
 
 extension Results {
-    var state_uninstalled: Bool { (!(daemon.installed)) }
-    var state_stopped: Bool { !state_uninstalled && (!(daemon.loaded)) }
-    var state_wedged: Bool { !state_uninstalled && !state_stopped && (!(wall.ok)) }
-    var state_up: Bool { !state_uninstalled && !state_stopped && !state_wedged }
+    var state_uninstalled: Bool { (!(self.daemon.installed)) }
+    var state_stopped: Bool { !self.state_uninstalled && (!(self.daemon.loaded)) }
+    var state_wedged: Bool { !self.state_uninstalled && !self.state_stopped && (!(self.wall.ok)) }
+    var state_up: Bool { !self.state_uninstalled && !self.state_stopped && !self.state_wedged }
 }
 
 func renderFace(_ results: Results) -> Face {
@@ -115,52 +115,52 @@ func renderFace(_ results: Results) -> Face {
 func renderMenu(_ results: Results) -> [MenuNode] {
     var menu: [MenuNode] = []
     if results.state_up {
-        menu.append(.item("\(String(results.wall.data.items)) on the wall", nil))
+        menu.append(.item("\(String(results.wall.data.items)) on the wall", nil, icon: MenuIcon.symbol("photo.stack")))
     }
     if results.state_wedged {
-        menu.append(.item("daemon loaded, not answering", nil))
+        menu.append(.item("daemon loaded, not answering", nil, icon: MenuIcon.symbol("exclamationmark.triangle")))
     }
     if results.state_stopped {
-        menu.append(.item("daemon not loaded", nil))
+        menu.append(.item("daemon not loaded", nil, icon: MenuIcon.symbol("pause.circle")))
     }
     if results.state_uninstalled {
-        menu.append(.item("not installed — run wall install", nil))
+        menu.append(.item("not installed — run wall install", nil, icon: MenuIcon.symbol("shippingbox")))
     }
     if (!(results.client.loaded) && !(results.state_uninstalled)) {
-        menu.append(.item("client not loaded", nil))
+        menu.append(.item("client not loaded", nil, icon: MenuIcon.symbol("display.trianglebadge.exclamationmark")))
     }
     menu.append(.separator)
-    menu.append(.item("Man the wall", .open("http://localhost:5183")))
+    menu.append(.item("Man the wall", .open("http://localhost:5183"), icon: MenuIcon.symbol("macwindow")))
     menu.append(.separator)
     for it1 in results.zones.data.zones {
         if results.zones.ok {
-            menu.append(.item("\(it1.zone) — \(String(it1.items))", .open("\(it1.path)")))
+            menu.append(.item("\(it1.zone) — \(String(it1.items))", .open("\(it1.path)"), icon: MenuIcon.symbol("folder")))
         }
     }
     menu.append(.separator)
     if results.wall.ok {
-        menu.append(.item("Undo last expiry", .post(url: "http://localhost:8787/api/undo", body: "")))
+        menu.append(.item("Undo last expiry", .post(url: "http://localhost:8787/api/undo", body: ""), icon: MenuIcon.symbol("arrow.uturn.backward")))
     }
     if results.wall.ok {
-        menu.append(.item("Open the inbox", .open("\(results.wall.data.inbox)")))
+        menu.append(.item("Open the inbox", .open("\(results.wall.data.inbox)"), icon: MenuIcon.symbol("tray")))
     }
     if results.wall.ok {
-        menu.append(.item("Open the trash", .open("\(results.wall.data.trash)")))
+        menu.append(.item("Open the trash", .open("\(results.wall.data.trash)"), icon: MenuIcon.symbol("trash")))
     }
     menu.append(.separator)
-    if !(results.state_uninstalled) {
-        menu.append(.item("Restart the daemon", .agent(label: "tech.michaelbaker.slopboard.daemon", plist: "~/Library/LaunchAgents/tech.michaelbaker.slopboard.daemon.plist", verb: .restart)))
+    if !(results.state_uninstalled) && results.daemon.installed {
+        menu.append(.item("Restart the daemon", .agent(label: "tech.michaelbaker.slopboard.daemon", plist: "~/Library/LaunchAgents/tech.michaelbaker.slopboard.daemon.plist", verb: .restart), icon: MenuIcon.symbol("arrow.clockwise")))
     }
     if (results.state_up || results.state_wedged) {
-        menu.append(.item("Cycle the wall", .run(["wall", "cycle"])))
+        menu.append(.item("Cycle the wall", .run(["wall", "cycle"]), icon: MenuIcon.symbol("arrow.triangle.2.circlepath")))
     }
     if results.state_stopped {
-        menu.append(.item("Start the wall", .run(["wall", "up"])))
+        menu.append(.item("Start the wall", .run(["wall", "up"]), icon: MenuIcon.symbol("play")))
     }
     if (results.state_up || results.state_wedged) {
-        menu.append(.item("Stop the wall", .run(["wall", "down"])))
+        menu.append(.item("Stop the wall", .run(["wall", "down"]), icon: MenuIcon.symbol("stop")))
     }
     menu.append(.separator)
-    menu.append(.item("Quit", .quit))
+    menu.append(.item("Quit", .quit, icon: MenuIcon.symbol("power")))
     return tidy(menu)
 }
