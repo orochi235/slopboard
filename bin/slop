@@ -36,7 +36,7 @@ set -eu
 # What the wall holds, matching server/kind.ts — held to it by kind.test.ts.
 # Anything else is never adopted, so accepting it here would produce exactly the
 # silently invisible artifact the ingest contract exists to prevent.
-held_ext="png jpg jpeg webp gif avif tiff html htm mp4 m4v mov webm"
+held_ext="png jpg jpeg webp gif avif tiff html htm mp4 m4v mov webm glb stl"
 # Of those, the ones the daemon needs ffmpeg to turn into a poster frame. A
 # video sent to a machine without it would be adopted by nothing and expired by
 # nothing either, which is the silently invisible artifact this check exists to
@@ -165,6 +165,12 @@ fi
 for f in "$@"; do
   [ -f "$f" ] || { echo "slop: no such file: $f" >&2; exit 1; }
   ext=$(ext_of "$f")
+  # Named ahead of the general refusal: a .gltf is the one unheld extension
+  # somebody sends on purpose, and "the wall does not hold it" would not say why.
+  if [ "$ext" = "gltf" ]; then
+    echo "slop: a .gltf points at sibling files this send does not carry ($f). Export a .glb." >&2
+    exit 1
+  fi
   case " $held_ext " in
     *" $ext "*) ;;
     *) echo "slop: the wall does not hold .$ext ($f). It holds: $held_ext" >&2; exit 1 ;;

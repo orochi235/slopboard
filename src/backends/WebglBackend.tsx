@@ -153,10 +153,11 @@ const DEG_PER_PX = 0.25
 /** Drawn as text, so it wears whatever color emoji font the system has. */
 const PIN_GLYPH = '📌'
 
-/** What a card wears when its picture is one moment of several — an animation
- *  or a video. The wall never plays either; the badge is the invitation to
- *  open the lightbox, which does. */
+/** What a card wears when there is more to the artifact than the wall draws —
+ *  an animation, a video, a mesh. The badge is the invitation to open the
+ *  lightbox, which plays or turns it. */
 const PLAYS_GLYPH = '▶'
+const MESH_GLYPH = '⬡'
 
 const BADGE_LIFT = 0.002
 
@@ -1024,15 +1025,19 @@ function Wall({
     // it fades, and a chip that froze with it would report the wrong day.
     const bornAt = new Map(current.items.map((i) => [i.id, i.bornAt]))
     const pinned = new Set(current.items.filter((i) => i.keptAt).map((i) => i.id))
-    // What the bottom-left badge reads, for a card that is one moment of
-    // several. A video spends the runtime it reported; an animation has none
-    // to spend and wears the bare glyph.
+    // What the bottom-left badge reads. A video spends the runtime it
+    // reported; an animation has none to spend and wears the bare glyph; a
+    // mesh is not played at all and says so with its own.
     const playsText = new Map(
       current.items
-        .filter((i) => i.frames || i.kind === 'video')
+        .filter((i) => i.frames || i.kind === 'video' || i.kind === 'mesh')
         .map((i) => [
           i.id,
-          i.duration ? `${PLAYS_GLYPH} ${formatClock(i.duration)}` : PLAYS_GLYPH,
+          i.kind === 'mesh'
+            ? MESH_GLYPH
+            : i.duration
+              ? `${PLAYS_GLYPH} ${formatClock(i.duration)}`
+              : PLAYS_GLYPH,
         ]),
     )
     // A chip annotates its subject, so it shrinks when the camera closes on
@@ -1730,8 +1735,9 @@ function Wall({
         }
       }
 
-      // The bottom-left corner, clear of both the age chip and the pin: an
-      // animated card can be the front of its pile and rescued at once.
+      // The bottom-left corner, clear of both the age chip and the pin: a card
+      // with more in it than the wall draws can be the front of its pile and
+      // rescued at once.
       const play = plays.byId.get(id)
       const playText = playsText.get(id)
       const wearsPlay = playText !== undefined

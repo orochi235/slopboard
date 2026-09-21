@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { metaOf, statusOf } from '@/lightbox-meta.ts'
+import { formatBytes, metaOf, statusOf } from '@/lightbox-meta.ts'
 import type { WallItem } from '@shared/protocol.ts'
 
 const item = (over: Partial<WallItem> = {}): WallItem => ({
@@ -59,6 +59,14 @@ describe('metaOf', () => {
     expect(parts.some((p) => p.includes(':'))).toBe(false)
   })
 
+  it('gives a mesh its file size, and drops the poster size it would lie with', () => {
+    const mesh = { kind: 'mesh' as const, path: '/slop/inbox/z/head.glb', bytes: 4_404_019 }
+    const parts = metaOf(item({ ...mesh, w: 1024, h: 1024 }), 0)
+    expect(parts).toContain('glb')
+    expect(parts).toContain('4.2 MB')
+    expect(parts).not.toContain('1024×1024')
+  })
+
   it('says nothing about a format for a file expiry has already renamed', () => {
     expect(metaOf(item({ path: '/slop/trash/abc123-slopboard' }), 0)).toEqual([
       'slopboard',
@@ -88,5 +96,18 @@ describe('statusOf', () => {
     expect(
       statusOf(item({ question: 'ship it?', reply: { status: 'answered', text: 'yes', at: 1 } })),
     ).toEqual(['answered'])
+  })
+})
+
+describe('formatBytes', () => {
+  it('says a size the way a reader says it', () => {
+    expect(formatBytes(512)).toBe('512 B')
+    expect(formatBytes(4_404_019)).toBe('4.2 MB')
+    expect(formatBytes(1_073_741_824)).toBe('1.0 GB')
+  })
+
+  it('drops the decimal once it stops meaning anything', () => {
+    expect(formatBytes(83_100)).toBe('81 KB')
+    expect(formatBytes(9_000)).toBe('8.8 KB')
   })
 })

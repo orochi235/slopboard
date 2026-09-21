@@ -76,6 +76,9 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   // below, because a phone's `.mov` carries a display matrix that ffmpeg
   // applies to the frame and ffprobe reports the stream without.
   const duration = kind === 'video' ? await durationOf(sourcePath) : null
+  // A mesh reports how much of it there is the only way it can: the poster is
+  // a square view of it and its pixel size is the viewport's, not the model's.
+  const bytes = kind === 'mesh' ? ((await stat(sourcePath).catch(() => null))?.size ?? null) : null
 
   try {
     const meta = await sharp(pixelPath).metadata()
@@ -132,6 +135,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     ...(kind === 'image' ? {} : { kind }),
     ...(frames === null ? {} : { frames }),
     ...(duration === null ? {} : { duration }),
+    ...(bytes === null ? {} : { bytes }),
     ...(kind === 'page' && sidecar?.sandbox ? { sandbox: sidecar.sandbox } : {}),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,

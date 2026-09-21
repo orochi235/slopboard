@@ -5,6 +5,7 @@ import { promisify } from 'node:util'
 import { config } from './config.ts'
 import type { Kind } from './kind.ts'
 import { shootPage } from './shoot.ts'
+import { shootMesh } from './meshShot.ts'
 
 const run = promisify(execFile)
 
@@ -60,9 +61,10 @@ export async function frameOf(source: string, out: string): Promise<boolean> {
  * The pixels to hand the picture pipeline, or null for an artifact the wall
  * cannot take.
  *
- * A picture is its own poster. A page and a video are not: each is given one
- * here, and everything downstream of ingest is spared knowing either exists.
- * `out` is written only for those two, which is how the caller knows what to
+ * A picture is its own poster. A page, a video and a mesh are not: each is
+ * given one here, and everything downstream of ingest is spared knowing any of
+ * them exists.
+ * `out` is written only for those three, which is how the caller knows what to
  * clean up — it is what came back, when what came back is not the source.
  *
  * The runners are injected so the dispatch can be tested without a browser or
@@ -72,9 +74,14 @@ export async function posterFor(
   kind: Kind,
   source: string,
   out: string,
-  runners: { shoot?: typeof shootPage; frame?: typeof frameOf } = {},
+  runners: { shoot?: typeof shootPage; frame?: typeof frameOf; mesh?: typeof shootMesh } = {},
 ): Promise<string | null> {
   if (kind === 'image') return source
-  const make = kind === 'page' ? (runners.shoot ?? shootPage) : (runners.frame ?? frameOf)
+  const make =
+    kind === 'page'
+      ? (runners.shoot ?? shootPage)
+      : kind === 'mesh'
+        ? (runners.mesh ?? shootMesh)
+        : (runners.frame ?? frameOf)
   return (await make(source, out)) ? out : null
 }

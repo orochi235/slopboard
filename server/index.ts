@@ -8,6 +8,7 @@ import { config } from './config.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
+import { mountMeshView } from './meshview.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { readPins, setPinned } from './pins.ts'
 import * as zones from './zones.ts'
@@ -66,6 +67,9 @@ app.get('/api/build', (_req, res) => {
 app.get('/api/code', (_req, res) => {
   res.json(stamp())
 })
+
+// The poster viewer, which is a page this daemon shoots itself.
+mountMeshView(app)
 
 app.get('/img/:id', (req, res) => {
   const path = store.resolveCache(req.params.id)

@@ -600,18 +600,31 @@ sidecar with no caption means the CLI had nothing to say, and the wall shows
 nothing. A file dropped in by hand has no sidecar, and its name is the only
 thing it says.
 
-**An artifact is a picture, a page or a video.** `.png .jpg .jpeg .webp .gif
-.avif .tiff` are pictures; `.html` and `.htm` are pages; `.mp4 .m4v .mov .webm`
-are videos. Anything else is skipped silently, which is also what keeps the
-sidecar sitting beside every artifact from being ingested as one.
+**An artifact is a picture, a page, a video or a mesh.** `.png .jpg .jpeg .webp
+.gif .avif .tiff` are pictures; `.html` and `.htm` are pages; `.mp4 .m4v .mov
+.webm` are videos; `.glb` and `.stl` are meshes. Anything else is skipped
+silently, which is also what keeps the sidecar sitting beside every artifact
+from being ingested as one. A `.gltf` is refused at the send rather than held:
+it is a manifest pointing at sibling `.bin` and texture files, and a send
+copies one file.
 
-**Neither a page nor a video has pixels, so the daemon gives each some.**
-`server/poster.ts` is the one step both go through: headless Chrome shoots a
-page, ffmpeg takes a frame of a video, and a picture is its own poster. What
+**Only a picture has pixels of its own, so the daemon gives the other three
+some.** `server/poster.ts` is the one step they go through: headless Chrome
+shoots a page, ffmpeg takes a frame of a video, Chrome renders a mesh through
+the daemon's own viewer at `/view/mesh`, and a picture is its own poster. What
 comes back goes through the picture pipeline unchanged. That is the whole
 reason for it — the card, the LOD tiers, the texture budget and the aspect
-never learn either kind exists, so nothing in the renderer branches on the
+never learn any of the kinds exists, so nothing in the renderer branches on the
 kind.
+
+**A mesh is postered rather than drawn on the wall**, which is this design
+declining, for now, to give a card thickness — see the open question below. The
+shot is square and transparent, so the model floats on the card rather than
+sitting in a box, and it is framed and lit by `shared/mesh.ts`, which the
+lightbox reads too: opening a card shows the picture on it turning. A model
+that renders to nothing — a load the viewer could not finish — leaves a
+perfectly good transparent PNG, so the poster is checked for ink and the
+artifact is declined when there is none.
 
 **A page's `w`/`h` are the shot's viewport, not the document's**, which is the
 one field whose meaning differs between the kinds. `--screenshot` captures the
@@ -907,7 +920,9 @@ Base64-over-WebSocket hitches every time a render lands.
   decoration. At 200/hour the wall is a blur and nothing reads at any depth.
 - **Does anything on the wall have thickness?** Every primitive is a flat plane
   today — cards, zone outlines, labels — while a pile occupies a volume many
-  times the wall's own height. Two separable calls. Whether a *card* gets
+  times the wall's own height. The `mesh` kind arrived and did *not* settle
+  this: its card is a rendered poster and the real geometry lives in the
+  lightbox, so the wall is still flat and the question is still open. Two separable calls. Whether a *card* gets
   thickness is ours alone: `SlopChannels` is slopboard's own vocabulary that
   windease carries and never reads, so a depth channel costs nothing upstream.
   Whether a *zone* gets a depth is a change to windease's `Rect`, and is the one
@@ -959,12 +974,13 @@ the whole path an agent would — including the partial-write guard.
    videos is a different object from forty stills, so the card stays a still
    and only the lightbox plays. Designed in
    `docs/superpowers/specs/2026-09-19-video-artifacts-design.md`.
-9. **A `mesh` kind. Unbuilt.** `.glb` / `.gltf` / `.stl`. Closer to home than
-   video: the renderer is already three, so a mesh need not be flattened to a
-   picture at all — the card can hold a real one, and the lightbox can orbit it.
-   That makes it the first artifact with genuine thickness, which is the
-   standing open question above arriving as a concrete case rather than a
-   hypothetical. Open: whether a mesh card is lit by the wall or carries its
-   own, and what stands in for `frames` in the meta line.
+9. ~~A `mesh` kind.~~ **Done.** `.glb` and `.stl` land as a rendered
+   three-quarter view on a transparent card wearing `⬡`, and open into a
+   lightbox that orbits the real model. The card is a poster and not geometry:
+   the quad pipeline — LOD, fade, depth sort, texture budget — assumes a
+   picture, and a card holding a model opts out of all of it at once. The wall
+   lights every model itself, so two are in the same room; the meta line reports
+   the format and the file size rather than a triangle count. Designed in
+   `docs/superpowers/specs/2026-09-20-mesh-artifacts-design.md`.
 
 Steps 1–3 are cheap and answer most of the open questions.

@@ -4,17 +4,31 @@ import type { WallItem } from '@shared/protocol.ts'
 
 /**
  * What the artifact is. A page says so in the wall's own word, because the
- * card it was opened from is a screenshot and the two are easy to confuse; a
- * picture says the format `/orig` will hand over on a save.
+ * card it was opened from is a screenshot and the two are easy to confuse;
+ * everything else says the format `/orig` will hand over on a save.
  *
  * Null for an artifact whose name carries no extension, which is what expiry
  * renames a file to.
  */
 function formatOf(item: WallItem): string | null {
   if (item.kind === 'page') return 'page'
-  // A video says its container, the same as a picture does: it is what `/orig`
+  // A video or a mesh says its container, the same as a picture does: it is what `/orig`
   // hands over on a save, and `video` would say less than `mp4`.
   return item.path.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? null
+}
+
+/** Sizes as a reader says them: `4.2 MB`, `812 KB`. Two significant places
+ *  under ten, none above, because the digit past the point stops meaning
+ *  anything at that size. */
+export function formatBytes(bytes: number): string {
+  const units = ['B', 'KB', 'MB', 'GB']
+  let n = bytes
+  let unit = 0
+  while (n >= 1024 && unit < units.length - 1) {
+    n /= 1024
+    unit++
+  }
+  return `${unit === 0 || n >= 10 ? Math.round(n) : n.toFixed(1)} ${units[unit]}`
 }
 
 /**
@@ -35,7 +49,10 @@ export function metaOf(item: WallItem, now: number): string[] {
   if (item.frames) parts.push(`${item.frames} frames`)
   // Same job for a video: how much of it there is, which the poster cannot say.
   if (item.duration) parts.push(formatClock(item.duration))
-  if (item.w > 0 && item.h > 0) parts.push(`${item.w}×${item.h}`)
+  // How much of it there is, for the one artifact whose pixel size is the
+  // poster viewport's rather than its own.
+  if (item.bytes) parts.push(formatBytes(item.bytes))
+  if (item.kind !== 'mesh' && item.w > 0 && item.h > 0) parts.push(`${item.w}×${item.h}`)
   return parts
 }
 

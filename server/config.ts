@@ -42,6 +42,13 @@ export const config = {
    *  not the document, so a short page leaves empty card. */
   shotWidth: Number(process.env.SLOP_SHOT_WIDTH ?? 1280),
   shotHeight: Number(process.env.SLOP_SHOT_HEIGHT ?? 800),
+  /** The viewport a mesh is postered in. Square, because the subject is an
+   *  object in space rather than a document. */
+  meshShotEdge: Number(process.env.SLOP_MESH_SHOT_EDGE ?? 1024),
+  /** Longer than a page's: the mesh is drawn by software GL, and `ingestAtOnce`
+   *  of them can be drawing at the same time on the same cores. Measured: three
+   *  at once miss a 15s ceiling that one meets in three seconds. */
+  meshShotTimeoutMs: Number(process.env.SLOP_MESH_SHOT_TIMEOUT_MS ?? 45_000),
   /** Chrome does not exit after writing the shot, so the daemon kills it. This
    *  is how long the page gets to finish painting first. */
   shotTimeoutMs: Number(process.env.SLOP_SHOT_TIMEOUT_MS ?? 15_000),

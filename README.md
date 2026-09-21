@@ -59,8 +59,9 @@ A Node daemon watches `~/slop/inbox/` with the OS's own recursive watcher,
 downscales what lands, and pushes it over a WebSocket. The client is React and
 three.js: one diagonal pile per zone drawn in WebGL, read head-on at wall
 distance and zoomed into for the detail. An artifact may be a picture, an HTML
-page or a video — the last two have no pixels of their own, so the daemon shoots
-each one once and it rejoins the picture pipeline unchanged.
+page, a video or a 3D model — only the first has pixels of its own, so the
+daemon shoots each of the others once and it rejoins the picture pipeline
+unchanged. A model's card is that render; opening it orbits the real thing.
 
 Layout comes from [windease](https://github.com/orochi235/windease), which
 places the zones; the right-click menu is a

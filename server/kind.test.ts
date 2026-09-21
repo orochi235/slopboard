@@ -32,6 +32,16 @@ describe('kindOf', () => {
     expect(kindOf('/slop/inbox/z/clip.m4v')).toBe('video')
   })
 
+  it('reads a mesh', () => {
+    expect(kindOf('/slop/inbox/z/head.glb')).toBe('mesh')
+    expect(kindOf('/slop/inbox/z/head.GLB')).toBe('mesh')
+    expect(kindOf('/slop/inbox/z/part.stl')).toBe('mesh')
+  })
+
+  it('is null for a .gltf, which arrives without the files it points at', () => {
+    expect(kindOf('/slop/inbox/z/head.gltf')).toBe(null)
+  })
+
   it('holds every extension it advertises', () => {
     for (const ext of HELD_EXT) expect(kindOf(`/slop/inbox/z/a${ext}`)).not.toBe(null)
   })

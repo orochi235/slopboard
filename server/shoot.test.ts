@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { pathToFileURL } from 'node:url'
 import { shotArgv } from './shoot.ts'
 
 const argv = shotArgv({
   browser: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  pagePath: '/slop/inbox/z/page.html',
+  url: 'file:///slop/inbox/z/page.html',
   outPath: '/tmp/shot.png',
   profileDir: '/tmp/slop-shot-abc',
   width: 1280,
@@ -27,14 +28,38 @@ describe('shotArgv', () => {
   })
 
   it('escapes a path that would otherwise break the file URL', () => {
-    const spaced = shotArgv({
+    expect(pathToFileURL('/slop/inbox/my zone/a b.html').href).toBe(
+      'file:///slop/inbox/my%20zone/a%20b.html',
+    )
+  })
+
+  it('leaves the GPU off for a document, and draws GL in software when asked', () => {
+    expect(argv).toContain('--disable-gpu')
+    const gl = shotArgv({
       browser: '/c',
-      pagePath: '/slop/inbox/my zone/a b.html',
+      url: 'http://localhost:8787/view/mesh',
       outPath: '/tmp/s.png',
       profileDir: '/tmp/p',
       width: 10,
       height: 10,
+      webgl: true,
     })
-    expect(spaced[spaced.length - 1]).toBe('file:///slop/inbox/my%20zone/a%20b.html')
+    expect(gl).not.toContain('--disable-gpu')
+    expect(gl).toContain('--use-angle=swiftshader')
+  })
+
+  it('shoots onto white unless asked for nothing', () => {
+    expect(argv).not.toContain('--default-background-color=00000000')
+    const clear = shotArgv({
+      browser: '/c',
+      url: 'http://localhost:8787/view/mesh',
+      outPath: '/tmp/s.png',
+      profileDir: '/tmp/p',
+      width: 10,
+      height: 10,
+      transparent: true,
+    })
+    expect(clear).toContain('--default-background-color=00000000')
+    expect(clear[clear.length - 1]).toBe('http://localhost:8787/view/mesh')
   })
 })

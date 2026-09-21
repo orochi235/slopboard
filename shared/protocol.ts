@@ -39,8 +39,9 @@ export type WallItem = {
   sha?: string
   /** Absent for a picture, which is the ordinary case. `page` means `/orig`
    *  serves an HTML file the lightbox runs; `video` means it serves a video
-   *  the lightbox plays. Either way `url` is a poster of it. */
-  kind?: 'page' | 'video'
+   *  the lightbox plays; `mesh` means it serves a model the lightbox orbits.
+   *  Any of the three leaves `url` a poster of it. */
+  kind?: 'page' | 'video' | 'mesh'
   /** How many frames an animated picture plays: the wall draws the first and
    *  the lightbox plays all of them. Absent for a still, and for a video,
    *  which reports its runtime instead. */
@@ -48,6 +49,9 @@ export type WallItem = {
   /** How long a video runs, in ms. Absent for everything else, and for a
    *  container that declares no duration — which some `.webm` do not. */
   duration?: number
+  /** The source file's size. Set for a mesh, which is the one artifact whose
+   *  own pixel size says nothing about it — its `w`/`h` are the poster's. */
+  bytes?: number
   /** What the pusher said the page may do, verbatim into the iframe's
    *  `sandbox` attribute. Absent means the wall's own default applies. */
   sandbox?: string

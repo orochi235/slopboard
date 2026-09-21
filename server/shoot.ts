@@ -7,11 +7,21 @@ import { config } from './config.ts'
 
 export type ShotOpts = {
   browser: string
-  pagePath: string
+  /** Already a URL: a page is shot from `file://`, a mesh from the daemon's
+   *  own viewer over http, and Chrome is handed whichever verbatim. */
+  url: string
   outPath: string
   profileDir: string
   width: number
   height: number
+  /** Shoot onto nothing rather than onto white, for a subject that is an
+   *  object rather than a document. */
+  transparent?: boolean
+  /** Whether the page draws with WebGL. `--disable-gpu` is the right default
+   *  for a document and leaves a GL page blank — measured: the canvas is
+   *  there, the context is not — so a page that needs one asks for software
+   *  rendering instead. */
+  webgl?: boolean
 }
 
 /** Pure, so the flags are readable and testable without launching anything. */
@@ -19,7 +29,9 @@ export function shotArgv(o: ShotOpts): [string, ...string[]] {
   return [
     o.browser,
     '--headless=new',
-    '--disable-gpu',
+    ...(o.webgl
+      ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+      : ['--disable-gpu']),
     '--hide-scrollbars',
     // A page may animate forever; this is the paint it is judged on.
     '--virtual-time-budget=2000',
@@ -28,7 +40,8 @@ export function shotArgv(o: ShotOpts): [string, ...string[]] {
     // Its own profile per shot: a shared one is locked by the first Chrome to
     // take it, and the second silently produces nothing.
     `--user-data-dir=${o.profileDir}`,
-    pathToFileURL(o.pagePath).href,
+    ...(o.transparent ? ['--default-background-color=00000000'] : []),
+    o.url,
   ]
 }
 
@@ -42,26 +55,41 @@ async function sizeOf(path: string): Promise<number | null> {
 }
 
 /**
- * A PNG of the page, or false.
+ * A PNG of whatever the URL draws, or false.
  *
  * Chrome writes the shot and then keeps running — measured on 152.0.7977.76,
  * in both headless modes, with and without a virtual time budget. So this
  * polls for the file and kills the process rather than awaiting its exit. An
  * await here would hold one of the three ingest slots forever.
  */
-export async function shootPage(pagePath: string, outPath: string): Promise<boolean> {
+export async function shootUrl(
+  url: string,
+  outPath: string,
+  frame: {
+    width: number
+    height: number
+    transparent?: boolean
+    webgl?: boolean
+    /** How long Chrome gets to paint. Its own argument because a software GL
+     *  render is slower than a document, and three of them run at once. */
+    timeoutMs?: number
+  } = { width: config.shotWidth, height: config.shotHeight },
+): Promise<boolean> {
+  // Any earlier attempt's file goes first: the shot is detected by watching
+  // the path appear and settle, so one left behind is read as this shot's and
+  // comes back instantly with the last run's pixels.
+  await rm(outPath, { force: true }).catch(() => {})
   const profileDir = await mkdtemp(join(tmpdir(), 'slop-shot-'))
   const [cmd, ...args] = shotArgv({
     browser: config.shotBrowser,
-    pagePath,
+    url,
     outPath,
     profileDir,
-    width: config.shotWidth,
-    height: config.shotHeight,
+    ...frame,
   })
 
   const child = spawn(cmd, args, { stdio: 'ignore' })
-  const deadline = Date.now() + config.shotTimeoutMs
+  const deadline = Date.now() + (frame.timeoutMs ?? config.shotTimeoutMs)
   let lastSize = -1
   let done = false
 
@@ -83,6 +111,13 @@ export async function shootPage(pagePath: string, outPath: string): Promise<bool
     await rm(profileDir, { recursive: true, force: true }).catch(() => {})
   }
 
-  if (!done) console.warn(`[shoot] no picture from ${pagePath} in ${config.shotTimeoutMs}ms`)
+  if (!done)
+    console.warn(
+      `[shoot] no picture from ${url} in ${frame.timeoutMs ?? config.shotTimeoutMs}ms`,
+    )
   return done
 }
+
+/** The page case: the file the wall was sent, drawn at the page viewport. */
+export const shootPage = (pagePath: string, outPath: string): Promise<boolean> =>
+  shootUrl(pathToFileURL(pagePath).href, outPath)
