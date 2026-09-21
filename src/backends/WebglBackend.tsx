@@ -40,7 +40,6 @@ import { boxPositions, createLoop, loopPositions, setResolution } from '@/backen
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { badgeTexture } from '@/textures/badge.ts'
 import { createChips } from '@/textures/chip.ts'
-import { chipHeightOn } from '@/chip-size.ts'
 import { loadFaces, stackFor } from '@/typeface.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import { formatClock } from '@shared/duration.ts'
@@ -1664,14 +1663,6 @@ function Wall({
         }
       }
 
-      const chipFor = (aspect: number) =>
-        chipHeightOn({
-          full: chipHeight,
-          cardW: drawnW * swell,
-          cardH: drawnH * swell,
-          share: params.chips.share,
-          aspect,
-        })
       const chip = chips.byId.get(id)
       const wearsChip = params.chips.cards && fronts.has(id)
       if (chip || wearsChip) {
@@ -1690,9 +1681,9 @@ function Wall({
         )
         held.plate.visible = wearsChip
         if (wearsChip) {
-          const h = chipFor(held.aspect)
+          const h = chipHeight
           const w = h * held.aspect
-          const inset = params.chips.inset * (h / chipHeight)
+          const inset = params.chips.inset
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
           // Inside the artifact's top-left corner. Measured in the card's own
@@ -1716,8 +1707,10 @@ function Wall({
       // age chip, because a pinned front card wears both at once.
       const pin = pins.byId.get(id)
       // Not gated on `chips.cards`: that switch is about the age chip, and a
-      // pin is state rather than decoration.
-      const wearsPin = pinned.has(id)
+      // pin is state rather than decoration. Gated on the front all the same:
+      // a chip draws over the wall, so one on a buried card shows through the
+      // front card and reads as the front card's.
+      const wearsPin = pinned.has(id) && fronts.has(id)
       if (pin || wearsPin) {
         const held = pins.sync(
           id,
@@ -1731,9 +1724,9 @@ function Wall({
         )
         held.plate.visible = wearsPin
         if (wearsPin) {
-          const h = chipFor(held.aspect)
+          const h = chipHeight
           const w = h * held.aspect
-          const inset = params.chips.inset * (h / chipHeight)
+          const inset = params.chips.inset
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
           held.plate.position
@@ -1755,7 +1748,7 @@ function Wall({
       // rescued at once.
       const play = plays.byId.get(id)
       const playText = playsText.get(id)
-      const wearsPlay = playText !== undefined
+      const wearsPlay = playText !== undefined && fronts.has(id)
       if (play || wearsPlay) {
         const text = playText ?? PLAYS_GLYPH
         const held = plays.sync(
@@ -1770,9 +1763,9 @@ function Wall({
         )
         held.plate.visible = wearsPlay
         if (wearsPlay) {
-          const h = chipFor(held.aspect)
+          const h = chipHeight
           const w = h * held.aspect
-          const inset = params.chips.inset * (h / chipHeight)
+          const inset = params.chips.inset
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
           held.plate.position
