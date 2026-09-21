@@ -31,6 +31,14 @@ describe('zoneCounts', () => {
     expect(zoneCounts([at('a', '1')])[0]?.path).toMatch(/inbox\/a$/)
   })
 
+  it("carries the zone's icon, or \"\" where its project names none", () => {
+    const counts = zoneCounts([at('a', '1'), at('b', '2')], { a: 'leaf' })
+    expect(counts.map((c) => [c.zone, c.icon])).toEqual([
+      ['a', 'leaf'],
+      ['b', ''],
+    ])
+  })
+
   it('is empty for an empty wall', () => {
     expect(zoneCounts([])).toEqual([])
   })

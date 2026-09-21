@@ -62,3 +62,11 @@ test('no zones directory yields no colors rather than throwing', async () => {
   process.env.SLOP_ROOT = join(slopRoot, 'nonexistent')
   await expect(read()).resolves.toEqual({})
 })
+
+test("takes a zone icon from the .hued's sfkey, apart from its color", async () => {
+  await project('weasel', 'background=#1b2a41\nsfkey=hare  # an SF Symbol\n')
+  await project('wod', 'background=#222222\n')
+  const { readZoneColors, readZoneIcons } = await import('./zoneColors.ts')
+  expect(await readZoneIcons()).toEqual({ weasel: 'hare' })
+  expect(await readZoneColors()).toEqual({ weasel: '#1b2a41', wod: '#222222' })
+})

@@ -48,6 +48,7 @@ struct ZonesDataZones: Decodable {
     var zone: String = ""
     var items: Int = 0
     var path: String = ""
+    var icon: String = ""
 
     init() {}
 
@@ -55,6 +56,7 @@ struct ZonesDataZones: Decodable {
         case zone
         case items
         case path
+        case icon
     }
 
     init(from decoder: Decoder) throws {
@@ -62,6 +64,7 @@ struct ZonesDataZones: Decodable {
         self.zone = (try? c.decode(String.self, forKey: .zone)) ?? ""
         self.items = (try? c.decode(Int.self, forKey: .items)) ?? 0
         self.path = (try? c.decode(String.self, forKey: .path)) ?? ""
+        self.icon = (try? c.decode(String.self, forKey: .icon)) ?? ""
     }
 }
 

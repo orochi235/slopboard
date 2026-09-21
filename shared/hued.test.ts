@@ -29,6 +29,12 @@ describe('parseHued', () => {
     })
   })
 
+  it('reads sfkey, an SF Symbol name', () => {
+    expect(parseHued('sfkey=paintbrush.pointed.fill  # an SF Symbol name')).toEqual({
+      sfkey: 'paintbrush.pointed.fill',
+    })
+  })
+
   it('is empty for an empty or comment-only file', () => {
     expect(parseHued('')).toEqual({})
     expect(parseHued('# nothing here\n')).toEqual({})

@@ -30,6 +30,7 @@ const http = createServer(app)
 const wss = new WebSocketServer({ server: http, path: '/ws' })
 const clients = new Set<WebSocket>()
 let zoneColors: Record<string, string> = {}
+let zoneIcons: Record<string, string> = {}
 let pinnedZones: Record<string, number> = {}
 
 function broadcast(msg: ServerMessage) {
@@ -235,15 +236,16 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.get('/api/zones', (_req, res) => {
-  res.json({ zones: zoneCounts(store.snapshot()) })
+  res.json({ zones: zoneCounts(store.snapshot(), zoneIcons) })
 })
 
 void readPins().then((pins) => {
   pinnedZones = pins
 })
 
-watchZoneColors((colors) => {
+watchZoneColors((colors, icons) => {
   zoneColors = colors
+  zoneIcons = icons
   broadcast({ type: 'zoneColors', zoneColors: colors })
 })
 

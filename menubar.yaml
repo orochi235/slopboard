@@ -39,7 +39,7 @@ watch:
     http: http://localhost:8787/api/zones
     json: true
     shape:
-      zones: [{zone: string, items: int, path: string}]
+      zones: [{zone: string, items: int, path: string, icon: string}]
 
 # Ordered, so each state excludes the ones above it: `wedged` is a daemon
 # launchd has started that is not answering, which is the case `!wall.ok` alone
@@ -81,7 +81,8 @@ menu:
   - each: zones.data.zones
     when: "zones.ok"
     text: "{{it.zone}} — {{it.items}}"
-    icon: folder
+    # The sfkey in the zone's project's .hued, which most projects do not set.
+    icon: "{{it.icon != '' ? it.icon : 'folder'}}"
     open: "{{it.path}}"
   - separator
   - text: Undo last expiry
