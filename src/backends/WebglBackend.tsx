@@ -39,6 +39,7 @@ import { boxPositions, createLoop, loopPositions, setResolution } from '@/backen
 import { CHROME_ORDER } from '@/backends/order.ts'
 import { badgeTexture } from '@/textures/badge.ts'
 import { createChips } from '@/textures/chip.ts'
+import { chipHeightOn } from '@/chip-size.ts'
 import { loadFaces, stackFor } from '@/typeface.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import { formatClock } from '@shared/duration.ts'
@@ -1657,8 +1658,14 @@ function Wall({
         }
       }
 
-      const cardChip = Math.min(chipHeight, Math.min(drawnW, drawnH) * swell * params.chips.share)
-      const inset = params.chips.inset * (cardChip / chipHeight)
+      const chipFor = (aspect: number) =>
+        chipHeightOn({
+          full: chipHeight,
+          cardW: drawnW * swell,
+          cardH: drawnH * swell,
+          share: params.chips.share,
+          aspect,
+        })
       const chip = chips.byId.get(id)
       const wearsChip = params.chips.cards && fronts.has(id)
       if (chip || wearsChip) {
@@ -1677,8 +1684,9 @@ function Wall({
         )
         held.plate.visible = wearsChip
         if (wearsChip) {
-          const h = cardChip
+          const h = chipFor(held.aspect)
           const w = h * held.aspect
+          const inset = params.chips.inset * (h / chipHeight)
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
           // Inside the artifact's top-left corner. Measured in the card's own
@@ -1717,8 +1725,9 @@ function Wall({
         )
         held.plate.visible = wearsPin
         if (wearsPin) {
-          const h = cardChip
+          const h = chipFor(held.aspect)
           const w = h * held.aspect
+          const inset = params.chips.inset * (h / chipHeight)
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
           held.plate.position
@@ -1755,8 +1764,9 @@ function Wall({
         )
         held.plate.visible = wearsPlay
         if (wearsPlay) {
-          const h = cardChip
+          const h = chipFor(held.aspect)
           const w = h * held.aspect
+          const inset = params.chips.inset * (h / chipHeight)
           held.plate.scale.set(w, h, 1)
           held.plate.rotation.copy(mesh.rotation)
           held.plate.position

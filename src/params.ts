@@ -93,8 +93,9 @@ export type StackParams = {
      *  chip that held its world size would swell as the camera closed in,
      *  because the card it annotates is what gets bigger, not the note. */
     shrink: number
-    /** The most of its card's shorter side a card's chip may take, so a small
-     *  card is annotated rather than covered. Scales the inset with it. */
+    /** The most of its card's overall size — the geometric mean of its sides —
+     *  a card's chip may take, so a small card is annotated rather than
+     *  covered. Scales the inset with it. */
     share: number
     /** How far the age chip sits inside its artifact's top-left corner. */
     inset: number
