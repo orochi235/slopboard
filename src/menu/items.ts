@@ -77,7 +77,7 @@ export function menuFor(
   // content of the question anyway.
   if (target.kind === 'zone' && (ctx.zoneCount ?? 0) > 0) {
     const n = ctx.zoneCount ?? 0
-    items.push({ action: 'configureZone', label: 'Configure the zone…' })
+    items.push({ action: 'configureZone', label: 'Zone settings…' })
     items.push(
       ctx.zonePinned
         ? { action: 'unpinZone', label: 'Unpin the zone' }
