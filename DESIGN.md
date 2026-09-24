@@ -170,6 +170,18 @@ treatments and not a scale, so the ranking lives in `src/nav/sort.ts` and
 nowhere the ingest contract can reach it; a lapsed flag ranks below a live one
 of any level.
 
+**The band is remembered across a reload** — the sort key, the kinds, the time
+range, the arrangement and the `list` row, in one object under
+`slopboard.band.v1`. One object rather than a key per control is what keeps a
+control added later from being forgotten by the store: `BandState` in
+`src/nav/band-state.ts` has one reader per field, keyed on `keyof BandState`,
+so a field added without one does not compile. The arrangement is stored by
+name, because an index would point at a different layout the moment the
+registry is reordered, and the time range as ages rather than timestamps,
+because a stored absolute window has slid off the axis by the next visit. The
+cost is real: a wall can come back narrowed, and what it is narrowed to is on
+the band's face and nowhere else.
+
 ### The stack's camera
 
 The camera belongs to `stack`'s design rather than to the renderer; `inbox`
