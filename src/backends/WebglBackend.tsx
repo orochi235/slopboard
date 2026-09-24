@@ -32,8 +32,9 @@ import { Sky } from '@/backends/Sky.tsx'
 import { ZoneOverlay } from '@/backends/ZoneOverlay.tsx'
 import { ago } from '@/age.ts'
 import { toStackItems } from '@/model.ts'
-import { keptByKind, toggleKind, type KindKey } from '@/nav/kind-filter.ts'
-import { DEFAULT_SORT, inZoneOrder, zoneOrder, type SortKey } from '@/nav/sort.ts'
+import { keptByKind, type KindKey } from '@/nav/kind-filter.ts'
+import { inZoneOrder, zoneOrder, type SortKey } from '@/nav/sort.ts'
+import type { BandState } from '@/nav/band-state.ts'
 import { Minimap, type Plan } from '@/nav/Minimap.tsx'
 import { Axes } from '@/nav/Axes.tsx'
 import { boxPositions, createLoop, loopPositions, setResolution } from '@/backends/fatLines.ts'
@@ -107,6 +108,11 @@ type Props = {
    *  daemon does not reload, so this is the only sign a feature is missing
    *  because the process predates it rather than because it is broken. */
   stale: boolean
+  /** What the band is set to, restored from the last visit. Held above this
+   *  backend because the arrangement is one of its fields and the cycle keys
+   *  live up there. */
+  band: BandState
+  onBand: (patch: Partial<BandState> | ((was: BandState) => Partial<BandState>)) => void
 }
 
 type WallProps = Props & {
@@ -1962,7 +1968,7 @@ export function WebglBackend(props: Props) {
   const [sidebarOpen, setSidebarOpen] = usePersistedFlag('slopboard.sidebar.open.v1', false)
   const [showBounds, setShowBounds] = usePersistedFlag('slopboard.debug.bounds.v1', false)
   const [backedOff, setBackedOff] = useState(false)
-  const [listed, setListed] = usePersistedFlag('slopboard.list.v1', false)
+  const { listed } = props.band
   // The fraction of the canvas the panel covers, measured rather than assumed:
   // its width lives in CSS, and a constant here would drift from it silently.
   // Read on toggle and on resize, never per frame — it forces a layout.
@@ -2009,16 +2015,24 @@ export function WebglBackend(props: Props) {
   // Flags the wall never received, merged in below. Held here rather than in
   // App so that a fake reaches the scene by exactly the route a real one does.
   const [fakes, setFakes] = useState<Record<string, FakeFlag>>({})
-  const [filter, setFilter] = useState<Filter | null>(null)
-  // Not persisted: severity and recency move a zone's cell as artifacts land,
-  // and a wall that came back from a reload already reordered would read as
-  // the arrangement having changed under it.
-  const [sort, setSort] = useState<SortKey>(DEFAULT_SORT)
-  // Empty is every kind. Not persisted, for the same reason the sort is not:
-  // a wall that came back from a reload already narrowed reads as a wall
-  // missing half of what was pushed to it.
-  const [kinds, setKinds] = useState<ReadonlySet<KindKey>>(() => new Set())
-  const onKind = useCallback((key: KindKey) => setKinds((was) => toggleKind(was, key)), [])
+  // The band's own state, restored from the last visit rather than held here:
+  // a filter that survives a reload can hide artifacts that have landed since,
+  // which is why the band states what it is narrowed to on its face.
+  const { sort, range: filter } = props.band
+  const onBand = props.onBand
+  const setFilter = useCallback((next: Filter | null) => onBand({ range: next }), [onBand])
+  const setSort = useCallback((next: SortKey) => onBand({ sort: next }), [onBand])
+  // Empty is every kind. A Set for everything downstream, which wakes the
+  // scene on identity, from the array the band is stored as.
+  const kinds = useMemo<ReadonlySet<KindKey>>(() => new Set(props.band.kinds), [props.band.kinds])
+  const onKind = useCallback(
+    (key: KindKey) =>
+      onBand((was) => ({
+        kinds: was.kinds.includes(key) ? was.kinds.filter((k) => k !== key) : [...was.kinds, key],
+      })),
+    [onBand],
+  )
+  const setListed = useCallback((on: (was: boolean) => boolean) => onBand((was) => ({ listed: on(was.listed) })), [onBand])
   // The daemon's clock, ticking, so the band's axis ends at the same `now`
   // every age on the wall is measured against.
   const [now, setNow] = useState(() => Date.now() + props.clockOffset)

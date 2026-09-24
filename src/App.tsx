@@ -8,6 +8,7 @@ import { ZoneConfig } from '@/ZoneConfig.tsx'
 import { layoutKeyOf } from '@/params.layout.ts'
 import { defaultParams } from '@/params.ts'
 import { loadParams, saveParams } from '@/params.store.ts'
+import { useBandState } from '@/nav/useBandState.ts'
 import { Toasts } from '@/Toasts.tsx'
 import { applyColors } from '@/theme.ts'
 import { stackFor } from '@/typeface.ts'
@@ -15,6 +16,17 @@ import { useWall } from '@/useWall.ts'
 import { tintsFor } from '@/zone-settings.ts'
 
 const ARRANGEMENT_COUNT = registry.length
+
+/** A stored arrangement name back to its place in the cycle. An unknown name —
+ *  a retired arrangement, or one from a build that had it — is the first. */
+const indexOf = (name: string | null): number => {
+  const at = registry.findIndex((a) => a.name === name)
+  return at === -1 ? 0 : at
+}
+
+/** The name `[` or `]` lands on, wrapping either way. */
+const nameAt = (at: number): string =>
+  registry[((at % ARRANGEMENT_COUNT) + ARRANGEMENT_COUNT) % ARRANGEMENT_COUNT].name
 
 
 export function App() {
@@ -33,7 +45,7 @@ export function App() {
     alerts,
     dismissAlert,
   } = useWall()
-  const [index, setIndex] = useState(0)
+  const [band, setBand] = useBandState()
   const [prefs, setPrefs] = useState(false)
   /** The zone whose own sheet is open, or null. */
   const [configuring, setConfiguring] = useState<string | null>(null)
@@ -78,13 +90,13 @@ export function App() {
       }
       if (e.key !== '[' && e.key !== ']') return
       const step = e.key === ']' ? 1 : -1
-      setIndex((i) => (i + step + ARRANGEMENT_COUNT) % ARRANGEMENT_COUNT)
+      setBand((was) => ({ arrangement: nameAt(indexOf(was.arrangement) + step) }))
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [setBand])
 
-  const arrangement = arrangements[index]
+  const arrangement = arrangements[indexOf(band.arrangement)]
   if (!arrangement) return null
 
   return (
@@ -104,6 +116,8 @@ export function App() {
         announce={announce}
         connected={connected}
         stale={daemonStale}
+        band={band}
+        onBand={setBand}
       />
       <ParallaxModal allowParallax={params.general.parallax} />
       <Toasts alerts={alerts} onDismiss={dismissAlert} />
