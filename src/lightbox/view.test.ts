@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  barsOf,
   clampPan,
   fillScale,
   fitScale,
@@ -163,5 +164,29 @@ describe('panoramas', () => {
     expect(togglePanorama(filled, wide, port)).toBeCloseTo(fitScale(wide, port), 10)
     const fitted = { scale: fitScale(wide, port), x: 0, y: 0 }
     expect(togglePanorama(fitted, wide, port)).toBeCloseTo(fillScale(wide, port), 10)
+  })
+})
+
+describe('barsOf', () => {
+  const image = { w: 4000, h: 2000 }
+  const port = { w: 1000, h: 1000 }
+
+  it('has nothing to say about an axis that fits', () => {
+    expect(barsOf(fitView(image, port), image, port)).toEqual({ x: null, y: null })
+  })
+
+  it('sizes the bar by how much of the image is on screen', () => {
+    // Drawn 4000 wide in a 1000 window: a quarter of it is visible.
+    const bars = barsOf({ scale: 1, x: 0, y: 0 }, image, port)
+    expect(bars.x?.size).toBeCloseTo(0.25)
+    expect(bars.x?.at).toBeCloseTo(0.375)
+    expect(bars.y?.size).toBeCloseTo(0.5)
+  })
+
+  it('puts the bar at either end when the pan is against its stop', () => {
+    const port = { w: 1000, h: 1000 }
+    const at = (x: number) => barsOf(clampPan({ scale: 1, x, y: 0 }, image, port), image, port).x?.at
+    expect(at(10_000)).toBeCloseTo(0)
+    expect(at(-10_000)).toBeCloseTo(0.75)
   })
 })

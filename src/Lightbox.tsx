@@ -7,6 +7,7 @@ import { sandboxFor } from '@/lightbox-sandbox.ts'
 import { mountMesh } from '@/MeshView.ts'
 import { KEY_MESSAGE } from '@shared/page-keys.ts'
 import {
+  barsOf,
   fitView,
   isPanorama,
   isZoomed,
@@ -199,17 +200,27 @@ function ImageLightbox({
       const fresh = gate.feed(e.timeStamp)
       if (fresh) armed.current = true
       if (!armed.current) return
-      // At fit there is nothing left to zoom out of, so an out-gesture spends
-      // itself on the rung instead and the image closes — the inverse of the
-      // flick that opened it. A fresh gesture only: a roll that zooms out as
-      // far as fit stops there rather than carrying on out of the lightbox in
-      // the same movement.
-      if (fresh && e.deltaY > 0 && !isZoomed(viewRef.current, image, size.current)) {
-        close.current()
+      setEased(false)
+      // A pinch arrives as a wheel with `ctrlKey` set, so the modifier is the
+      // zoom gesture on a trackpad as well as under a key.
+      if (e.ctrlKey || e.metaKey) {
+        setView((v) => zoomByWheel(v, e.deltaY, { x: e.clientX, y: e.clientY }, image, size.current))
         return
       }
-      setEased(false)
-      setView((v) => zoomByWheel(v, e.deltaY, { x: e.clientX, y: e.clientY }, image, size.current))
+      // Scroll moves the image while any of it is off screen — the window
+      // panning over the picture, so the direction matches the bars and every
+      // other scrollable thing.
+      const bars = barsOf(viewRef.current, image, size.current)
+      if (bars.x || bars.y) {
+        setView((v) => panBy(v, -e.deltaX, -e.deltaY, image, size.current))
+        return
+      }
+      // Whole on screen, there is nothing left to scroll, so an out-gesture
+      // spends itself on the rung instead and the image closes — the inverse of
+      // the flick that opened it. A fresh gesture only: a roll that pans to the
+      // last edge stops there rather than carrying on out of the lightbox in
+      // the same movement.
+      if (fresh && e.deltaY > 0) close.current()
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
@@ -252,6 +263,8 @@ function ImageLightbox({
   }, [])
 
   const zoomed = isZoomed(view, image, size.current)
+  // How much of the image is off screen, per axis. Null on an axis that fits.
+  const bars = barsOf(view, image, size.current)
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return
@@ -367,6 +380,23 @@ function ImageLightbox({
           data-sharp={view.scale > 2 ? '' : undefined}
           onLoad={onLoad}
         />
+        {/* What a scrollbar says and nothing it does: the image is placed by a
+            transform, so there is no scroll offset for a real one to ride on.
+            Drag, scroll and the keys are how it moves. */}
+        {bars.x && (
+          <div
+            className="lightbox__bar lightbox__bar--x"
+            aria-hidden="true"
+            style={{ '--lb-bar': bars.x.size, '--lb-bar-at': bars.x.at } as CSSProperties}
+          />
+        )}
+        {bars.y && (
+          <div
+            className="lightbox__bar lightbox__bar--y"
+            aria-hidden="true"
+            style={{ '--lb-bar': bars.y.size, '--lb-bar-at': bars.y.at } as CSSProperties}
+          />
+        )}
       </div>
 
       {/* Above the image, where the caption cannot go: what this is and how

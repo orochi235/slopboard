@@ -160,3 +160,30 @@ export function togglePanorama(view: View, image: Size, port: Size): number {
   const filled = fillScale(image, port)
   return view.scale >= filled - 1e-6 ? fitScale(image, port) : filled
 }
+
+/** One axis of the window's place within the drawn image: how much of it is on
+ *  screen and where that window starts, both as fractions of the whole. */
+export type Bar = { size: number; at: number }
+
+/**
+ * Where the window sits within the image, per axis, for the bars that say how
+ * much is off screen. Null on an axis that fits, which has nothing to say.
+ *
+ * Drawn rather than native scrollbars because the image is placed by a
+ * transform, not by a scroll offset: a real scroll container would have to own
+ * the pan, and the zoom's pointer anchoring is written against the transform.
+ */
+export function barsOf(
+  view: View,
+  image: Size,
+  port: Size,
+): { x: Bar | null; y: Bar | null } {
+  const axis = (drawn: number, within: number, offset: number): Bar | null => {
+    if (drawn <= within + 1e-6) return null
+    return { size: within / drawn, at: (drawn / 2 - offset - within / 2) / drawn }
+  }
+  return {
+    x: axis(image.w * view.scale, port.w, view.x),
+    y: axis(image.h * view.scale, port.h, view.y),
+  }
+}

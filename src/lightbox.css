@@ -387,3 +387,30 @@
     animation: none;
   }
 }
+
+/* How much of the image is off screen, along the edge it runs off. A bar the
+   pointer cannot take hold of: the picture itself is the handle, and a control
+   that looks draggable and is not is worse than no control. */
+.lightbox__bar {
+  position: absolute;
+  z-index: 1;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--lb-accent, var(--accent)) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--scrim) 55%, transparent);
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.lightbox__bar--x {
+  bottom: 8px;
+  height: 4px;
+  left: calc(var(--lb-bar-at) * 100%);
+  width: calc(var(--lb-bar) * 100%);
+}
+
+.lightbox__bar--y {
+  right: 8px;
+  width: 4px;
+  top: calc(var(--lb-bar-at) * 100%);
+  height: calc(var(--lb-bar) * 100%);
+}
