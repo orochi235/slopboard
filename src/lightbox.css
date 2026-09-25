@@ -299,6 +299,14 @@
   font: inherit;
 }
 
+/* The comment box under the chips spans the row they sit in. A direct child of
+   the panel is that box; the older free-text answer is inside `__answers`
+   beside its send button, where `flex` is doing the sizing instead. */
+.lightbox__ask > .lightbox__reply {
+  box-sizing: border-box;
+  width: 100%;
+}
+
 .lightbox__choice,
 .lightbox__skip {
   padding: 3px 10px;
