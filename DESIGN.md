@@ -307,6 +307,16 @@ the background, so the answer arrives as the command finishing.
   a second, then plays the lightbox out.
 - **One question, one answer.** With choices, the answer must be one of them,
   since the agent branches on the exact string.
+- **A waiting question wears a corner chip, and an answered one keeps it.** The
+  plate is not enough on its own: it lapses, and it never said anything about a
+  question that *had* been answered — so a card that used to be interactive
+  looked like any other picture. `?` in the flag's own color means something is
+  still waiting; `✓` in the ordinary chip colors means it is a record now. A run
+  counts what is left rather than what is done (`? 9`, then `✓ 12`), because how
+  many are outstanding is the reason to look. Bottom-right, the last free
+  corner: a card can be pinned, hold more than the wall draws, wear its age and
+  still be waiting on a reply. The lightbox's status row says the same thing in
+  words — `needs a response`, then `responded` — where there is room for them.
 - **A question may take a chip and a comment.** `--why` adds a free-text box
   under the choices, and the reply then carries both: `choice` is the chip,
   `text` the box. **The chip is the submit** — clicking one, or pressing its

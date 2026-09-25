@@ -92,10 +92,34 @@ describe('statusOf', () => {
   })
 
   it('says whether a question is still open, and how it closed if it is not', () => {
-    expect(statusOf(item({ question: 'ship it?' }))).toEqual(['asked'])
+    expect(statusOf(item({ question: 'ship it?' }))).toEqual(['needs a response'])
     expect(
       statusOf(item({ question: 'ship it?', reply: { status: 'answered', text: 'yes', at: 1 } })),
-    ).toEqual(['answered'])
+    ).toEqual(['responded'])
+    // A question nobody answered says how it closed instead: "responded" would
+    // be a claim nobody made.
+    expect(
+      statusOf(item({ question: 'ship it?', reply: { status: 'dismissed', text: '', at: 1 } })),
+    ).toEqual(['dismissed'])
+  })
+
+  it('says a run needs a response while any of its takes does', () => {
+    const take = (id: string, answered: boolean) => ({
+      id,
+      url: `/img/${id}`,
+      origUrl: `/orig/${id}`,
+      name: id,
+      path: `/p/${id}.png`,
+      at: 1,
+      w: 10,
+      h: 10,
+      question: 'reads?',
+      ...(answered ? { reply: { status: 'answered' as const, text: '', at: 2 } } : {}),
+    })
+    expect(statusOf(item({ kind: 'run', takes: [take('t1', true), take('t2', false)] }))).toEqual([
+      'needs a response',
+    ])
+    expect(statusOf(item({ kind: 'run', takes: [take('t1', true)] }))).toEqual(['responded'])
   })
 })
 

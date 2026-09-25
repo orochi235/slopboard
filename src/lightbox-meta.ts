@@ -1,6 +1,7 @@
 import { ago } from '@/age.ts'
 import { formatClock } from '@shared/duration.ts'
 import type { WallItem } from '@shared/protocol.ts'
+import { askWords, asksOf } from '@/asks.ts'
 
 /**
  * What the artifact is. A page says so in the wall's own word, because the
@@ -74,6 +75,8 @@ export function statusOf(item: WallItem): string[] {
   if (item.keptAt) parts.push('kept')
   if (item.note) parts.push(item.note)
   if (item.attention) parts.push(item.attention.level)
-  if (item.question) parts.push(item.reply ? item.reply.status : 'asked')
+  // In words, since there is room for them here: the wall's own chip is a glyph.
+  const asks = asksOf(item)
+  if (asks) parts.push(askWords(item, asks))
   return parts
 }

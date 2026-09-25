@@ -13,6 +13,7 @@ import * as THREE from 'three'
 import type { Rect } from 'windease'
 import { actions } from '@/actions.ts'
 import { posterTake, runBadge } from '@shared/runs.ts'
+import { ASK_GLYPH, askChip, asksOf } from '@/asks.ts'
 import type { Arrangement, SlopChannels } from '@/arrangements/index.ts'
 import { frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { frameExtent, framePose, type Pose } from '@/camera/frame.ts'
@@ -435,9 +436,11 @@ function Wall({
   const chipRamp = useRef(rampOf(1))
   const pins = useMemo(() => createChips(), [])
   const plays = useMemo(() => createChips(), [])
+  const asks = useMemo(() => createChips(), [])
   useEffect(() => () => chips.dispose(), [chips])
   useEffect(() => () => pins.dispose(), [pins])
   useEffect(() => () => plays.dispose(), [plays])
+  useEffect(() => () => asks.dispose(), [asks])
 
   /** One line object per level rather than one per badge: a LineMaterial has a
    *  single color, and four draw calls is cheaper than one per flag. */
@@ -1057,6 +1060,16 @@ function Wall({
                 ? `${PLAYS_GLYPH} ${formatClock(i.duration)}`
                 : PLAYS_GLYPH,
         ]),
+    )
+    // What a card wants, or wanted: a question waiting on a reply, or one that
+    // has had one. A flag lapses and takes its plate with it, so the plate
+    // cannot be the only sign that something is waiting -- and it is no sign at
+    // all that something was, which is what the wall had no way to say.
+    const asksText = new Map(
+      current.items.flatMap((i) => {
+        const state = asksOf(i)
+        return state ? [[i.id, { text: askChip(state), open: state.open }] as const] : []
+      }),
     )
     // A chip annotates its subject, so it shrinks when the camera closes on
     // one: at wall distance the pile is small and the note has to carry, and
@@ -1794,6 +1807,46 @@ function Wall({
         }
       }
 
+      // The bottom-right corner, the last one free. A card can be pinned, hold
+      // more than the wall draws, wear its age and still be waiting on a reply.
+      const ask = asks.byId.get(id)
+      const asksHere = asksText.get(id)
+      const wearsAsk = asksHere !== undefined && fronts.has(id)
+      if (ask || wearsAsk) {
+        // Waiting reads as signage, in the flag's own color: the plate that
+        // said so may have lapsed hours ago. Answered reads as a record, in the
+        // ordinary chip colors, because nobody has to act on it.
+        const look = asksHere?.open
+          ? { fill: params.colors.attentionLook, ink: params.colors.flagInk, family: badgeFamily }
+          : { fill: params.colors.chipFill, ink: params.colors.chipInk, family: badgeFamily }
+        const text = asksHere?.text ?? ASK_GLYPH
+        const held = asks.sync(
+          id,
+          `${text}|${look.fill}|${look.ink}|${badgeFamily}|${fontsReady}`,
+          text,
+          look,
+        )
+        held.plate.visible = wearsAsk
+        if (wearsAsk) {
+          const h = chipHeight
+          const w = h * held.aspect
+          const inset = params.chips.inset
+          held.plate.scale.set(w, h, 1)
+          held.plate.rotation.copy(mesh.rotation)
+          held.plate.position
+            .copy(mesh.position)
+            .add(
+              new THREE.Vector3(
+                (drawnW * swell) / 2 - w / 2 - inset,
+                -(drawnH * swell) / 2 + h / 2 + inset,
+                BADGE_LIFT,
+              ).applyEuler(mesh.rotation),
+            )
+          const material = held.plate.material as THREE.MeshBasicMaterial
+          material.opacity = cut
+        }
+      }
+
       // Set here rather than in the memo, which cannot see a zone that arrived
       // since, and which does not know how far the card has faded.
       const edge = edges.byId.get(id)
@@ -1914,6 +1967,10 @@ function Wall({
       {live.map((id) => {
         const held = plays.byId.get(id)
         return held ? <primitive key={`plays-${id}`} object={held.plate} /> : null
+      })}
+      {live.map((id) => {
+        const held = asks.byId.get(id)
+        return held ? <primitive key={`asks-${id}`} object={held.plate} /> : null
       })}
       {[...leaders].map(([level, line]) => (
         <primitive key={`leader-${level}`} object={line} />
