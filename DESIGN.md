@@ -964,6 +964,15 @@ minimap, the right-click menu, the lightbox, the `?` modal, and the HUD's
 me that one", and the last four are reachable only by a hand already at the
 machine, so they cost a room-facing wall nothing by existing.
 
+**The debug section fabricates real artifacts, not fake ones.** Its row of
+alert buttons fires the daemon's own treatment; its synth buttons write an
+actual file and sidecar into a `debug` zone on a 20-minute TTL — a run of takes,
+a card with a question, or one already answered. A card fabricated in the browser
+could not be answered at all, because its id reaches no daemon, and a carousel
+nobody can click says nothing about the carousel. The answered one exists
+because that is the one state clicking cannot reach: answering is the thing
+being looked at. The TTL is what keeps a session of them from becoming litter.
+
 **Behind `?lab`:** the sidebar's debug and params sections, the `,` preferences
 modal, the axes gizmo, the HUD's arrangement name — a constant now that
 `arrangements` holds one entry — and the stats block when it is built. A tuning

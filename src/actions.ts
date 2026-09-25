@@ -54,6 +54,10 @@ export type Actions = {
   /** Ask the daemon to play one attention level, for the sidebar's row of
    *  buttons. Resolves to what it decided to do, or null if it refused. */
   fireAlert: (level: Level) => Promise<Plan | null>
+  /** Have the daemon fabricate an artifact to look at: a run of takes, a card
+   *  with a question, or one already answered. A real send, so every gesture on
+   *  it is the real gesture. Resolves false if the daemon refused. */
+  synth: (what: 'run' | 'ask' | 'answered', takes?: number) => Promise<boolean>
 }
 
 /** A write whose only failure mode is that the picture does not change. Every
@@ -98,6 +102,18 @@ const live: Actions = {
     const body = (await res.json()) as { ok: boolean; plan?: Plan }
     return body.ok && body.plan ? body.plan : null
   },
+  synth: async (what, takes) => {
+    try {
+      const res = await fetch('/api/debug/synth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ what, ...(takes === undefined ? {} : { takes }) }),
+      })
+      return ((await res.json()) as { ok?: boolean }).ok === true
+    } catch {
+      return false
+    }
+  },
 }
 
 let current: Actions = live
@@ -122,4 +138,5 @@ export const actions: Actions = {
   setZoneSettings: (name, patch) => current.setZoneSettings(name, patch),
   setTtl: (ms) => current.setTtl(ms),
   fireAlert: (level) => current.fireAlert(level),
+  synth: (what, takes) => current.synth(what, takes),
 }

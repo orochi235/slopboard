@@ -130,6 +130,56 @@ const readPlan = (level: Level, plan: Plan, opened: boolean): string => {
  * real artifact, because a lightbox over an item that resolves to no file
  * shows the level's treatment as a broken image.
  */
+/**
+ * Artifacts the wall makes for itself: a run to page through, a card with a
+ * question, and one already answered — the last because clicking is what it is
+ * there to check, so the answered state cannot be reached by clicking.
+ *
+ * Real sends, into the `debug` zone on a short TTL. The alternative, a card
+ * fabricated in this tab, could not be answered at all: its id reaches no
+ * daemon, and a carousel nobody can click says nothing about the carousel.
+ */
+function SynthButtons() {
+  const [said, setSaid] = useState<string | null>(null)
+  const [takes, setTakes] = useState(5)
+
+  const make = async (what: 'run' | 'ask' | 'answered', n?: number) => {
+    setSaid(`${what}…`)
+    setSaid((await actions.synth(what, n)) ? `${what} sent` : `${what}: the daemon refused it`)
+  }
+
+  return (
+    <>
+      <div className="sidebar__buttons">
+        <button type="button" className="params__button" onClick={() => void make('run', takes)}>
+          run of {takes}
+        </button>
+        <label className="sidebar__count">
+          takes
+          <input
+            type="number"
+            min={1}
+            max={12}
+            value={takes}
+            onChange={(e) => setTakes(Math.min(12, Math.max(1, Number(e.target.value) || 1)))}
+          />
+        </label>
+      </div>
+      <div className="sidebar__buttons">
+        <button type="button" className="params__button" onClick={() => void make('ask')}>
+          question
+        </button>
+        <button type="button" className="params__button" onClick={() => void make('answered')}>
+          answered
+        </button>
+      </div>
+      <p className="sidebar__empty">
+        {said ?? 'real sends into the debug zone, on a 20m TTL'}
+      </p>
+    </>
+  )
+}
+
 function AlertButtons({
   items,
   onOpen,
@@ -285,6 +335,7 @@ export function Sidebar({
           fabricated in this tab only — the daemon never sees them
         </p>
         <AlertButtons items={items} onOpen={onOpen} />
+        <SynthButtons />
         <label className="sidebar__toggle">
           <input type="checkbox" checked={showBounds} onChange={(e) => onShowBounds(e.target.checked)} />
           camera bounds

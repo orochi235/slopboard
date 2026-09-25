@@ -204,6 +204,8 @@ export function createDemoDaemon() {
         ...(reply.take === undefined ? {} : { take: reply.take }),
       }),
     openInApp: () => {},
+    // The demo wall ships a fixed set and has no inbox to write into.
+    synth: async () => false,
     undo: async () => {
       const back = undone
       undone = []

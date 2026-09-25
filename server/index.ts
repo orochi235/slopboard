@@ -16,6 +16,7 @@ import * as zones from './zones.ts'
 import * as settings from './settings.ts'
 import { zoneCounts } from './zoneCounts.ts'
 import { alert, debugItem, toastFor } from './alert.ts'
+import { MAX_SYNTH_TAKES, synthAnswered, synthAsk, synthRun } from './synth.ts'
 import { withKeyForwarder } from './page-keys.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { Lifetime } from '@shared/lifetime.ts'
@@ -272,6 +273,34 @@ app.post('/api/zones/:zone/settings', express.json(), async (req, res) => {
 // one thing more: the button that calls this is in the wall, so `clients.size`
 // is never zero here and `raise` can only bring the window forward, never
 // launch one.
+// Artifacts the wall makes for itself, so the question, the run and the reply
+// can be looked at with no agent producing one. Real sends: they land in the
+// inbox and are answered through the ordinary route, because a carousel nobody
+// can click is not the thing being evaluated.
+app.post('/api/debug/synth', express.json(), async (req, res) => {
+  const body = (req.body ?? {}) as { what?: unknown; takes?: unknown }
+  const takes = Math.min(MAX_SYNTH_TAKES, Math.max(1, Number(body.takes) || 5))
+  try {
+    if (body.what === 'run') {
+      const made = await synthRun(takes)
+      console.log(`[synth] run of ${made.length}`)
+      return void res.json({ ok: true, what: 'run', takes: made.length })
+    }
+    if (body.what === 'ask') {
+      await synthAsk()
+      return void res.json({ ok: true, what: 'ask' })
+    }
+    if (body.what === 'answered') {
+      await synthAnswered()
+      return void res.json({ ok: true, what: 'answered' })
+    }
+  } catch (err) {
+    console.warn(`[synth] ${(err as Error).message}`)
+    return void res.status(500).json({ ok: false, error: (err as Error).message })
+  }
+  res.status(400).json({ ok: false, what: ['run', 'ask', 'answered'] })
+})
+
 app.post('/api/debug/alert/:level', (req, res) => {
   const level = req.params.level
   if (!(LEVELS as readonly string[]).includes(level))

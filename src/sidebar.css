@@ -204,3 +204,23 @@
   color: var(--muted);
   cursor: pointer;
 }
+
+/* The take count beside the run button: a label wrapping its own field, so the
+   number and the word it means stay together when the row wraps. */
+.sidebar__count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+
+.sidebar__count input {
+  width: 3.5ch;
+  padding: 2px 4px;
+  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
