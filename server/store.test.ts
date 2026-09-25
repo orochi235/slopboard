@@ -211,7 +211,7 @@ describe('questions', () => {
     store.add({ item: asking(), sourcePath: source, cachePath: join(root, 'a.webp') })
 
     expect(await store.answer('a1', 'answered', 'left')).toBe(true)
-    expect(await readFile(answerFile(), 'utf8')).toBe('answered\nleft')
+    expect(await readFile(answerFile(), 'utf8')).toBe('answered\n\nleft')
     const item = store.snapshot()[0]
     expect(item?.question).toBe('which crop?')
     expect(item?.choices).toEqual(['left', 'right'])
@@ -228,7 +228,7 @@ describe('questions', () => {
     store.add({ item: asking(), sourcePath: source, cachePath: join(root, 'a.webp') })
     await store.answer('a1', 'answered', 'left')
     expect(await store.answer('a1', 'answered', 'right')).toBe(false)
-    expect(await readFile(answerFile(), 'utf8')).toBe('answered\nleft')
+    expect(await readFile(answerFile(), 'utf8')).toBe('answered\n\nleft')
   })
 
   it('ends the wait as dismissed only when dismissing is meant to close the question', async () => {
@@ -238,7 +238,7 @@ describe('questions', () => {
     expect(existsSync(answerFile())).toBe(false)
     expect(store.snapshot()[0]?.reply).toBeUndefined()
     expect(await store.dismiss('a1', true)).toBe(true)
-    expect(await readFile(answerFile(), 'utf8')).toBe('dismissed\n')
+    expect(await readFile(answerFile(), 'utf8')).toBe('dismissed\n\n')
     expect(store.snapshot()[0]?.reply?.status).toBe('dismissed')
   })
 
@@ -246,7 +246,7 @@ describe('questions', () => {
     const store = await freshStore(root)
     store.add({ item: asking(), sourcePath: source, cachePath: join(root, 'a.webp') })
     await store.expireNow('a1')
-    expect(await readFile(answerFile(), 'utf8')).toBe('expired\n')
+    expect(await readFile(answerFile(), 'utf8')).toBe('expired\n\n')
     const [back] = await store.undoExpiry()
     expect(back?.reply?.status).toBe('expired')
   })
@@ -385,5 +385,167 @@ describe('the wall lifetime as the panel sets it', () => {
       stop()
       delete process.env.SLOP_TTL
     }
+  })
+})
+
+describe('runs', () => {
+  const card = (over: Partial<WallItem> = {}) => {
+    const { takes: _takes, kind: _kind, ...rest } = itemAt(source, { id: 'run1', ...over })
+    return rest
+  }
+  const takeAt = (id: string, at: number, path: string) => ({
+    id,
+    url: `/img/${id}`,
+    origUrl: `/orig/${id}`,
+    name: id,
+    path,
+    at,
+    w: 20,
+    h: 10,
+    question: 'how does this read?',
+    choices: ['worse', 'better'],
+  })
+
+  /** A take's own file, since each one is answered and trashed separately. */
+  async function fileFor(id: string) {
+    const path = join(root, 'inbox', 'slopboard', `${id}.png`)
+    await writeFile(path, 'png')
+    // A take always has one: `slop` writes the sidecar that carries its question.
+    await writeFile(`${path}.slop.json`, JSON.stringify({ run: 'sweep' }))
+    return path
+  }
+
+  it('opens one card for the first take and appends the rest to it', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    const two = await fileFor('t2')
+
+    const first = store.addTake(card(), takeAt('t1', 1000, one), { sourcePath: one, cachePath: one }, { of: 2 })
+    const second = store.addTake(card(), takeAt('t2', 1001, two), { sourcePath: two, cachePath: two }, {})
+
+    expect(first?.opened).toBe(true)
+    expect(second?.opened).toBe(false)
+    expect(store.snapshot()).toHaveLength(1)
+    expect(store.snapshot()[0]?.takes?.map((t) => t.id)).toEqual(['t1', 't2'])
+    expect(store.snapshot()[0]?.run?.of).toBe(2)
+  })
+
+  it('holds takes in arrival order however the daemon re-adopted them', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    const two = await fileFor('t2')
+    store.addTake(card(), takeAt('t2', 2000, two), { sourcePath: two, cachePath: two }, {})
+    store.addTake(card(), takeAt('t1', 1000, one), { sourcePath: one, cachePath: one }, {})
+    expect(store.snapshot()[0]?.takes?.map((t) => t.id)).toEqual(['t1', 't2'])
+  })
+
+  it('draws the first unanswered take, and moves on as each is answered', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    const two = await fileFor('t2')
+    store.addTake(card(), takeAt('t1', 1000, one), { sourcePath: one, cachePath: one }, { of: 2 })
+    store.addTake(card(), takeAt('t2', 1001, two), { sourcePath: two, cachePath: two }, {})
+
+    expect(store.snapshot()[0]?.url).toBe('/img/t1')
+    await store.answer('run1', 'answered', 'too dark', 'worse', 't1')
+    expect(store.snapshot()[0]?.url).toBe('/img/t2')
+    // And the card serves that take's files, so `/orig/<card>` is the poster.
+    expect(store.resolveOriginal('run1')).toBe(two)
+  })
+
+  it('answers a take with its chip and its comment, where the asker waits', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    store.addTake(card(), takeAt('t1', 1000, one), { sourcePath: one, cachePath: one }, {})
+
+    expect(await store.answer('run1', 'answered', 'too dark', 'worse', 't1')).toBe(true)
+    expect(await readFile(join(root, 'answers', 't1.png'), 'utf8')).toBe('answered\nworse\ntoo dark')
+    expect(store.replyOf('run1', 't1')).toMatchObject({ choice: 'worse', text: 'too dark' })
+    // And the sidecar carries it, so a restart shows the reply rather than asking again.
+    expect(JSON.parse(await readFile(`${one}.slop.json`, 'utf8')).choice).toBe('worse')
+  })
+
+  it('answers each take once, so a second click cannot overwrite what was read', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    store.addTake(card(), takeAt('t1', 1000, one), { sourcePath: one, cachePath: one }, {})
+    expect(await store.answer('run1', 'answered', '', 'worse', 't1')).toBe(true)
+    expect(await store.answer('run1', 'answered', '', 'better', 't1')).toBe(false)
+    expect(store.replyOf('run1', 't1')?.choice).toBe('worse')
+  })
+
+  it('dismisses one take without touching the others', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    const two = await fileFor('t2')
+    store.addTake(card(), takeAt('t1', 1000, one), { sourcePath: one, cachePath: one }, {})
+    store.addTake(card(), takeAt('t2', 1001, two), { sourcePath: two, cachePath: two }, {})
+
+    await store.answer('run1', 'dismissed', '', undefined, 't1')
+    expect(store.replyOf('run1', 't1')?.status).toBe('dismissed')
+    expect(store.replyOf('run1', 't2')).toBeUndefined()
+    expect(store.snapshot()[0]?.url).toBe('/img/t2')
+  })
+
+  it('closes every open take when the card itself is dismissed', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    const two = await fileFor('t2')
+    store.addTake(card({ attention: { level: 'look', holdMs: null } }), takeAt('t1', 1000, one), { sourcePath: one, cachePath: one }, {})
+    store.addTake(card(), takeAt('t2', 1001, two), { sourcePath: two, cachePath: two }, {})
+
+    expect(await store.dismiss('run1', true)).toBe(true)
+    expect(store.replyOf('run1', 't1')?.status).toBe('dismissed')
+    expect(store.replyOf('run1', 't2')?.status).toBe('dismissed')
+    expect(store.snapshot()[0]?.attention).toBeUndefined()
+  })
+
+  it('takes the whole carousel to the trash, and brings it all back', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    const two = await fileFor('t2')
+    store.addTake(card(), takeAt('t1', 1000, one), { sourcePath: one, cachePath: one }, {})
+    store.addTake(card(), takeAt('t2', 1001, two), { sourcePath: two, cachePath: two }, {})
+
+    expect(await store.expireNow('run1')).toBe(true)
+    expect(existsSync(one)).toBe(false)
+    expect(existsSync(two)).toBe(false)
+    // Each take under its own name: one name for both would lose a file.
+    const [back] = await store.undoExpiry()
+    expect(back?.takes).toHaveLength(2)
+    expect(existsSync(one)).toBe(true)
+    expect(existsSync(two)).toBe(true)
+    expect(store.pathOf('t2')).toBe(two)
+  })
+
+  it('serves each take by its own id, so the carousel can page them', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    store.addTake(card(), takeAt('t1', 1000, one), { sourcePath: one, cachePath: `${one}.webp` }, {})
+    expect(store.resolveCache('t1')).toBe(`${one}.webp`)
+    expect(store.takeAt('t1')?.item.id).toBe('run1')
+    expect(store.takeAt('nope')).toBe(null)
+  })
+
+  it('refuses a take past the cap, so a card cannot grow without bound', async () => {
+    const store = await freshStore(root)
+    const { MAX_TAKES } = await import('@shared/runs.ts')
+    for (let n = 0; n < MAX_TAKES; n++) {
+      const path = await fileFor(`t${n}`)
+      expect(store.addTake(card(), takeAt(`t${n}`, 1000 + n, path), { sourcePath: path, cachePath: path }, {})).not.toBe(null)
+    }
+    const over = await fileFor('over')
+    expect(store.addTake(card(), takeAt('over', 9999, over), { sourcePath: over, cachePath: over }, {})).toBe(null)
+  })
+
+  it('reports every take as held, so the sweep re-offers none of them', async () => {
+    const store = await freshStore(root)
+    const one = await fileFor('t1')
+    const two = await fileFor('t2')
+    store.addTake(card(), takeAt('t1', 1000, one), { sourcePath: one, cachePath: one }, {})
+    store.addTake(card(), takeAt('t2', 1001, two), { sourcePath: two, cachePath: two }, {})
+    expect(store.has(one)).toBe(true)
+    expect(store.has(two)).toBe(true)
+    expect(store.has(join(root, 'inbox', 'slopboard', 'other.png'))).toBe(false)
   })
 })

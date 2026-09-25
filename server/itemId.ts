@@ -15,3 +15,14 @@ import { createHash } from 'node:crypto'
 export function idFor(sourcePath: string): string {
   return createHash('sha1').update(sourcePath).digest('hex').slice(0, 32)
 }
+
+/**
+ * A run's card id, derived from its zone and the name `--run` gave it.
+ *
+ * Derived rather than minted so that appending a take is a lookup: two takes
+ * landing in the same tick resolve to the same card, and a daemon restart
+ * re-adopts every take of a run into the one card it was in before.
+ */
+export function runIdFor(zone: string, run: string): string {
+  return createHash('sha1').update(`run:${zone}:${run}`).digest('hex').slice(0, 32)
+}

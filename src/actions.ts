@@ -31,12 +31,15 @@ export type Actions = {
   expire: (id: string) => void
   /** Stop it asking to be looked at. `question` closes a question rather than
    *  clearing a flag, which is the one dismissal a viewer must ask for. */
-  dismiss: (id: string, question?: 'close') => void
-  /** Answer the question on a card. */
-  answer: (id: string, text: string) => void
+  dismiss: (id: string, question?: 'close', take?: string) => void
+  /** Answer the question on a card, or on one take of a run. The chip is the
+   *  submit, so `choice` is what a question offering choices answers with and
+   *  `text` is whatever was in the free-text box, empty or not. */
+  answer: (id: string, answer: { choice?: string; text?: string; take?: string }) => void
   /** Hand the original to whatever the OS opens it with. The browser cannot,
-   *  so the daemon does. */
-  openInApp: (id: string) => void
+   *  so the daemon does. `app` is a take's offered app by position — never a
+   *  name and never a path, so a page cannot name either. */
+  openInApp: (id: string, app?: number) => void
   /** Put back what the last expiry took, one deep. Resolves to the ids
    *  restored, so a wall with a card open can follow it back. */
   undo: () => Promise<string[]>
@@ -69,10 +72,14 @@ const zone = (name: string) => `/api/zones/${encodeURIComponent(name)}`
 const live: Actions = {
   keep: (id, on) => post(`/api/items/${id}/keep?on=${on ? '1' : '0'}`),
   expire: (id) => post(`/api/items/${id}/expire`),
-  dismiss: (id, question) =>
-    post(`/api/items/${id}/dismiss${question === 'close' ? '?question=close' : ''}`),
-  answer: (id, text) => post(`/api/items/${id}/answer`, { text }),
-  openInApp: (id) => post(`/api/items/${id}/open`),
+  dismiss: (id, question, take) => {
+    const query = new URLSearchParams()
+    if (question === 'close') query.set('question', 'close')
+    if (take !== undefined) query.set('take', take)
+    post(`/api/items/${id}/dismiss${query.size > 0 ? `?${query}` : ''}`)
+  },
+  answer: (id, answer) => post(`/api/items/${id}/answer`, answer),
+  openInApp: (id, app) => post(`/api/items/${id}/open${app === undefined ? '' : `?app=${app}`}`),
   undo: async () => {
     try {
       const res = await fetch('/api/undo', { method: 'POST' })
@@ -106,9 +113,9 @@ export const installActions = (next: Actions) => {
 export const actions: Actions = {
   keep: (id, on) => current.keep(id, on),
   expire: (id) => current.expire(id),
-  dismiss: (id, question) => current.dismiss(id, question),
-  answer: (id, text) => current.answer(id, text),
-  openInApp: (id) => current.openInApp(id),
+  dismiss: (id, question, take) => current.dismiss(id, question, take),
+  answer: (id, answer) => current.answer(id, answer),
+  openInApp: (id, app) => current.openInApp(id, app),
   undo: () => current.undo(),
   expireZone: (name) => current.expireZone(name),
   pinZone: (name, on) => current.pinZone(name, on),

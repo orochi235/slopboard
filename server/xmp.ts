@@ -1,3 +1,5 @@
+import type { TakeApp, TakeLink } from '@shared/protocol.ts'
+
 /** What the wall knows about where an image came from. */
 export type Stamp = {
   /** What the image shows. The only field a person writes. */
@@ -18,8 +20,25 @@ export type Stamp = {
    *  answer is free text. Sidecar only, like `kept`. */
   question?: string
   choices?: string[]
-  /** How the question closed, what it was answered with, and when (ISO). */
+  /** The placeholder for the free-text box offered beside the choices. Absent
+   *  means the question offers no box. */
+  why?: string
+  /** The run this file joins, as `--run` named it, and what the sender said
+   *  about the run itself. A file naming a run is a take rather than a card of
+   *  its own. Sidecar only. */
+  run?: string
+  runLabel?: string
+  /** How many takes the run said were coming. */
+  of?: number
+  /** Apps the sender offered for this take, and pages it points at. Structured
+   *  rather than strings, so they never reach the XMP packet. */
+  apps?: TakeApp[]
+  links?: TakeLink[]
+  /** How the question closed, what it was answered with, and when (ISO).
+   *  `choice` is the chip, `reply` the free text; a question offering both
+   *  carries both. */
   closed?: string
+  choice?: string
   reply?: string
   closedAt?: string
   /** When the wall rescued this, ISO. Wall state rather than provenance, so it

@@ -307,6 +307,89 @@ the background, so the answer arrives as the command finishing.
   a second, then plays the lightbox out.
 - **One question, one answer.** With choices, the answer must be one of them,
   since the agent branches on the exact string.
+- **A question may take a chip and a comment.** `--why` adds a free-text box
+  under the choices, and the reply then carries both: `choice` is the chip,
+  `text` the box. **The chip is the submit** — clicking one, or pressing its
+  number, sends whatever is in the box, empty or not, and text alone cannot
+  send. One rule rather than two, and it is what leaves no state in which the
+  wall has to guess whether the viewer is finished.
+- **The answer file has three parts**, since it now carries two: the status,
+  the chip, then the text from line 3 on. A blank second line is what tells a
+  free-text answer's first line apart from a choice, and it stays line-based
+  because `bin/slop` is `sh` and has no JSON parser. `slop --ask --json` prints
+  the whole reply for a caller that wants both fields.
+
+### Runs: many pictures, one card
+
+An agent that renders sixty parts wants a verdict on each. Sixty cards is spam
+and sixty lightbox interrupts is worse, so `slop --run <id>` sends a **take**:
+every send naming the same run joins one card, which opens into a carousel.
+
+A run is a fourth `kind` beside `page`, `video` and `mesh` — the same shape as
+those, a poster on the wall and something else in the lightbox — and the first
+artifact that **grows after it lands**. Nothing else in the ingest contract
+appends to a live item, and that is the one new mechanic: a take ingests exactly
+like a picture and is then appended rather than inserted.
+
+- **A run's id is derived from its zone and name**, so an append is a lookup.
+  The create-or-append is one synchronous store call with every `await` already
+  finished, because two takes landing in the same tick must not both create the
+  card — the failure is two cards with the same name holding half the takes
+  each, and it only shows under load.
+- **They are `takes`, not frames.** `WallItem.frames` already means how many an
+  animated picture plays; one word for two quantities would make the badge a
+  guess, the same call `duration` got against `frames` for video.
+- **The card draws the first unanswered take**, so it shows what it wants from
+  the viewer and works through the run visibly as each is answered, settling on
+  the last once nothing is waiting. The store recomputes the poster wherever
+  that can change — a take arriving, a question closing — and broadcasts it, so
+  no renderer holds a copy of the rule.
+- **The badge reads `⧉ 3/12`**, where the video's `▶ 0:12` sits. A run that
+  never said how many were coming reads `3/7+`: the count so far is true and the
+  total is not known, and a bare `3/7` would claim it was.
+- **A run alerts once.** The first take's level applies and every append lands
+  silently. Without this a run at `urgent` is one lightbox interrupt per render,
+  which is the thing a run exists to stop.
+- **A question belongs to a take.** A run whose takes each ask the same thing is
+  the common case and the caller's business to repeat; a run whose takes ask
+  different things — or ask nothing, which is a slideshow — costs nothing extra
+  this way.
+- **Answering advances to the next take still waiting**, not the next take, and
+  the lightbox plays out only when the last one closes. The arrows page the
+  carousel, claimed with a capture listener the way the video lightbox claims
+  the space bar, and a long triangle at each window edge says a take is that way
+  — drawn only where one is, so the pair never points at nothing.
+- **`dismiss` sits beside the chips, not among them**, at `0` and set off by a
+  gap: a take dropped without a verdict is not one of the outcomes. It closes
+  that take alone. The card's own dismiss still closes every open take at once,
+  and an expiry takes the whole carousel to the trash under one name per file.
+- **The run is the unit of lifetime.** Its TTL restarts on every append, since a
+  run still producing is not stale, and any unanswered take holds the card off
+  the clock. `MAX_TAKES` is what bounds a card's size: the only other bound is
+  how long the agent runs.
+
+### Getting out of the wall
+
+A verdict is often not the end of it — the render is wrong and the next move is
+the source file in the app that made it. `--app "LDView"` offers an app,
+`--app "LDView=parts/3001.dat"` says what to hand it, and `--link "label=url"`
+adds an anchor. Both are the sender's, both per take, and both appear under the
+question.
+
+**The daemon runs `open -a <name> <path>` and never a command line.** The wall
+passes a take and an app *index*: `/api/items/:id/open` already refuses to take
+a path from the browser, and it must not start taking an app name either. What
+does widen is that the store now holds paths outside `~/slop` — the sender
+declares a file in its own repo and the daemon will open it. That is the same
+agent that writes into the inbox, so it is inside the existing trust boundary
+rather than past it, but it is the first thing in the store the daemon did not
+put there.
+
+A failed `open` toasts. An alert's spawn failure is swallowed because a missing
+`afplay` must never cost the arrival; a button that silently does nothing is a
+different thing, and says "no app named LDView" on the row the alerts use.
+Links are `http(s)` only — a `file:` link a browser silently blocks is exactly
+the artifact that wanted `--app`.
 
 ### How depth reads
 
@@ -611,6 +694,13 @@ would caption a piped render with a hex string — worse than no caption. So a
 sidecar with no caption means the CLI had nothing to say, and the wall shows
 nothing. A file dropped in by hand has no sidecar, and its name is the only
 thing it says.
+
+**A sidecar naming a run makes the file a take rather than a card.** `run` is
+the id `--run` gave it, with `runLabel` and `of` saying what the run is called
+and how many takes are coming. That one field is the whole of the run protocol
+at the ingest boundary; everything else about a take — its question, its
+`choices`, its `why` box, the `apps` and `links` it offers — is what an ordinary
+card can carry too.
 
 **An artifact is a picture, a page, a video or a mesh.** `.png .jpg .jpeg .webp
 .gif .avif .tiff` are pictures; `.html` and `.htm` are pages; `.mp4 .m4v .mov

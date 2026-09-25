@@ -3,10 +3,10 @@ import { mkdir, rm, stat, rename, utimes, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, extname } from 'node:path'
 import { config } from './config.ts'
 import * as store from './store.ts'
-import type { WallItem } from '@shared/protocol.ts'
+import type { Poster, Take, WallItem } from '@shared/protocol.ts'
 import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
-import { idFor } from './itemId.ts'
+import { idFor, runIdFor } from './itemId.ts'
 import { kindOf } from './kind.ts'
 import { keptFrom, readStamp, replyFrom } from './sidecar.ts'
 import { ttlMs as wallTtlMs } from './settings.ts'
@@ -15,6 +15,7 @@ import { framesOf } from './frames.ts'
 import { posterFor } from './poster.ts'
 import { durationOf } from './probe.ts'
 import { parseAttention } from '@shared/attention.ts'
+import { MAX_TAKES } from '@shared/runs.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
 import { createLimiter } from './limit.ts'
 import { watchTree } from './watchTree.ts'
@@ -43,7 +44,16 @@ export async function stampOriginal(sourcePath: string, xmp: string): Promise<vo
   }
 }
 
-async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | null> {
+/**
+ * What landing produced: a card of its own, or a take appended to a run — in
+ * which case the wall needs the take and the poster it moved the card to, and
+ * `opened` says whether this was the run's first, since a run alerts once.
+ */
+export type Landed =
+  | { as: 'card'; item: WallItem }
+  | { as: 'take'; item: WallItem; take: Take; poster: Poster; opened: boolean }
+
+async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null> {
   const kind = kindOf(sourcePath)
   if (kind === null) return null
   if (store.has(sourcePath)) return null
@@ -120,6 +130,63 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
   const attention = reply !== null ? null : (asked ?? (question === null ? null : parseAttention('look')))
   const note = sidecar?.note ?? question
   const keptAt = keptFrom(sidecar)
+
+  // A file naming a run is a take: it joins that run's card rather than
+  // standing up one of its own. Everything above this is the picture pipeline
+  // unchanged, which is the point — a take is a picture with a question on it.
+  if (sidecar?.run) {
+    const take: Take = {
+      id,
+      url: `/img/${id}`,
+      origUrl: `/orig/${id}`,
+      name: caption,
+      path: sourcePath,
+      at: bornAt,
+      w: source?.w ?? info.width,
+      h: source?.h ?? info.height,
+      ...(question === null ? {} : { question }),
+      ...(question !== null && sidecar.choices ? { choices: sidecar.choices } : {}),
+      ...(question !== null && sidecar.why ? { why: sidecar.why } : {}),
+      ...(reply === null ? {} : { reply }),
+      ...(sidecar.apps ? { apps: sidecar.apps } : {}),
+      ...(sidecar.links ? { links: sidecar.links } : {}),
+    }
+    const landed = store.addTake(
+      {
+        id: runIdFor(zone, sidecar.run),
+        ...(ttlMs === null ? {} : { ttlMs }),
+        ...(keptAt === null ? {} : { keptAt }),
+        ...(attention === null ? {} : { attention }),
+        ...(attention !== null && note ? { note } : {}),
+        ...(sidecar.repo ? { repo: sidecar.repo } : {}),
+        ...(sidecar.sha ? { sha: sidecar.sha } : {}),
+        // Overwritten by the poster the store picks; a run's card has no
+        // pixels of its own, only whichever take it is drawing.
+        url: take.url,
+        origUrl: take.origUrl,
+        path: sourcePath,
+        zone,
+        name: sidecar.runLabel ?? sidecar.run,
+        bornAt,
+        w: take.w,
+        h: take.h,
+      },
+      take,
+      { sourcePath, cachePath },
+      {
+        ...(sidecar.runLabel ? { label: sidecar.runLabel } : {}),
+        ...(sidecar.of === undefined ? {} : { of: sidecar.of }),
+      },
+    )
+    if (!landed) {
+      console.warn(
+        `[ingest] run "${sidecar.run}" is full at ${MAX_TAKES} takes: ${basename(sourcePath)} stays in the inbox`,
+      )
+      return null
+    }
+    return { as: 'take', take, ...landed }
+  }
+
   const item: WallItem = {
     id,
     ...(ttlMs === null ? {} : { ttlMs }),
@@ -137,6 +204,8 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     ...(duration === null ? {} : { duration }),
     ...(bytes === null ? {} : { bytes }),
     ...(kind === 'page' && sidecar?.sandbox ? { sandbox: sidecar.sandbox } : {}),
+    ...(sidecar?.apps ? { apps: sidecar.apps } : {}),
+    ...(sidecar?.links ? { links: sidecar.links } : {}),
     url: `/img/${id}`,
     origUrl: `/orig/${id}`,
     path: sourcePath,
@@ -150,7 +219,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
     h: source?.h ?? info.height,
   }
   store.add({ item, sourcePath, cachePath })
-  return item
+  return { as: 'card', item }
 }
 
 /**
@@ -158,7 +227,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<WallItem | nu
  * restart must not resurrect the wall or reset anything's decay. A rescued
  * file is adopted however old it is; that is what the rescue bought.
  */
-async function adopt(sourcePath: string): Promise<WallItem | null> {
+async function adopt(sourcePath: string): Promise<Landed | null> {
   const { mtimeMs } = await stat(sourcePath)
   const rescued = keptFrom(await readStamp(sourcePath)) !== null
   if (!rescued && Date.now() - mtimeMs > (ttlFromName(basename(sourcePath)) ?? wallTtlMs())) {
@@ -169,7 +238,7 @@ async function adopt(sourcePath: string): Promise<WallItem | null> {
   return ingest(sourcePath, mtimeMs)
 }
 
-export function watchInbox(onArrive: (item: WallItem) => void) {
+export function watchInbox(onLand: (landed: Landed) => void) {
   // Capped because ingest is the daemon's only heavy work: a decode, a resize,
   // a webp encode and a full-resolution re-encode per file. Uncapped, a restart
   // with a full inbox starts all of them at once.
@@ -191,8 +260,8 @@ export function watchInbox(onArrive: (item: WallItem) => void) {
     const at = Date.now()
     void gate(async () => {
       try {
-        const item = adopting ? await adopt(sourcePath) : await ingest(sourcePath, at)
-        if (item) onArrive(item)
+        const landed = adopting ? await adopt(sourcePath) : await ingest(sourcePath, at)
+        if (landed) onLand(landed)
         else declined.add(sourcePath)
       } finally {
         inFlight.delete(sourcePath)

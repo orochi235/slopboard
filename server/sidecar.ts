@@ -20,7 +20,7 @@ export function parseStamp(blob: unknown): Stamp {
   if (blob === null || typeof blob !== 'object' || Array.isArray(blob)) return {}
   const held = blob as Record<string, unknown>
   const out: Stamp = {}
-  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox', 'reply', 'closed', 'closedAt'] as const) {
+  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox', 'reply', 'closed', 'closedAt', 'why', 'run', 'runLabel', 'choice'] as const) {
     const value = held[key]
     if (typeof value === 'string' && value !== '') out[key] = value
   }
@@ -29,7 +29,35 @@ export function parseStamp(blob: unknown): Stamp {
     const choices = held.choices.filter((c): c is string => typeof c === 'string' && c !== '')
     if (choices.length > 0) out.choices = choices
   }
+  // A count of zero or a fraction says nothing a missing count does not, and
+  // both would reach the badge as a total the run cannot reach.
+  if (typeof held.of === 'number' && Number.isInteger(held.of) && held.of > 0) out.of = held.of
+  const apps = pairs(held.apps, 'name', 'path')
+  if (apps.length > 0) out.apps = apps as Stamp['apps']
+  // Only what a browser will open. A `file:` link a page silently blocks is
+  // exactly the artifact that wanted `--app`, and `javascript:` is not a link.
+  const links = pairs(held.links, 'label', 'url').filter((l) => /^https?:\/\//i.test(l.url))
+  if (links.length > 0) out.links = links as Stamp['links']
   return out
+}
+
+/** The entries of an array of two-string records, dropping anything that is
+ *  not one. A hand-edited sidecar loses the malformed entry, never the file. */
+function pairs<A extends string, B extends string>(
+  blob: unknown,
+  a: A,
+  b: B,
+): Record<A | B, string>[] {
+  if (!Array.isArray(blob)) return []
+  return blob.flatMap((entry) => {
+    if (entry === null || typeof entry !== 'object') return []
+    const held = entry as Record<string, unknown>
+    const first = held[a]
+    const second = held[b]
+    if (typeof first !== 'string' || first === '') return []
+    if (typeof second !== 'string' || second === '') return []
+    return [{ [a]: first, [b]: second } as Record<A | B, string>]
+  })
 }
 
 /**
@@ -76,6 +104,7 @@ export async function closeQuestion(imagePath: string, reply: Reply): Promise<vo
     delete blob.attention
     blob.closed = reply.status
     blob.closedAt = new Date(reply.at).toISOString()
+    if (reply.choice) blob.choice = reply.choice
     if (reply.text) blob.reply = reply.text
     await writeFile(path, `${JSON.stringify(blob)}\n`)
   } catch {
@@ -88,7 +117,12 @@ export function replyFrom(stamp: Stamp | null): Reply | null {
   const status = stamp?.closed
   if (status !== 'answered' && status !== 'dismissed' && status !== 'expired') return null
   const at = Date.parse(stamp?.closedAt ?? '')
-  return { status, text: stamp?.reply ?? '', at: Number.isNaN(at) ? 0 : at }
+  return {
+    status,
+    ...(stamp?.choice ? { choice: stamp.choice } : {}),
+    text: stamp?.reply ?? '',
+    at: Number.isNaN(at) ? 0 : at,
+  }
 }
 
 /**

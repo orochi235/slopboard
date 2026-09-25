@@ -38,7 +38,7 @@ describe('watchInbox', () => {
   it('takes in an artifact and reports it under its zone', async () => {
     const { watchInbox } = await bootDaemon(root)
     const arrived: WallItem[] = []
-    const w = watchInbox((item) => arrived.push(item))
+    const w = watchInbox((landed) => arrived.push(landed.item))
     stop = () => w.close()
 
     await mkdir(join(root, 'inbox', 'brick-icons'), { recursive: true })
@@ -54,7 +54,7 @@ describe('watchInbox', () => {
     // every artifact fires further events after it has already been taken in.
     const { watchInbox } = await bootDaemon(root)
     const arrived: WallItem[] = []
-    const w = watchInbox((item) => arrived.push(item))
+    const w = watchInbox((landed) => arrived.push(landed.item))
     stop = () => w.close()
 
     const f = join(root, 'inbox', 'z', 'a.png')
@@ -76,7 +76,7 @@ describe('watchInbox', () => {
 
     const { watchInbox } = await bootDaemon(root)
     const arrived: WallItem[] = []
-    const w = watchInbox((item) => arrived.push(item))
+    const w = watchInbox((landed) => arrived.push(landed.item))
     stop = () => w.close()
 
     await vi.waitFor(() => expect(arrived).toHaveLength(1), { timeout: 8000 })
@@ -108,10 +108,40 @@ describe('watchInbox', () => {
     expect(ours()).toHaveLength(1)
   })
 
+  it('lands every take of a run on one card, and appends the rest', async () => {
+    const { watchInbox } = await bootDaemon(root)
+    const landed: { as: string; id: string }[] = []
+    const w = watchInbox((l) => landed.push({ as: l.as, id: l.item.id }))
+    stop = () => w.close()
+
+    const dir = join(root, 'inbox', 'z')
+    await mkdir(dir, { recursive: true })
+    for (const name of ['a', 'b', 'c']) {
+      await writeFile(
+        join(dir, `${name}.png.slop.json`),
+        JSON.stringify({ run: 'sweep', runLabel: 'outline sweep', of: 3, question: 'reads?' }),
+      )
+      await writeFile(join(dir, `${name}.png`), await png())
+    }
+
+    await vi.waitFor(() => expect(landed).toHaveLength(3), { timeout: 8000 })
+    // One card, and only the first landing opened it.
+    expect(new Set(landed.map((l) => l.id)).size).toBe(1)
+    expect(landed.every((l) => l.as === 'take')).toBe(true)
+    const store = await import('./store.ts')
+    expect(store.snapshot()).toHaveLength(1)
+    const card = store.snapshot()[0]!
+    expect(card.kind).toBe('run')
+    expect(card.name).toBe('outline sweep')
+    expect(card.takes).toHaveLength(3)
+    // The card draws a take, so its own url is one of theirs.
+    expect(card.takes?.map((t) => t.url)).toContain(card.url)
+  })
+
   it('leaves the sidecar alone', async () => {
     const { watchInbox } = await bootDaemon(root)
     const arrived: WallItem[] = []
-    const w = watchInbox((item) => arrived.push(item))
+    const w = watchInbox((landed) => arrived.push(landed.item))
     stop = () => w.close()
 
     const dir = join(root, 'inbox', 'z')

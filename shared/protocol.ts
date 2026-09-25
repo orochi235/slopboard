@@ -3,8 +3,56 @@ import type { Build } from './build.ts'
 import type { Backdrop } from './backdrops.ts'
 import type { Lifetime } from './lifetime.ts'
 
-/** How a question closed. `text` is empty unless it was answered. */
-export type Reply = { status: 'answered' | 'dismissed' | 'expired'; text: string; at: number }
+/**
+ * How a question closed. `choice` is the chip that was clicked, absent for a
+ * free-text answer and for every way of closing without one; `text` is the
+ * free-text box, empty unless something was typed in it. A question offering
+ * choices *and* a box answers with both.
+ */
+export type Reply = {
+  status: 'answered' | 'dismissed' | 'expired'
+  choice?: string
+  text: string
+  at: number
+}
+
+/** An app the sender offered, by `open -a` name, and the file to hand it. The
+ *  wall may ask the daemon for one of these and no other. */
+export type TakeApp = { name: string; path: string }
+
+/** Somewhere on the web the sender says this take is about. `http(s)` only. */
+export type TakeLink = { label: string; url: string }
+
+/**
+ * One member of a run: a picture with its own question, reviewed in the
+ * carousel the run's card opens into.
+ *
+ * Not `frames` — `WallItem.frames` already means how many an animated picture
+ * plays, and one word for two quantities would make the badge a guess.
+ */
+export type Take = {
+  id: string
+  url: string
+  origUrl: string
+  /** The source file's own name, as a picture's `name` is. */
+  name: string
+  /** The source file on disk, for Copy path and for the daemon's `open`. */
+  path: string
+  at: number
+  w: number
+  h: number
+  question?: string
+  choices?: string[]
+  /** The free-text box's placeholder. Absent means the take offers no box. */
+  why?: string
+  reply?: Reply
+  apps?: TakeApp[]
+  links?: TakeLink[]
+}
+
+/** What a run's card draws, derived from its takes: the first unanswered, else
+ *  the last. The store recomputes it, so no renderer holds the rule. */
+export type Poster = { url: string; origUrl: string; w: number; h: number }
 
 export type WallItem = {
   id: string
@@ -39,9 +87,16 @@ export type WallItem = {
   sha?: string
   /** Absent for a picture, which is the ordinary case. `page` means `/orig`
    *  serves an HTML file the lightbox runs; `video` means it serves a video
-   *  the lightbox plays; `mesh` means it serves a model the lightbox orbits.
-   *  Any of the three leaves `url` a poster of it. */
-  kind?: 'page' | 'video' | 'mesh'
+   *  the lightbox plays; `mesh` means it serves a model the lightbox orbits;
+   *  `run` means the card stands for many pictures and the lightbox pages
+   *  them. Any of the four leaves `url` a poster of it. */
+  kind?: 'page' | 'video' | 'mesh' | 'run'
+  /** A run's members, in arrival order. Only ever set with `kind: 'run'`, and
+   *  never empty — a run's card is opened by its first take. */
+  takes?: Take[]
+  /** What the run said about itself. `of` is how many takes are coming, where
+   *  the sender knew; absent means the count so far is all that is known. */
+  run?: { label?: string; of?: number }
   /** How many frames an animated picture plays: the wall draws the first and
    *  the lightbox plays all of them. Absent for a still, and for a video,
    *  which reports its runtime instead. */
@@ -55,6 +110,10 @@ export type WallItem = {
   /** What the pusher said the page may do, verbatim into the iframe's
    *  `sandbox` attribute. Absent means the wall's own default applies. */
   sandbox?: string
+  /** Apps the sender offered and pages it points at. A run carries these per
+   *  take, since each one is about a different render. */
+  apps?: TakeApp[]
+  links?: TakeLink[]
   /** The pixels behind the card. For a picture that is its own size, which is
    *  what `/orig` serves — not the cache thumbnail's, which is capped at
    *  `maxEdge`. For a page it is the shot's viewport, since the document has
@@ -133,8 +192,13 @@ export type ServerMessage =
   | { type: 'expire'; id: string }
   /** The item is still on the wall; it has just stopped asking to be looked at. */
   | { type: 'dismiss'; id: string }
-  /** A question closed. Its flag goes with it; the question stays. */
-  | { type: 'reply'; id: string; reply: Reply }
+  /** A take appended to a run already on the wall — the one thing that changes
+   *  an item's pixels after it lands, so the recomputed poster rides with it. */
+  | { type: 'take'; id: string; take: Take; poster: Poster }
+  /** A question closed. Its flag goes with it; the question stays. `take` names
+   *  which member of a run answered, and the poster moves on to the next
+   *  unanswered one. */
+  | { type: 'reply'; id: string; reply: Reply; take?: string; poster?: Poster }
   /** Rescued, or let go again. `keptAt` is null for the second. */
   | { type: 'keep'; id: string; keptAt: number | null }
   /** A zone held at the top of the wall, or let back into the order.

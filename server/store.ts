@@ -4,21 +4,107 @@ import { config } from './config.ts'
 import { clearAttention, closeQuestion, setKept, trashStamp } from './sidecar.ts'
 import { ttlMs as wallTtlMs } from './settings.ts'
 import { lifetimeFor as zoneLifetime } from './zones.ts'
-import type { Reply, WallItem } from '@shared/protocol.ts'
+import type { Poster, Reply, Take, WallItem } from '@shared/protocol.ts'
 import { isEternal, lifetimeMs } from '@shared/lifetime.ts'
+import { MAX_TAKES, posterOf, posterTake, runIsOpen, takeIsOpen } from '@shared/runs.ts'
 
-type Entry = { item: WallItem; sourcePath: string; cachePath: string }
+/** One artifact's files: the original the sender wrote and the thumbnail the
+ *  daemon made of it. A run has a pair per take. */
+type Files = { sourcePath: string; cachePath: string }
+
+/**
+ * A run's own `sourcePath`/`cachePath` mirror whichever take it is drawing, so
+ * `/img/:id` and `/orig/:id` keep serving the card with no route of their own.
+ * `takes` is empty for everything else.
+ */
+type Entry = Files & { item: WallItem; takes: Map<string, Files> }
 
 const entries = new Map<string, Entry>()
+/** Which run each take belongs to, so `/img/<takeId>` resolves in one lookup
+ *  rather than a scan of every run on the wall. */
+const takeOwner = new Map<string, string>()
 const listeners = new Set<(id: string) => void>()
 
-export function add(entry: Entry) {
-  entries.set(entry.item.id, entry)
+export function add(entry: { item: WallItem; sourcePath: string; cachePath: string }) {
+  entries.set(entry.item.id, { ...entry, takes: new Map() })
 }
 
+const filesOf = (entry: Entry): Files[] =>
+  entry.takes.size > 0 ? [...entry.takes.values()] : [{ sourcePath: entry.sourcePath, cachePath: entry.cachePath }]
+
 export function has(sourcePath: string) {
-  for (const e of entries.values()) if (e.sourcePath === sourcePath) return true
+  for (const e of entries.values()) {
+    if (e.takes.size === 0) {
+      if (e.sourcePath === sourcePath) return true
+      continue
+    }
+    // A run's own sourcePath is a copy of a take's, so only the takes are
+    // asked: the sweep must re-offer nothing, and must not skip a take either.
+    for (const f of e.takes.values()) if (f.sourcePath === sourcePath) return true
+  }
   return false
+}
+
+/**
+ * Adds a take to a run, opening the run's card if this is its first.
+ *
+ * Synchronous on purpose, and called with every `await` already finished: two
+ * takes landing in the same tick must not both create the run. The failure
+ * would be two cards with the same name holding half the takes each, and it
+ * would only show under load.
+ *
+ * Null when the run is full — the cap is what bounds a card's size, since the
+ * only other bound is how long the agent runs.
+ */
+export function addTake(
+  card: Omit<WallItem, 'takes' | 'kind'>,
+  take: Take,
+  files: Files,
+  run: { label?: string; of?: number },
+): { item: WallItem; poster: Poster; opened: boolean } | null {
+  const held = entries.get(card.id)
+  if (held && (held.item.takes?.length ?? 0) >= MAX_TAKES) return null
+
+  const entry: Entry =
+    held ??
+    ({
+      item: { ...card, kind: 'run', takes: [], ...(Object.keys(run).length > 0 ? { run } : {}) },
+      sourcePath: files.sourcePath,
+      cachePath: files.cachePath,
+      takes: new Map(),
+    } satisfies Entry)
+
+  // Kept in arrival order rather than ingest order: a restart re-adopts a
+  // run's takes in whatever order the watcher offers them, and a carousel that
+  // shuffles itself when the daemon bounces would be unreviewable.
+  const takes = [...(entry.item.takes ?? []), take]
+  takes.sort((a, b) => a.at - b.at)
+  entry.item.takes = takes
+  entry.takes.set(take.id, files)
+  takeOwner.set(take.id, entry.item.id)
+  // A run may learn its total late — the first send need not know it — and a
+  // later label is the sender correcting itself, not a second run.
+  if (run.of !== undefined || run.label !== undefined) {
+    entry.item.run = { ...entry.item.run, ...run }
+  }
+  // A take arriving means the run is still producing, so the card is not stale.
+  if (held) entry.item.bornAt = take.at
+  entries.set(entry.item.id, entry)
+  return { item: entry.item, poster: repost(entry), opened: !held }
+}
+
+/**
+ * Points the card at the take it should be drawing. Every path that can change
+ * which one that is goes through here — a take arriving, a question closing —
+ * so the rule lives in `posterOf` and nothing else holds a copy of it.
+ */
+function repost(entry: Entry): Poster {
+  const take = posterTake(entry.item.takes ?? [])
+  if (!take) throw new Error(`run ${entry.item.id} has no takes`)
+  Object.assign(entry.item, posterOf(entry.item.takes ?? []))
+  const files = entry.takes.get(take.id)
+  if (files) Object.assign(entry, files)
+  return { url: take.url, origUrl: take.origUrl, w: take.w, h: take.h }
 }
 
 export function snapshot(): WallItem[] {
@@ -29,7 +115,8 @@ export function onExpire(fn: (id: string) => void) {
   listeners.add(fn)
 }
 
-type Gone = { entry: Entry; dest: string }
+/** Every file one expiry moved, since a run takes its whole carousel with it. */
+type Gone = { entry: Entry; moves: { from: string; to: string }[] }
 
 /** The expiries a person asked for, oldest first, each the artifacts one step
  *  took — a whole zone goes and comes back as one. A TTL running out is never
@@ -42,16 +129,24 @@ function remember(step: Gone[]) {
   if (undoable.length > UNDO_DEPTH) undoable.shift()
 }
 
-/** Expiry moves the source file to the trash; the wall never unlinks. */
+/** Expiry moves the source file to the trash; the wall never unlinks. A run
+ *  takes every take with it: the run is the unit of lifetime, and a take left
+ *  in the inbox would be adopted as a card of its own on the next sweep. */
 async function expire(entry: Entry): Promise<Gone> {
-  await close(entry, 'expired', '')
+  await closeAll(entry, 'expired')
   entries.delete(entry.item.id)
-  const dest = join(config.trash, `${entry.item.id}-${entry.item.zone}`)
+  for (const take of entry.item.takes ?? []) takeOwner.delete(take.id)
   await mkdir(config.trash, { recursive: true })
-  await rename(entry.sourcePath, dest).catch(() => {})
-  await trashStamp(entry.sourcePath, dest)
+  const moves: { from: string; to: string }[] = []
+  for (const [at, files] of filesOf(entry).entries()) {
+    // One name per file, so a run's takes cannot land on top of each other.
+    const dest = join(config.trash, `${entry.item.id}${at === 0 ? '' : `-${at}`}-${entry.item.zone}`)
+    await rename(files.sourcePath, dest).catch(() => {})
+    await trashStamp(files.sourcePath, dest)
+    moves.push({ from: files.sourcePath, to: dest })
+  }
   for (const fn of listeners) fn(entry.item.id)
-  return { entry, dest }
+  return { entry, moves }
 }
 
 /** Returns the stop, for a test that must not leave a sweep running. */
@@ -62,8 +157,10 @@ export function startSweeper(): () => void {
       // An open question has someone waiting on it.
       if (entry.item.keptAt || isOpen(entry.item)) continue
       // A question can stay open for longer than a TTL, so an answered card
-      // gets a whole life from its answer.
-      const from = Math.max(entry.item.bornAt, entry.item.reply?.at ?? 0)
+      // gets a whole life from its answer — and a run from its last one, since
+      // reviewing the twelfth take is not a reason to have already dropped it.
+      const replies = (entry.item.takes ?? []).map((t) => t.reply?.at ?? 0)
+      const from = Math.max(entry.item.bornAt, entry.item.reply?.at ?? 0, ...replies)
       // The item's own, then its zone's, then the wall's. Read per sweep
       // rather than stamped at arrival, so shortening a zone's lifetime
       // reaches what is already hanging in it.
@@ -135,17 +232,24 @@ export async function undoExpiry(): Promise<WallItem[]> {
   if (!last) return []
   const back: WallItem[] = []
   for (const gone of last) {
-    try {
-      await rename(gone.dest, gone.entry.sourcePath)
-    } catch {
-      // One file that will not come back must not strand the rest of its zone.
-      continue
+    let restored = 0
+    for (const move of gone.moves) {
+      try {
+        await rename(move.to, move.from)
+      } catch {
+        // One take that will not come back must not strand the rest of its run.
+        continue
+      }
+      await trashStamp(move.to, move.from)
+      restored++
     }
-    await trashStamp(gone.dest, gone.entry.sourcePath)
+    // One file that will not come back must not strand the rest of its zone.
+    if (restored === 0) continue
     // Its old bornAt is already past its TTL, so it would be swept again on the
     // next tick.
     const item = { ...gone.entry.item, bornAt: Date.now() }
     entries.set(item.id, { ...gone.entry, item })
+    for (const take of item.takes ?? []) takeOwner.set(take.id, item.id)
     back.push(item)
   }
   return back
@@ -159,7 +263,7 @@ export async function undoExpiry(): Promise<WallItem[]> {
 export async function dismiss(id: string, closeQuestion = false): Promise<boolean> {
   const entry = entries.get(id)
   // Opening a card dismisses its flag, and must not answer for the viewer.
-  if (entry && isOpen(entry.item)) return closeQuestion && close(entry, 'dismissed', '')
+  if (entry && isOpen(entry.item)) return closeQuestion && (await closeAll(entry, 'dismissed'))
   if (!entry?.item.attention) return false
   delete entry.item.attention
   await clearAttention(entry.sourcePath)
@@ -168,44 +272,136 @@ export async function dismiss(id: string, closeQuestion = false): Promise<boolea
 
 export type Closed = Reply['status']
 
-const isOpen = (item: WallItem) => item.question !== undefined && item.reply === undefined
+/** A run is open while any take is: the run is the unit of lifetime, so one
+ *  unanswered take holds the whole card off the clock. */
+const isOpen = (item: WallItem) =>
+  item.kind === 'run' ? runIsOpen(item) : item.question !== undefined && item.reply === undefined
 
 /**
- * Ends a question: the answer file first, since `bin/slop --ask` is waiting on
- * it, then the flag and the sidecar. The file is the status line, then the
- * text — `bin/slop` is `sh` and has no JSON parser. The question itself stays.
+ * The answer file, which is what `bin/slop --ask` is waiting on. Three parts:
+ * the status, then the chip, then the free text from line 3 on. `bin/slop` is
+ * `sh` and has no JSON parser, and a blank line 2 is what tells it a free-text
+ * answer's first line is not a choice.
  */
-async function close(entry: Entry, status: Closed, text: string): Promise<boolean> {
+async function writeAnswer(sourcePath: string, reply: Reply): Promise<void> {
+  await mkdir(config.answers, { recursive: true })
+  const dest = join(config.answers, basename(sourcePath))
+  // Renamed into place, so the waiting reader never sees half a file.
+  await writeFile(`${dest}.tmp`, `${reply.status}\n${reply.choice ?? ''}\n${reply.text}`)
+  await rename(`${dest}.tmp`, dest)
+}
+
+const replyAt = (status: Closed, choice: string | undefined, text: string): Reply => ({
+  status,
+  ...(choice ? { choice } : {}),
+  text,
+  at: Date.now(),
+})
+
+/**
+ * Ends a question: the answer file first, since something is waiting on it,
+ * then the flag and the sidecar. The question itself stays.
+ */
+async function close(entry: Entry, status: Closed, text: string, choice?: string): Promise<boolean> {
   if (!isOpen(entry.item)) return false
-  const reply: Reply = { status, text, at: Date.now() }
+  const reply = replyAt(status, choice, text)
   entry.item.reply = reply
   delete entry.item.attention
-  await mkdir(config.answers, { recursive: true })
-  const dest = join(config.answers, basename(entry.sourcePath))
-  // Renamed into place, so the waiting reader never sees half a file.
-  await writeFile(`${dest}.tmp`, `${status}\n${text}`)
-  await rename(`${dest}.tmp`, dest)
+  await writeAnswer(entry.sourcePath, reply)
   await closeQuestion(entry.sourcePath, reply)
   return true
 }
 
-/** The reply a question closed with, for the caller to broadcast. */
-export const replyOf = (id: string) => entries.get(id)?.item.reply
+/** Ends one take's question, and moves the card on to the next take waiting.
+ *  Null when there is no such take or it is already closed. */
+async function closeTake(
+  entry: Entry,
+  takeId: string,
+  status: Closed,
+  text: string,
+  choice?: string,
+): Promise<Poster | null> {
+  const take = (entry.item.takes ?? []).find((t) => t.id === takeId)
+  const files = entry.takes.get(takeId)
+  if (!take || !files || !takeIsOpen(take)) return null
+  const reply = replyAt(status, choice, text)
+  take.reply = reply
+  await writeAnswer(files.sourcePath, reply)
+  await closeQuestion(files.sourcePath, reply)
+  // A run stops asking once nothing in it is waiting.
+  if (!runIsOpen(entry.item)) delete entry.item.attention
+  return repost(entry)
+}
 
-/** False when there is no such item or no open question on it. */
-export async function answer(id: string, status: Closed, text: string): Promise<boolean> {
+/** Every open question on the card at once: what a card-level dismiss and an
+ *  expiry both mean for a run. */
+async function closeAll(entry: Entry, status: Closed): Promise<boolean> {
+  if (entry.item.kind !== 'run') return close(entry, status, '')
+  let closed = false
+  for (const take of entry.item.takes ?? []) {
+    if (await closeTake(entry, take.id, status, '')) closed = true
+  }
+  return closed
+}
+
+/** The reply a question closed with, for the caller to broadcast. A run's
+ *  replies are its takes'. */
+export const replyOf = (id: string, takeId?: string) => {
+  const item = entries.get(id)?.item
+  if (takeId === undefined) return item?.reply
+  return item?.takes?.find((t) => t.id === takeId)?.reply
+}
+
+/** The poster a run is drawing, for a caller that has to broadcast it. */
+export const posterAt = (id: string): Poster | null => {
+  const item = entries.get(id)?.item
+  return item?.kind === 'run' ? posterOf(item.takes ?? []) : null
+}
+
+/** False when there is no such item or no open question on it. A run answers
+ *  one take at a time, which is what `takeId` names. */
+export async function answer(
+  id: string,
+  status: Closed,
+  text: string,
+  choice?: string,
+  takeId?: string,
+): Promise<boolean> {
   const entry = entries.get(id)
-  return entry ? close(entry, status, text) : false
+  if (!entry) return false
+  if (takeId !== undefined) return (await closeTake(entry, takeId, status, text, choice)) !== null
+  return close(entry, status, text, choice)
+}
+
+/** The item or take a take id belongs to. A run's takes are addressed by their
+ *  own ids, so `/img/<takeId>` and the open route resolve without a scan. */
+export function takeAt(takeId: string): { item: WallItem; take: Take } | null {
+  const owner = takeOwner.get(takeId)
+  const item = owner === undefined ? undefined : entries.get(owner)?.item
+  const take = item?.takes?.find((t) => t.id === takeId)
+  return item && take ? { item, take } : null
+}
+
+/** The apps offered for an id, whether it names a card or one take of a run.
+ *  Empty for anything that offered none, which is most of the wall. */
+export const appsAt = (id: string) =>
+  takeAt(id)?.take.apps ?? entries.get(id)?.item.apps ?? []
+
+const filesAt = (id: string): Files | undefined => {
+  const entry = entries.get(id)
+  if (entry) return entry
+  const owner = takeOwner.get(id)
+  return owner === undefined ? undefined : entries.get(owner)?.takes.get(id)
 }
 
 export function pathOf(id: string) {
-  return entries.get(id)?.sourcePath
+  return filesAt(id)?.sourcePath
 }
 
 export function resolveCache(id: string) {
-  return entries.get(id)?.cachePath
+  return filesAt(id)?.cachePath
 }
 
 export function resolveOriginal(id: string) {
-  return entries.get(id)?.sourcePath
+  return filesAt(id)?.sourcePath
 }

@@ -21,6 +21,25 @@
 #                             prints it. No --choice is a free-text answer.
 #                             Exits 3 if the question is dismissed, 4 if the
 #                             card is expired first. Run it in the background.
+#   slop --ask "..." --why    also offers a free-text box under the choices.
+#                             `--why "what is off about it?"` sets its
+#                             placeholder; bare, the wall picks the words.
+#   slop --json --ask "..." FILE
+#                             prints the whole reply rather than the answer
+#                             alone: the status, the chip and the text.
+#   slop --run sweep-3 FILE   a take in a run: every send naming the same run
+#                             joins one card, which the lightbox pages through.
+#                             `--run-label "outline sweep"` names it on the
+#                             wall and `--of 12` says how many are coming.
+#   slop --no-wait --ask ... FILE
+#                             sends the question and returns, printing where it
+#                             landed. Collect the answer later with --wait.
+#   slop --app LDView FILE    offers "Open in LDView" in the lightbox, on the
+#                             artifact itself. `--app "LDView=parts/3001.dat"`
+#                             hands it another file instead. Repeatable.
+#   slop --link "part 3001=https://rebrickable.com/parts/3001/" FILE
+#                             a link in the lightbox. Without an `=` the label
+#                             is the URL's host. http(s) only. Repeatable.
 #   slop --wait PATH          waits on a question already sent, by the path
 #                             `slop --ask` printed
 #   some-generator | slop     reads stdin, writes a .png
@@ -49,6 +68,32 @@ json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | awk 'NR > 1 { printf "\\n" } { printf "%s", $0 }'
 }
 
+# What the free-text box says when `--why` is bare. Here rather than in the
+# wall so that the sidecar always carries the words: a placeholder the daemon
+# filled in would change under an artifact already hanging.
+WHY_DEFAULT="anything to add?"
+
+# The file `open -a` should be handed, made absolute: it is relative to this
+# working directory and the daemon does not share it.
+abs_path() {
+  case "$1" in
+    /*) printf '%s' "$1" ;;
+    *) printf '%s/%s' "$(pwd)" "$1" ;;
+  esac
+}
+
+# `label=url`, or a bare URL whose host becomes the label. Only what a browser
+# will open: a `file:` link a page silently blocks is exactly the artifact that
+# wanted --app, and `javascript:` is not a link.
+link_json() {
+  case "$1" in
+    http://*|https://*) url=$1; label=$(printf '%s' "$url" | sed -e 's|^[a-z]*://||' -e 's|/.*||') ;;
+    *=http://*|*=https://*) label=${1%%=*}; url=${1#*=} ;;
+    *) echo "slop: --link takes an http(s) URL, or label=URL ($1)" >&2; exit 1 ;;
+  esac
+  printf '{"label":"%s","url":"%s"}' "$(json_escape "$label")" "$(json_escape "$url")"
+}
+
 zone=""
 ttl=""
 caption=""
@@ -58,6 +103,14 @@ sandbox=""
 question=""
 choices=""
 wait_for=""
+why=""
+run=""
+run_label=""
+of=""
+apps=""
+links=""
+as_json=""
+no_wait=""
 [ -n "${SLOP_ZONE:-}" ] && zone="$SLOP_ZONE"
 while :; do
   case "${1:-}" in
@@ -69,6 +122,23 @@ while :; do
     --sandbox) sandbox="$2"; shift 2 ;;
     --ask) question="$2"; shift 2 ;;
     --choice) choices="$choices${choices:+,}\"$(json_escape "$2")\""; shift 2 ;;
+    # Optional value: bare at the end of the arguments, before another flag, or
+    # before the file it is sending. A placeholder is a sentence and a file is a
+    # path, so the one that exists on disk is the one that is not the prompt.
+    --why)
+      if [ $# -gt 1 ] && [ -n "${2:-}" ] && [ "${2#-}" = "$2" ] && [ ! -f "$2" ]; then
+        why="$2"; shift 2
+      else
+        why="$WHY_DEFAULT"; shift
+      fi ;;
+    --run) run="$2"; shift 2 ;;
+    --run-label) run_label="$2"; shift 2 ;;
+    --of) of="$2"; shift 2 ;;
+    --app) apps="$apps$2
+"; shift 2 ;;
+    --link) links="$links${links:+,}$(link_json "$2")"; shift 2 ;;
+    --json) as_json=1; shift ;;
+    --no-wait) no_wait=1; shift ;;
     --wait) wait_for="$2"; shift 2 ;;
     *) break ;;
   esac
@@ -98,7 +168,7 @@ ext_of() {
 write_sidecar() {
   dest_image=$1
   dest_caption=$2
-  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && return 0
+  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && [ -z "$run" ] && [ -z "$apps" ] && [ -z "$links" ] && return 0
   {
     printf '{"repo":"%s"' "$(json_escape "$repo")"
     [ -n "$sha" ] && printf ',"sha":"%s"' "$(json_escape "$sha")"
@@ -108,8 +178,31 @@ write_sidecar() {
     [ -n "$sandbox" ] && printf ',"sandbox":"%s"' "$(json_escape "$sandbox")"
     [ -n "$question" ] && printf ',"question":"%s"' "$(json_escape "$question")"
     [ -n "$question" ] && [ -n "$choices" ] && printf ',"choices":[%s]' "$choices"
+    [ -n "$question" ] && [ -n "$why" ] && printf ',"why":"%s"' "$(json_escape "$why")"
+    [ -n "$run" ] && printf ',"run":"%s"' "$(json_escape "$run")"
+    [ -n "$run_label" ] && printf ',"runLabel":"%s"' "$(json_escape "$run_label")"
+    [ -n "$of" ] && printf ',"of":%s' "$of"
+    [ -n "$apps" ] && printf ',"apps":[%s]' "$(apps_json "$dest_image")"
+    [ -n "$links" ] && printf ',"links":[%s]' "$links"
     printf '}\n'
   } > "$dest_image.slop.json"
+}
+
+# `Name` hands the app the artifact itself, which is the copy in the inbox and
+# so is only known here; `Name=path` hands it something else.
+apps_json() {
+  own=$1
+  first=1
+  printf '%s\n' "$apps" | while IFS= read -r entry; do
+    [ -z "$entry" ] && continue
+    case "$entry" in
+      *=*) name=${entry%%=*}; file=$(abs_path "${entry#*=}") ;;
+      *) name=$entry; file=$own ;;
+    esac
+    [ $first -eq 1 ] || printf ','
+    first=0
+    printf '{"name":"%s","path":"%s"}' "$(json_escape "$name")" "$(json_escape "$file")"
+  done
 }
 
 if [ "${1:-}" = "--print-zone" ]; then echo "$zone"; exit 0; fi
@@ -121,20 +214,42 @@ slop_root="${SLOP_ROOT:-$HOME/slop}"
 await_answer() {
   answer="$slop_root/answers/$(basename "$1")"
   while [ ! -f "$answer" ]; do sleep 1; done
-  status=$(head -n 1 "$answer")
-  tail -n +2 "$answer"
+  # Three parts: the status, the chip, then the free text. A blank second line
+  # is what tells a free-text answer's first line apart from a choice.
+  status=$(sed -n 1p "$answer")
+  choice=$(sed -n 2p "$answer")
+  text=$(tail -n +3 "$answer")
   rm -f "$answer"
+  if [ -n "$as_json" ]; then
+    printf '{"status":"%s","choice":"%s","text":"%s"}\n' \
+      "$(json_escape "$status")" "$(json_escape "$choice")" "$(json_escape "$text")"
+  elif [ -n "$choice" ]; then
+    printf '%s\n' "$choice"
+  else
+    printf '%s\n' "$text"
+  fi
   case "$status" in
-    answered) printf '\n'; exit 0 ;;
+    answered) exit 0 ;;
     dismissed) echo "slop: dismissed without an answer" >&2; exit 3 ;;
     *) echo "slop: the card was expired before it was answered" >&2; exit 4 ;;
   esac
 }
 
 if [ -n "$wait_for" ]; then await_answer "$wait_for"; fi
-if [ -n "$question" ] && [ $# -gt 1 ]; then
+# A run answers per take, so several files are several answers and the caller
+# waits on the paths this printed. Without one, one send is one answer.
+if [ -n "$question" ] && [ -z "$run" ] && [ $# -gt 1 ]; then
   echo "slop: --ask takes one file, since one answer comes back" >&2
   exit 1
+fi
+if [ -n "$why" ] && [ -z "$question" ]; then
+  echo "slop: --why needs --ask" >&2
+  exit 1
+fi
+if [ -n "$run_label" ] && [ -z "$run" ]; then echo "slop: --run-label needs --run" >&2; exit 1; fi
+if [ -n "$of" ] && [ -z "$run" ]; then echo "slop: --of needs --run" >&2; exit 1; fi
+if [ -n "$of" ]; then
+  case "$of" in *[!0-9]*|0) echo "slop: --of takes a count of takes ($of)" >&2; exit 1 ;; esac
 fi
 if [ -z "$question" ] && [ -n "$choices" ]; then
   echo "slop: --choice needs --ask" >&2
@@ -156,7 +271,7 @@ if [ $# -eq 0 ]; then
   write_sidecar "$dest" "$caption"
   cat > "$dest"
   echo "$dest"
-  [ -n "$question" ] && await_answer "$dest"
+  [ -n "$question" ] && [ -z "$no_wait" ] && await_answer "$dest"
   exit 0
 fi
 
@@ -199,5 +314,5 @@ for f in "$@"; do
   echo "$dest"
   # An if, not `[ -n ... ] &&`: as the loop's last command, a false test would
   # be the script's exit status, and every send without --ask reported failure.
-  if [ -n "$question" ]; then await_answer "$dest"; fi
+  if [ -n "$question" ] && [ -z "$no_wait" ]; then await_answer "$dest"; fi
 done

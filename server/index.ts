@@ -8,6 +8,7 @@ import { config } from './config.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
+import { runBadge } from '@shared/runs.ts'
 import { mountMeshView } from './meshview.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { readPins, setPinned } from './pins.ts'
@@ -103,6 +104,23 @@ app.get('/page/:id', async (req, res) => {
 // The only route that writes. A wall on a private machine, so the guard is
 // that dismissing something already visible to the viewer costs nothing.
 app.post('/api/items/:id/dismiss', async (req, res) => {
+  // One take dropped without a verdict: not a point among the choices, and not
+  // the card's own dismiss either, which takes every open take with it.
+  const take = typeof req.query.take === 'string' ? req.query.take : undefined
+  if (take !== undefined) {
+    const dropped = await store.answer(req.params.id, 'dismissed', '', undefined, take)
+    const reply = store.replyOf(req.params.id, take)
+    if (dropped && reply) {
+      broadcast({
+        type: 'reply',
+        id: req.params.id,
+        reply,
+        take,
+        ...(store.posterAt(req.params.id) ? { poster: store.posterAt(req.params.id)! } : {}),
+      })
+    }
+    return void res.json({ ok: dropped, cleared: dropped })
+  }
   const cleared = await store.dismiss(req.params.id, req.query.question === 'close')
   const reply = store.replyOf(req.params.id)
   if (cleared && reply?.status === 'dismissed') broadcast({ type: 'reply', id: req.params.id, reply })
@@ -124,13 +142,32 @@ app.post('/api/settings/ttl', express.json(), async (req, res) => {
 })
 
 app.post('/api/items/:id/answer', express.json(), async (req, res) => {
-  const text = (req.body as { text?: unknown } | undefined)?.text
-  const item = store.snapshot().find((i) => i.id === req.params.id)
-  if (typeof text !== 'string' || text.trim() === '' || (item?.choices && !item.choices.includes(text)))
-    return void res.status(400).json({ ok: false })
-  const answered = await store.answer(req.params.id, 'answered', text)
-  const reply = store.replyOf(req.params.id)
-  if (answered && reply) broadcast({ type: 'reply', id: req.params.id, reply })
+  const body = (req.body ?? {}) as { text?: unknown; choice?: unknown; take?: unknown }
+  const takeId = typeof body.take === 'string' ? body.take : undefined
+  // A take's question is the take's, so the choices to validate against are
+  // whichever question is being answered.
+  const asked = takeId === undefined
+    ? store.snapshot().find((i) => i.id === req.params.id)
+    : store.takeAt(takeId)?.take
+  const choice = typeof body.choice === 'string' ? body.choice : undefined
+  const text = typeof body.text === 'string' ? body.text : ''
+  // The chip is the submit: where choices were offered the answer is one of
+  // them — the agent branches on the exact string — and where they were not,
+  // the free text is the answer and must say something.
+  const ok = asked?.choices ? choice !== undefined && asked.choices.includes(choice) : choice === undefined && text.trim() !== ''
+  if (!ok) return void res.status(400).json({ ok: false })
+  const answered = await store.answer(req.params.id, 'answered', text, choice, takeId)
+  const reply = store.replyOf(req.params.id, takeId)
+  if (answered && reply) {
+    const poster = store.posterAt(req.params.id)
+    broadcast({
+      type: 'reply',
+      id: req.params.id,
+      reply,
+      ...(takeId === undefined ? {} : { take: takeId }),
+      ...(poster === null ? {} : { poster }),
+    })
+  }
   res.json({ ok: answered })
 })
 
@@ -155,8 +192,32 @@ app.post('/api/items/:id/expire', async (req, res) => {
 app.post('/api/items/:id/open', (req, res) => {
   const path = store.resolveOriginal(req.params.id)
   if (!path) return void res.sendStatus(404)
+  // An app the sender offered, by its position in that offer — never a name and
+  // never a path from the browser, which is the property this route already
+  // had for the file it opens and must not lose for the app it opens it with.
+  const at = Number(req.query.app)
+  if (req.query.app !== undefined) {
+    const apps = store.appsAt(req.params.id)
+    const app = Number.isInteger(at) ? apps[at] : undefined
+    if (!app) return void res.status(400).json({ ok: false, error: 'no such app' })
+    const proc = spawn('open', ['-a', app.name, app.path], { stdio: 'ignore', detached: true })
+    // A missing app costs the open, and a button that silently does nothing is
+    // worse than one that says why — so unlike an alert's spawn, this speaks.
+    proc.on('exit', (code) => {
+      if (code !== 0) broadcast(openFailed(req.params.id, app.name))
+    })
+    proc.on('error', () => broadcast(openFailed(req.params.id, app.name)))
+    proc.unref()
+    return void res.json({ ok: true })
+  }
   spawn('open', [path], { stdio: 'ignore', detached: true }).unref()
   res.json({ ok: true })
+})
+
+/** The toast for an app that would not open, on the row the alerts already use. */
+const openFailed = (id: string, app: string): ServerMessage => ({
+  type: 'alert',
+  alert: { id, zone: '', level: 'problem', asks: `no app named ${app}`, name: app },
 })
 
 app.post('/api/undo', async (_req, res) => {
@@ -251,7 +312,16 @@ watchZoneColors((colors, icons) => {
 
 store.onExpire((id) => broadcast({ type: 'expire', id }))
 store.startSweeper()
-watchInbox((item) => {
+watchInbox((landed) => {
+  const { item } = landed
+  if (landed.as === 'take' && !landed.opened) {
+    console.log(`[take] ${item.zone}/${item.id.slice(0, 8)} ${runBadge(item)}`)
+    broadcast({ type: 'take', id: item.id, take: landed.take, poster: landed.poster })
+    // A run alerts once. The first take's level applies and every append after
+    // it lands silently, or a run at `urgent` is one interrupt per render —
+    // which is the thing a run exists to stop.
+    return
+  }
   console.log(`[arrive] ${item.zone}/${item.id.slice(0, 8)} ${item.w}x${item.h}`)
   broadcast({ type: 'arrive', item })
   // After the broadcast: a wall that is already open should be showing the

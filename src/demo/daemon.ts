@@ -191,8 +191,18 @@ export function createDemoDaemon() {
     // Nothing in the set asks a question, so neither of these has anything to
     // act on. They are here because `Actions` is the wall's whole vocabulary,
     // not a list of what this daemon happens to use.
-    answer: (id, text) =>
-      send({ type: 'reply', id, reply: { status: 'answered', text, at: Date.now() } }),
+    answer: (id, reply) =>
+      send({
+        type: 'reply',
+        id,
+        reply: {
+          status: 'answered',
+          ...(reply.choice === undefined ? {} : { choice: reply.choice }),
+          text: reply.text ?? '',
+          at: Date.now(),
+        },
+        ...(reply.take === undefined ? {} : { take: reply.take }),
+      }),
     openInApp: () => {},
     undo: async () => {
       const back = undone

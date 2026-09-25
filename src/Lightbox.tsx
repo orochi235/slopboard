@@ -20,51 +20,145 @@ import {
   type Size,
   type View,
 } from '@/lightbox/view.ts'
-import type { WallItem } from '@shared/protocol.ts'
+import type { Reply, Take, TakeApp, TakeLink, WallItem } from '@shared/protocol.ts'
+import { countOf, nextOpen, posterTake } from '@shared/runs.ts'
 import './lightbox.css'
 
+/** What a question is, wherever it hangs: on a card, or on one take of a run. */
+type Asked = {
+  question?: string
+  choices?: string[]
+  why?: string
+  reply?: Reply
+}
+
 /**
- * The agent's question, over whichever kind of lightbox is open. Choices are
- * buttons; no choices is a text box, where Enter sends and Shift+Enter breaks
- * the line. Once it has a reply it stays, inert, showing what it got.
+ * Where an artifact says to go next: the apps the daemon can open it in, and
+ * the pages the sender says it is about. Under the question, because a verdict
+ * is often not the end of it — the render is wrong and the next move is the
+ * source file in the app that made it.
+ */
+function Outs({ id, apps, links }: { id: string; apps?: TakeApp[]; links?: TakeLink[] }) {
+  if (!apps?.length && !links?.length) return null
+  return (
+    // A click here is not the wall's: it would close the lightbox under the
+    // button that was just pressed.
+    <div className="lightbox__outs" onClick={(e) => e.stopPropagation()}>
+      {apps?.map((app, at) => (
+        <button
+          type="button"
+          className="lightbox__out"
+          key={`${app.name}-${at}`}
+          onClick={() => actions.openInApp(id, at)}
+        >
+          Open in {app.name}
+        </button>
+      ))}
+      {links?.map((link) => (
+        <a
+          className="lightbox__out"
+          key={link.url}
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {link.label}
+        </a>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * The agent's question, over whichever kind of lightbox is open.
+ *
+ * The chip is the submit: clicking one — or pressing its number — sends the
+ * verdict with whatever is in the comment box, empty or not. Text alone cannot
+ * send, which is what makes advancing through a run unambiguous. A question
+ * with no choices at all is the older shape and still a text box where Enter
+ * sends and Shift+Enter breaks the line.
+ *
+ * Once it has a reply it stays, inert, showing what it got.
  */
 function Ask({
-  item,
+  asked,
   closing,
+  count,
   onAnswer,
   onDismiss,
 }: {
-  item: WallItem
+  asked: Asked
   closing: boolean
-  onAnswer: (text: string) => void
+  /** `3/12` while a run is being reviewed; absent for a card's own question. */
+  count?: string
+  onAnswer: (answer: { choice?: string; text: string }) => void
   onDismiss: () => void
 }) {
   const [text, setText] = useState('')
-  useEffect(() => setText(''), [item.id])
-  if (!item.question) return null
-  const reply = item.reply
+  const typed = useRef('')
+  typed.current = text
+  const { question, choices, reply } = asked
+  const open = question !== undefined && reply === undefined
+
+  // The number keys, which the wall would otherwise read as its own. Held off
+  // a text field unless a modifier is down: a digit typed into the comment box
+  // is part of the comment, so `3` lands there and ⌘3 still votes.
+  useEffect(() => {
+    if (!open || !choices) return
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.altKey) return
+      const target = e.target as HTMLElement | null
+      const typing =
+        target?.isContentEditable || target?.tagName === 'TEXTAREA' || target?.tagName === 'INPUT'
+      if (typing !== (e.metaKey || e.ctrlKey)) return
+      if (e.key === '0') {
+        e.preventDefault()
+        e.stopPropagation()
+        onDismiss()
+        return
+      }
+      const at = Number(e.key) - 1
+      if (!Number.isInteger(at) || at < 0 || at >= choices.length) return
+      e.preventDefault()
+      e.stopPropagation()
+      onAnswer({ choice: choices[at]!, text: typed.current })
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [open, choices, onAnswer, onDismiss])
+
+  if (question === undefined) return null
   if (reply) {
     return (
       <div className="lightbox__ask" data-closed="" data-closing={closing ? '' : undefined}>
-        <p className="lightbox__question">{item.question}</p>
-        {item.choices && reply.status === 'answered' ? (
+        <p className="lightbox__question">{question}</p>
+        {choices && reply.status === 'answered' ? (
           <div className="lightbox__answers">
-            {item.choices.map((choice) => (
-              <span className="lightbox__choice" key={choice} data-chosen={choice === reply.text ? '' : undefined}>
+            {choices.map((choice) => (
+              <span
+                className="lightbox__choice"
+                key={choice}
+                data-chosen={choice === reply.choice ? '' : undefined}
+              >
                 {choice}
               </span>
             ))}
           </div>
+        ) : null}
+        {reply.status === 'answered' && reply.text ? (
+          <p className="lightbox__reply lightbox__reply--closed">{reply.text}</p>
+        ) : null}
+        {reply.status !== 'answered' ? (
+          <p className="lightbox__reply lightbox__reply--closed">{reply.status}</p>
         ) : (
-          <p className="lightbox__reply lightbox__reply--closed">
-            {reply.status === 'answered' ? reply.text : reply.status}
-          </p>
+          !choices && !reply.text && <p className="lightbox__reply lightbox__reply--closed">answered</p>
         )}
       </div>
     )
   }
+  const box = choices ? asked.why : ''
   const send = () => {
-    if (text.trim() !== '') onAnswer(text)
+    if (text.trim() !== '') onAnswer({ text })
   }
   return (
     // Neither a click nor a keystroke here is the wall's: a click would close
@@ -81,38 +175,49 @@ function Ask({
         send()
       }}
     >
-      <p className="lightbox__question">{item.question}</p>
+      {count && <span className="lightbox__count">{count}</span>}
+      <p className="lightbox__question">{question}</p>
+      {box !== undefined && (
+        <textarea
+          className="lightbox__reply"
+          value={text}
+          rows={2}
+          placeholder={box || undefined}
+          autoFocus={!choices}
+          aria-label={choices ? 'Comment' : 'Answer'}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') return e.currentTarget.blur()
+            if (e.key === 'Enter' && !e.shiftKey && !choices) {
+              e.preventDefault()
+              send()
+            }
+          }}
+        />
+      )}
       <div className="lightbox__answers">
-        {item.choices ? (
-          item.choices.map((choice) => (
-            <button type="button" className="lightbox__choice" key={choice} onClick={() => onAnswer(choice)}>
+        {choices ? (
+          choices.map((choice, at) => (
+            <button
+              type="button"
+              className="lightbox__choice"
+              key={choice}
+              onClick={() => onAnswer({ choice, text })}
+            >
               {choice}
+              {at < 9 && <span className="lightbox__key">{at + 1}</span>}
             </button>
           ))
         ) : (
-          <>
-            <textarea
-              className="lightbox__reply"
-              value={text}
-              rows={2}
-              autoFocus
-              aria-label="Answer"
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') return e.currentTarget.blur()
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  send()
-                }
-              }}
-            />
-            <button type="submit" className="lightbox__choice" disabled={text.trim() === ''}>
-              send
-            </button>
-          </>
+          <button type="submit" className="lightbox__choice" disabled={text.trim() === ''}>
+            send
+          </button>
         )}
+        {/* Set off from the chips: dropping one without a verdict is not one of
+            the outcomes, so it is not a key among them either. */}
         <button type="button" className="lightbox__skip" onClick={onDismiss}>
           dismiss
+          {choices && <span className="lightbox__key">0</span>}
         </button>
       </div>
     </form>
@@ -770,6 +875,145 @@ function MeshLightbox({
   )
 }
 
+/** One take drawn as the picture it is: the run's own fields, with the take's
+ *  pixels and its own name, and its question left to `Ask` to draw. */
+function takeItem(item: WallItem, take: Take): WallItem {
+  const { kind: _run, takes: _members, question: _q, choices: _c, reply: _r, ...card } = item
+  return {
+    ...card,
+    id: take.id,
+    url: take.url,
+    origUrl: take.origUrl,
+    name: take.name,
+    path: take.path,
+    bornAt: take.at,
+    w: take.w,
+    h: take.h,
+    ...(take.apps ? { apps: take.apps } : {}),
+    ...(take.links ? { links: take.links } : {}),
+  }
+}
+
+/**
+ * A run's carousel: one take at a time, paged with the arrows, each with its
+ * own question. Opens on the take the card was drawing — the first unanswered —
+ * so the picture the wall was asking about is the one that comes up.
+ *
+ * Answering advances to the next take still waiting rather than the next take,
+ * which is what makes twelve verdicts twelve keystrokes.
+ */
+function RunLightbox({
+  item,
+  quietMs,
+  closing,
+  onAnswer,
+  onDismiss,
+  ...rest
+}: {
+  item: WallItem
+  now: number
+  quietMs: number
+  closing: boolean
+  onClose: () => void
+  onAnswer: (answer: { choice?: string; text: string; take: string }) => void
+  onDismiss: (take: string) => void
+}) {
+  const takes = item.takes ?? []
+  const [atId, setAtId] = useState(() => posterTake(takes)?.id)
+  const found = takes.findIndex((t) => t.id === atId)
+  const at = found === -1 ? 0 : found
+  const take = takes[at]
+  const go = useCallback(
+    (by: number) => {
+      const next = takes[Math.min(takes.length - 1, Math.max(0, at + by))]
+      if (next) setAtId(next.id)
+    },
+    [takes, at],
+  )
+
+  // The arrows page the run rather than leaving the card, the same way the
+  // video lightbox claims the space bar: a capture listener, so the wall's own
+  // handler never sees the key.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const target = e.target as HTMLElement | null
+      if (target?.isContentEditable || target?.tagName === 'TEXTAREA' || target?.tagName === 'INPUT')
+        return
+      const by = e.key === 'ArrowLeft' || e.key === 'PageUp' ? -1 : e.key === 'ArrowRight' || e.key === 'PageDown' ? 1 : 0
+      if (by === 0) return
+      e.preventDefault()
+      e.stopPropagation()
+      go(by)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [go])
+
+  if (!take) return null
+  const answer = (answer: { choice?: string; text: string }) => {
+    onAnswer({ ...answer, take: take.id })
+    // Advanced from what the run will look like once this reply lands, since it
+    // has not yet: the take just answered is otherwise still the first open one.
+    const closed = takes.map((t) =>
+      t.id === take.id ? { ...t, reply: { status: 'answered' as const, text: '', at: Date.now() } } : t,
+    )
+    const next = nextOpen(closed, take.id)
+    if (next) setAtId(next.id)
+  }
+  return (
+    <>
+      {/* Keyed, so paging the carousel remounts the picture rather than
+          leaving the previous take's zoom and pan over the next one. */}
+      <ImageLightbox
+        key={take.id}
+        {...rest}
+        item={takeItem(item, take)}
+        closing={closing}
+        quietMs={quietMs}
+      />
+      <Ask
+        key={take.id}
+        asked={take}
+        closing={closing}
+        count={countOf(item, at)}
+        onAnswer={answer}
+        onDismiss={() => {
+          onDismiss(take.id)
+          const closed = takes.map((t) =>
+            t.id === take.id ? { ...t, reply: { status: 'dismissed' as const, text: '', at: Date.now() } } : t,
+          )
+          const next = nextOpen(closed, take.id)
+          if (next) setAtId(next.id)
+        }}
+      />
+      <Outs id={take.id} apps={take.apps} links={take.links} />
+      {at > 0 && (
+        <button
+          type="button"
+          className="lightbox__page lightbox__page--prev"
+          aria-label="Previous take"
+          onClick={(e) => {
+            e.stopPropagation()
+            go(-1)
+          }}
+        />
+      )}
+      {at < takes.length - 1 && (
+        <button
+          type="button"
+          className="lightbox__page lightbox__page--next"
+          aria-label="Next take"
+          onClick={(e) => {
+            e.stopPropagation()
+            go(1)
+          }}
+        />
+      )}
+    </>
+  )
+}
+
 /**
  * A DOM overlay either way, not a GL quad: full resolution costs the texture
  * budget nothing here, and right-click-save, copy and drag-to-Finder keep
@@ -789,8 +1033,8 @@ export function Lightbox(props: {
   /** Playing its way out, after a reply. The caller unmounts it once done. */
   closing: boolean
   onClose: () => void
-  onAnswer: (id: string, text: string) => void
-  onDismiss: (id: string) => void
+  onAnswer: (id: string, answer: { choice?: string; text: string; take?: string }) => void
+  onDismiss: (id: string, take?: string) => void
 }) {
   const { quietMs, onAnswer, onDismiss, closing, tint, ...rest } = props
   return (
@@ -800,27 +1044,43 @@ export function Lightbox(props: {
       className="lightbox__tint"
       style={tint ? ({ '--lb-accent': tint } as CSSProperties) : undefined}
     >
-      {rest.item.kind === 'page' ? (
-        <PageLightbox {...rest} closing={closing} />
-      ) : rest.item.kind === 'mesh' ? (
-        // Keyed like the video, so paging from one model to the next builds a
-        // new scene rather than leaving the first one's geometry in it.
-        <MeshLightbox key={rest.item.id} {...rest} closing={closing} />
-      ) : rest.item.kind === 'video' ? (
-        // Keyed, so paging from one video to the next remounts rather than
-        // reusing: the mute is mount state, and without this the second video
-        // inherits the first one's unmute and the wall makes a noise nobody
-        // asked it for.
-        <VideoLightbox key={rest.item.id} {...rest} closing={closing} />
+      {rest.item.kind === 'run' ? (
+        // Keyed on the card, so opening another run starts on its own poster
+        // rather than wherever the last one was left.
+        <RunLightbox
+          key={rest.item.id}
+          {...rest}
+          closing={closing}
+          quietMs={quietMs}
+          onAnswer={(answer) => onAnswer(rest.item.id, answer)}
+          onDismiss={(take) => onDismiss(rest.item.id, take)}
+        />
       ) : (
-        <ImageLightbox {...rest} closing={closing} quietMs={quietMs} />
+        <>
+          {rest.item.kind === 'page' ? (
+            <PageLightbox {...rest} closing={closing} />
+          ) : rest.item.kind === 'mesh' ? (
+            // Keyed like the video, so paging from one model to the next builds
+            // a new scene rather than leaving the first one's geometry in it.
+            <MeshLightbox key={rest.item.id} {...rest} closing={closing} />
+          ) : rest.item.kind === 'video' ? (
+            // Keyed, so paging from one video to the next remounts rather than
+            // reusing: the mute is mount state, and without this the second
+            // video inherits the first one's unmute and the wall makes a noise
+            // nobody asked it for.
+            <VideoLightbox key={rest.item.id} {...rest} closing={closing} />
+          ) : (
+            <ImageLightbox {...rest} closing={closing} quietMs={quietMs} />
+          )}
+          <Ask
+            asked={rest.item}
+            closing={closing}
+            onAnswer={(answer) => onAnswer(rest.item.id, answer)}
+            onDismiss={() => onDismiss(rest.item.id)}
+          />
+          <Outs id={rest.item.id} apps={rest.item.apps} links={rest.item.links} />
+        </>
       )}
-      <Ask
-        item={rest.item}
-        closing={closing}
-        onAnswer={(text) => onAnswer(rest.item.id, text)}
-        onDismiss={() => onDismiss(rest.item.id)}
-      />
     </div>
   )
 }

@@ -147,12 +147,35 @@ export function useWall(): Wall {
                 return rest
               }),
             )
+          } else if (msg.type === 'take') {
+            // The one message that changes an item's pixels after it lands, so
+            // the poster the daemon recomputed rides with it.
+            setItems((prev) =>
+              prev.map((i) =>
+                i.id === msg.id ? { ...i, takes: [...(i.takes ?? []), msg.take], ...msg.poster } : i,
+              ),
+            )
           } else if (msg.type === 'reply') {
             setItems((prev) =>
               prev.map((i) => {
                 if (i.id !== msg.id) return i
-                const { attention: _cleared, ...rest } = i
-                return { ...rest, reply: msg.reply }
+                if (msg.take === undefined) {
+                  const { attention: _cleared, ...rest } = i
+                  return { ...rest, reply: msg.reply }
+                }
+                const takes = (i.takes ?? []).map((t) =>
+                  t.id === msg.take ? { ...t, reply: msg.reply } : t,
+                )
+                // A run stops asking only once nothing in it is waiting, so its
+                // flag survives every answer but the last.
+                const asking = takes.some((t) => t.question !== undefined && t.reply === undefined)
+                const { attention, ...rest } = i
+                return {
+                  ...rest,
+                  ...(asking && attention ? { attention } : {}),
+                  takes,
+                  ...(msg.poster ?? {}),
+                }
               }),
             )
           }

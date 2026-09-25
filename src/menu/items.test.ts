@@ -108,6 +108,36 @@ describe('menuFor on a zone', () => {
     expect(menuFor(zone, { canUndo: false })).toEqual([])
   })
 
+  it('offers each app the sender named, beside the OS default', () => {
+    const menu = menuFor(targetOf(['slopboard', 'a']), {
+      item: item({ apps: [{ name: 'LDView', path: '/p/3001.dat' }, { name: 'Finder', path: '/p' }] }),
+      canUndo: false,
+    })
+    expect(menu.slice(0, 3).map((i) => i.label)).toEqual(['Open', 'Open in LDView', 'Open in Finder'])
+    expect(menu.filter((i) => i.action === 'openInApp').map((i) => i.app)).toEqual([0, 1])
+  })
+
+  it('offers a run the apps of the take it is drawing', () => {
+    const take = (id: string, apps?: { name: string; path: string }[]) => ({
+      id,
+      url: `/img/${id}`,
+      origUrl: `/orig/${id}`,
+      name: id,
+      path: `/slop/inbox/z/${id}.png`,
+      at: 1,
+      w: 10,
+      h: 10,
+      question: 'reads?',
+      ...(apps ? { apps } : {}),
+    })
+    const answered = { ...take('t1', [{ name: 'Wrong', path: '/a' }]), reply: { status: 'answered' as const, text: '', at: 2 } }
+    const menu = menuFor(targetOf(['slopboard', 'a']), {
+      item: item({ kind: 'run', takes: [answered, take('t2', [{ name: 'LDView', path: '/b' }])] }),
+      canUndo: false,
+    })
+    expect(menu.filter((i) => i.action === 'openInApp').map((i) => i.label)).toEqual(['Open in LDView'])
+  })
+
   it('leaves a card menu alone', () => {
     const card = menuFor(targetOf(['slopboard', 'a']), { item: item(), canUndo: false, zoneCount: 30 })
     expect(card.map((i) => i.action)).not.toContain('expireZone')

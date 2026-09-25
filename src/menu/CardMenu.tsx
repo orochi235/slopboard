@@ -48,7 +48,7 @@ export function CardMenu({
   look: StackParams['menu']
   /** The app-wide parallax gate. The menu has no flag of its own. */
   allowParallax: boolean
-  onAct: (action: Action) => void
+  onAct: (action: Action, app?: number) => void
   onClose: () => void
 }) {
   const items = menuFor(at.target, { item, canUndo, zoneCount, zonePinned, armed })
@@ -127,7 +127,7 @@ export function CardMenu({
         e.preventDefault()
         e.stopPropagation()
         const chosen = items[active]
-        if (chosen) onAct(chosen.action)
+        if (chosen) onAct(chosen.action, chosen.app)
       }
     }
     window.addEventListener('keydown', onKey, true)
@@ -188,7 +188,7 @@ export function CardMenu({
             role="menuitem"
             tabIndex={-1}
             onPointerEnter={() => setActive(i)}
-            onClick={() => onAct(entry.action)}
+            onClick={() => onAct(entry.action, entry.app)}
           >
             {/* The row is the plane the highlight paints on; the label is
                 lifted clear of it. Depth in delamin8r only runs toward the

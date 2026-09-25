@@ -1,4 +1,5 @@
 import type { WallItem } from '@shared/protocol.ts'
+import { posterTake } from '@shared/runs.ts'
 
 /** What the pointer was over. The chain `chainAt` returns, named. */
 export type Target =
@@ -8,6 +9,9 @@ export type Target =
 
 export type Action =
   | 'open'
+  /** One of the apps the sender offered. Which one is `Item.app`, since the
+   *  actions are otherwise a closed set and an app is the sender's to name. */
+  | 'openInApp'
   | 'pin'
   | 'unpin'
   /** Held at the top of the wall, or let back into the order. A zone's own
@@ -27,6 +31,8 @@ export type Action =
 export type Item = {
   action: Action
   label: string
+  /** Which offered app this row opens, by position. Only on `openInApp`. */
+  app?: number
   /** Set on the one action that takes something away, so the menu can mark it
    *  without knowing which action that is. */
   grave?: boolean
@@ -61,6 +67,12 @@ export function menuFor(
   const items: Item[] = []
   if (target.kind === 'card' && ctx.item) {
     items.push({ action: 'open', label: 'Open' })
+    // The sender's own apps beside the OS default, for the take the card is
+    // drawing — which for a run is the one the viewer is being asked about.
+    const offered = (posterTake(ctx.item.takes ?? []) ?? ctx.item).apps ?? []
+    offered.forEach((app, at) =>
+      items.push({ action: 'openInApp', label: `Open in ${app.name}`, app: at }),
+    )
     items.push(
       ctx.item.keptAt
         ? { action: 'unpin', label: 'Unpin' }

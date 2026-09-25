@@ -9,6 +9,7 @@ export const KINDS = [
   { key: 'page', label: 'page' },
   { key: 'video', label: 'video' },
   { key: 'mesh', label: 'mesh' },
+  { key: 'run', label: 'run' },
 ] as const
 
 export type KindKey = (typeof KINDS)[number]['key']

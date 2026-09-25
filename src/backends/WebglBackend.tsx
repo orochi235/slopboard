@@ -12,6 +12,7 @@ import {
 import * as THREE from 'three'
 import type { Rect } from 'windease'
 import { actions } from '@/actions.ts'
+import { posterTake, runBadge } from '@shared/runs.ts'
 import type { Arrangement, SlopChannels } from '@/arrangements/index.ts'
 import { frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { frameExtent, framePose, type Pose } from '@/camera/frame.ts'
@@ -165,6 +166,9 @@ const PIN_GLYPH = '📌'
  *  lightbox, which plays or turns it. */
 const PLAYS_GLYPH = '▶'
 const MESH_GLYPH = '⬡'
+/** A card that stands for many pictures rather than one, with how far through
+ *  them the poster is. Two sheets, because that is what a run is. */
+const RUN_GLYPH = '⧉'
 
 const BADGE_LIFT = 0.002
 
@@ -1042,14 +1046,16 @@ function Wall({
     // mesh is not played at all and says so with its own.
     const playsText = new Map(
       current.items
-        .filter((i) => i.frames || i.kind === 'video' || i.kind === 'mesh')
+        .filter((i) => i.frames || i.kind === 'video' || i.kind === 'mesh' || i.kind === 'run')
         .map((i) => [
           i.id,
-          i.kind === 'mesh'
-            ? MESH_GLYPH
-            : i.duration
-              ? `${PLAYS_GLYPH} ${formatClock(i.duration)}`
-              : PLAYS_GLYPH,
+          i.kind === 'run'
+            ? `${RUN_GLYPH} ${runBadge(i)}`
+            : i.kind === 'mesh'
+              ? MESH_GLYPH
+              : i.duration
+                ? `${PLAYS_GLYPH} ${formatClock(i.duration)}`
+                : PLAYS_GLYPH,
         ]),
     )
     // A chip annotates its subject, so it shrinks when the camera closes on
@@ -2104,6 +2110,9 @@ export function WebglBackend(props: Props) {
   const [closing, setClosing] = useState<string | null>(null)
   const openCard = useRef(card)
   openCard.current = card
+  /** The artifact the lightbox is showing, for the callbacks below, which are
+   *  bound once and so cannot read it from the render. Set where `lit` is. */
+  const openItem = useRef<WallItem | null>(null)
   const leaving = useRef<ReturnType<typeof setTimeout>[]>([])
   useEffect(() => () => leaving.current.forEach(clearTimeout), [])
   const leaveAfterReply = useCallback((id: string) => {
@@ -2149,19 +2158,29 @@ export function WebglBackend(props: Props) {
     turning.current = requestAnimationFrame(tick)
   }, [onParams])
 
+  // A run holds the lightbox open until nothing in it is waiting: a reply to
+  // the third of twelve takes is not a reason to put the viewer back on the
+  // wall. `lit` is read through a ref because these are bound once.
+  const lastOpenQuestion = useCallback((id: string, take?: string) => {
+    const item = openItem.current
+    if (item?.id !== id || item.kind !== 'run') return true
+    const waiting = (item.takes ?? []).filter((t) => t.question !== undefined && t.reply === undefined)
+    return waiting.length <= 1 && (take === undefined || waiting[0]?.id === take)
+  }, [])
   const answer = useCallback(
-    (id: string, text: string) => {
-      actions.answer(id, text)
-      leaveAfterReply(id)
+    (id: string, reply: { choice?: string; text: string; take?: string }) => {
+      actions.answer(id, reply)
+      if (lastOpenQuestion(id, reply.take)) leaveAfterReply(id)
     },
-    [leaveAfterReply],
+    [lastOpenQuestion, leaveAfterReply],
   )
   const dismissInLightbox = useCallback(
-    (id: string) => {
-      dismiss(id)
-      leaveAfterReply(id)
+    (id: string, take?: string) => {
+      if (take === undefined) dismiss(id)
+      else actions.dismiss(id, 'close', take)
+      if (lastOpenQuestion(id, take)) leaveAfterReply(id)
     },
-    [dismiss, leaveAfterReply],
+    [dismiss, lastOpenQuestion, leaveAfterReply],
   )
 
   /** What the band counts: the pile you are inside, or the whole wall. The
@@ -2191,6 +2210,7 @@ export function WebglBackend(props: Props) {
   /** The item the lightbox is showing. From `props.items` rather than the
    *  fake-flag overlay, so the meta line reports the wall, not the rehearsal. */
   const lit = card === null ? null : (props.items.find((i) => i.id === card) ?? null)
+  openItem.current = lit
 
   // An arrival loud enough to open itself. It goes through the same dispatch a
   // click does, so Escape leaves it exactly the way it leaves a card you opened
@@ -2236,7 +2256,7 @@ export function WebglBackend(props: Props) {
   const zoneCount = menuZone === null ? 0 : items.filter((i) => i.zone === menuZone).length
 
   const act = useCallback(
-    (action: Action) => {
+    (action: Action, app?: number) => {
       const target = menu?.target
       // Two clicks, not a `confirm()`: a browser modal blocks the page's event
       // loop, and this is the one action that can take a whole zone.
@@ -2263,6 +2283,12 @@ export function WebglBackend(props: Props) {
       if (target?.kind !== 'card') return
       const id = target.id
       if (action === 'open') return void dispatch({ type: 'to', path: [target.zone, id] })
+      if (action === 'openInApp' && menuItem && app !== undefined) {
+        // A run's apps belong to the take on the card, so the open is addressed
+        // to that take rather than to the card that is drawing it.
+        const shown = posterTake(menuItem.takes ?? [])
+        return actions.openInApp(shown?.id ?? id, app)
+      }
       if (action === 'dismiss') return dismiss(id)
       if (action === 'copyArtifact' && menuItem)
         return void copyArtifact(menuItem).catch((e) => console.warn('[menu] copy failed', e))
