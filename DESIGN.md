@@ -446,9 +446,20 @@ rung added later costs it nothing. What a rung *means* — which box the camera
 frames, whether it draws in the scene or raises an overlay — stays with the
 renderer, which has to be taught a new rung's geometry regardless.
 
-**One rung per gesture, and either across or down, never both.** Wheel, pinch
-and click all spend themselves through `stepToward`, and inward targets whatever
-is under the cursor rather than whatever has focus. A cursor over a different
+**A click at the wall opens the zone's top card, not the pile.** The wall
+already answers "which zone is producing" by being looked at, so a click on one
+is asking the next question — what did it make. Spending that click on a rung
+means clicking twice before anything can be read, and the first of the two shows
+a pile the eye had already taken in. So a click anywhere on a zone — its
+backdrop, its front card, or a card buried in it — lands on that zone's top
+card, and `reduceView` remembers the wall as where the jump began, so closing
+the lightbox goes back there rather than into the pile. **Shift keeps the rung**,
+for when the pile itself is the thing being looked at, and the double-click that
+opens the prefs sheet lives behind shift with it.
+
+**One rung per gesture otherwise, and either across or down, never both.**
+Wheel, pinch and a shift-click all spend themselves through `stepToward`, and
+inward targets whatever is under the cursor rather than whatever has focus. A cursor over a different
 pile spends the step moving there; only the next one descends, so the camera
 never arrives somewhere the eye did not watch it travel. Reachable mostly at the
 wall: once a pile has focus the framing leaves little of its neighbours on
@@ -554,7 +565,8 @@ against every arrangement.
   `srgb()` in `sky.ts` keeps the value raw. The zone hatch still uses
   `Color.set` and reads darker than its palette entry says.
 - **Preferences have two surfaces** — the corner panel and a sheet on `,`, and
-  a double-click on any zone's bare backdrop opens the sheet too —
+  a shift-double-click on any zone's bare backdrop opens the sheet too (behind
+  shift because a plain click there now opens the zone's top card) —
   rendering one `ParamsBody` so they cannot drift while prefs is still a copy
   of params. The sheet's left column leads with `general`, then lists surfaces
   with six areas of the wall nested under `params` — piles, cards, flags,

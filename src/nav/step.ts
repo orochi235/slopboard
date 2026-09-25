@@ -18,3 +18,30 @@ export function stepToward(
 
   return target.length > path.length ? target.slice(0, path.length + 1) : null
 }
+
+/**
+ * Where a click lands, which at the wall is not one rung.
+ *
+ * The wall answers "which zone is producing" by being looked at, so a click on
+ * one is already asking the next question — what did it make. Spending that
+ * click on a rung means clicking twice before anything can be read, and the
+ * first of the two shows a pile the eye had already taken in. So a click
+ * anywhere on a zone, its backdrop or any card in it opens that zone's top
+ * card, and `shift` keeps the rung for the times the pile itself is the thing
+ * being looked at.
+ *
+ * Only at the wall: every deeper view steps, and the lightbox is the floor.
+ */
+export function clickToward(
+  path: readonly string[],
+  chain: readonly string[],
+  frontOf: (zone: string) => string | undefined,
+  shift = false,
+): readonly string[] | null {
+  const zone = chain[0]
+  if (shift || path.length !== 0 || zone === undefined) return stepToward(path, chain)
+  const front = frontOf(zone)
+  // A zone with nothing in it has no top card to open, so the click falls back
+  // to focusing the pile rather than doing nothing at all.
+  return front === undefined ? [zone] : [zone, front]
+}

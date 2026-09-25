@@ -63,7 +63,7 @@ import { liftedHex, liftedTint } from '@/nav/zone-tint.ts'
 import { offscreen, type Box } from '@/nav/whitespace.ts'
 import { ladder, SIDES, solve, type Card, type Group, type Placement, type PlateSize } from '@/nav/ladder.ts'
 import { stepFromDrag } from '@/nav/step-drag.ts'
-import { stepToward } from '@/nav/step.ts'
+import { clickToward, stepToward } from '@/nav/step.ts'
 import { baseCellsOf, unionOf, withHeadroom, zoneCellsOf } from '@/nav/zone-cells.ts'
 import type { StackParams } from '@/params.ts'
 import { createTextureManager } from '@/textures/manager.ts'
@@ -759,8 +759,13 @@ function Wall({
   const stepDrag = useRef(params.nav.dragCardSetsStep)
   stepDrag.current = params.nav.dragCardSetsStep
 
-  const act = useRef({ chainAt, navigate, hoverAt, rankAt, onPrefs })
-  act.current = { chainAt, navigate, hoverAt, rankAt, onPrefs }
+  /** Where a click lands, which at the wall is the zone's top card rather than
+   *  a rung. Held beside `navigate` so the listener sees this render's view. */
+  const clickAt = (chain: readonly string[]) =>
+    clickToward(viewRef.current.path, chain, (zone) => cardsByZone.current.get(zone)?.[0])
+
+  const act = useRef({ chainAt, navigate, hoverAt, rankAt, onPrefs, clickAt })
+  act.current = { chainAt, navigate, hoverAt, rankAt, onPrefs, clickAt }
   /** A click on a zone's cell, held back for DOUBLE_MS in case it turns out to
    *  be the first half of a double. */
   const pendingZone = useRef<number | null>(null)
@@ -866,6 +871,13 @@ function Wall({
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
       if (turned || moved || e.button !== 0) return
       const chain = act.current.chainAt(e.clientX, e.clientY)
+      // At the wall a click opens the zone's top card outright, with no wait:
+      // the pile it would otherwise step to is what the eye has already read.
+      // Shift is the way back to a rung — and to the double-click below it.
+      if (!e.shiftKey && depthOf(viewRef.current) === 0) {
+        const target = act.current.clickAt(chain)
+        return void (target && dispatch({ type: 'to', path: target }))
+      }
       // One rung is a zone's own cell with no card under the pointer — the
       // backdrop. That is the one target that can be double-clicked, so it is
       // the one that waits.
