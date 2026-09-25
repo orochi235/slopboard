@@ -11,5 +11,5 @@ export default defineConfig({
       delamin8r: fileURLToPath(new URL('../delamin8r/src/index.ts', import.meta.url)),
     },
   },
-  test: { include: ['{src,server,shared}/**/*.test.ts', 'hooks/**/*.test.mjs'] },
+  test: { include: ['{src,server,shared}/**/*.test.{ts,tsx}', 'hooks/**/*.test.mjs'] },
 })
