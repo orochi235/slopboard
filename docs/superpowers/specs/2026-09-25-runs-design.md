@@ -124,8 +124,8 @@ holds, then the next unanswered take opens. The last one plays the lightbox
 out, as answering does today.
 
 **`dismiss` sits beside the chips, not among them.** A take you want gone
-without a verdict is not a point on the scale, so it is set off by a gap at the
-end of the row and takes `0` rather than a number in the ramp. It closes that
+without a verdict is not one of the outcomes, so it is set off by a gap at the
+end of the row and takes `0` rather than a key among the chips. It closes that
 take's question with the existing `dismissed` status — so a caller already
 branching on `dismissed` for a question it never got an answer to needs no new
 case — and advances like any other reply.
@@ -197,18 +197,27 @@ lightbox, where there is room to read them.
 that ships.**
 
 ```python
-review(path, question=..., choices=SCALE, why=..., run=..., mode="run") -> Verdict
+review(path, question=..., choices=VERDICTS, why=..., run=..., mode="run") -> Verdict
 ```
 
 `Verdict` is `(status, choice, text)` — `status` because a take can be
 dismissed, in which case there is no choice and the caller decides whether a
-take nobody judged counts as a pass. The default scale is
-`no change, worse, neutral, better, fixed` — passed as five `--choice` flags,
-in that order, which is the order they are drawn and the order the number keys
-take. `no change` leads because it is the null result — the attempt did
-nothing — and the four after it are the ramp of attempts that did something.
-slopboard ships no named scale: a five-point comparative ramp is not the wall's
-vocabulary until a second consumer wants the same one. A first look at a render
+take nobody judged counts as a pass. The default `choices` are
+`no change, worse, neutral, better, fixed`, passed as five `--choice` flags in
+that order.
+
+**They are named outcomes, not points on a scale.** The order is the order they
+are drawn and nothing else: no rank, no distance between neighbors, nothing to
+compare or average. A caller branches on the exact string, which is already the
+rule for choices — `one question, one answer` in `DESIGN.md` — and any
+downstream code that does arithmetic on a verdict is reading a quantity that
+was never sent.
+
+The number keys are positional accelerators for the same reason a menu's are:
+`2` means the second chip, not a value of 2.
+
+slopboard ships no named set of these: a comparative vocabulary is not the
+wall's until a second consumer wants the same one. A first look at a render
 with nothing to compare against passes `keep, redo` instead.
 
 Three modes, `run` when `--review` is bare:
