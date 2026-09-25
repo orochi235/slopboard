@@ -25,7 +25,10 @@ Opening it is a carousel: `←`/`→` page the takes, the question panel sits un
 the picture with its choices as chips and a free-text box beneath them, and a
 chip click — or its number key — sends the verdict and opens the next
 unanswered take. Twelve verdicts is twelve keystrokes without leaving the
-lightbox.
+lightbox, and `0` drops one without a verdict.
+
+Under the chips sits the way out of the wall: `Open in LDView`, and a link to
+whatever the sender said this take is about.
 
 In brick-icons, `brick-icons render --review PART...` sends the run and prints
 the verdicts when it closes. `brick_icons.review.review()` is the same thing
@@ -53,6 +56,11 @@ export type Take = {
   /** The free-text box's placeholder. Absent means the take offers no box. */
   why?: string
   reply?: Reply
+  /** Apps the sender offered, by `open -a` name, each with the file to hand
+   *  it. The wall may ask the daemon for one of these and no other. */
+  apps?: { name: string; path: string }[]
+  /** Somewhere on the web this take came from or points at. */
+  links?: { label: string; url: string }[]
 }
 ```
 
@@ -115,6 +123,18 @@ there is no state in which the wall must guess whether you are done.
 holds, then the next unanswered take opens. The last one plays the lightbox
 out, as answering does today.
 
+**`dismiss` sits beside the chips, not among them.** A take you want gone
+without a verdict is not a point on the scale, so it is set off by a gap at the
+end of the row and takes `0` rather than a number in the ramp. It closes that
+take's question with the existing `dismissed` status — so a caller already
+branching on `dismissed` for a question it never got an answer to needs no new
+case — and advances like any other reply.
+
+This is per-take. The lightbox's own dismiss and the flag row's `×` still close
+the whole card, which for a run means every open take at once. Two scopes, and
+the panel says which is which: the chip row's `dismiss` is inside the picture's
+panel, the card's is on the card.
+
 **The answer file gains a third part.** `~/slop/answers/<name>` becomes line 1
 status, line 2 the choice (blank when there is none), line 3 onward the text —
 `sed -n 2p` and `tail -n +3`, so `bin/slop` still needs no JSON parser. `slop
@@ -124,6 +144,45 @@ whole reply, for a caller that wants both fields.
 ⚠️ A question open *across* the daemon restart that ships this misparses its
 answer: line 2 of an old free-text answer reads as a choice. Restart with no
 open questions, or eat one bad verdict.
+
+### Getting out of the wall
+
+A verdict is often not the end of it: the render is wrong and the next move is
+the source file in the app that made it, or the page that says what the part
+should look like. The lightbox panel carries a row for both.
+
+**`--app "LDView"` offers an app; `--app "LDView=parts/3001.dat"` says what to
+hand it.** Bare, it hands the artifact itself — the same file the existing
+`Open` would have used, but to a named app instead of the OS default. `slop`
+resolves the path at the send, because it is relative to the caller's working
+directory and the daemon does not share it.
+
+**The daemon runs `open -a <name> <path>` and never a command line.** The
+existing `/api/items/:id/open` route takes no path from the browser at all —
+it resolves one the store holds — and this keeps that property: the route takes
+a take and an app *index*, and refuses anything the sender did not name. A
+wall page cannot name an app or a file the artifact did not offer.
+
+What does widen is the store now holding paths outside `~/slop`: the sender
+declares a file in its own repo and the daemon will open it. The sender is the
+same agent that writes into the inbox, so this is inside the existing trust
+boundary rather than past it — but it is the first thing in the store that the
+daemon did not put there, and it is worth knowing that is what changed.
+
+**A failed open toasts.** `open -a` fails when there is no such app, and an
+alert's spawn failure is swallowed today because a missing `afplay` should
+never cost the arrival. A button that silently does nothing is a different
+thing: it says "no app named LDView" in the toast row the alerts already use.
+
+**`--link "part 3001=https://rebrickable.com/parts/3001/"`** adds an anchor;
+without an `=` the label is the URL's host. Repeat either flag for more than
+one. Only `http` and `https` — `slop` refuses anything else at the send, since
+a `file:` link a browser silently blocks is exactly the artifact that wanted
+`--app`.
+
+Both are per-take, and both live in the lightbox. The card's right-click menu
+gains the poster take's apps beside the `Open` already there; links stay in the
+lightbox, where there is room to read them.
 
 ### Protocol
 
@@ -141,7 +200,9 @@ that ships.**
 review(path, question=..., choices=SCALE, why=..., run=..., mode="run") -> Verdict
 ```
 
-`Verdict` is `(choice, text)`. The default scale is
+`Verdict` is `(status, choice, text)` — `status` because a take can be
+dismissed, in which case there is no choice and the caller decides whether a
+take nobody judged counts as a pass. The default scale is
 `worse, no change, neutral, better, fixed` — passed as five `--choice` flags.
 slopboard ships no named scale: a five-point comparative ramp is not the wall's
 vocabulary until a second consumer wants the same one. A first look at a render
@@ -189,5 +250,9 @@ and deciding it later is a caller change rather than a protocol one.
   free-text answer whose first line would otherwise read as a choice.
 - The lightbox carousel: number keys submit with the box's contents, answering
   advances to the next *unanswered* take rather than the next one, the last
-  answer closes.
+  answer closes, and `0` dismisses one take without touching the others.
+- The open route refuses an app the take did not offer, and refuses a path the
+  sender did not declare — the property the existing route has and this must
+  not lose.
+- `slop` refuses a `file:` or `javascript:` link at the send.
 - The helper against a fake `slop` on `PATH`, one mode each.
