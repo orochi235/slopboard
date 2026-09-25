@@ -203,7 +203,10 @@ review(path, question=..., choices=SCALE, why=..., run=..., mode="run") -> Verdi
 `Verdict` is `(status, choice, text)` — `status` because a take can be
 dismissed, in which case there is no choice and the caller decides whether a
 take nobody judged counts as a pass. The default scale is
-`worse, no change, neutral, better, fixed` — passed as five `--choice` flags.
+`no change, worse, neutral, better, fixed` — passed as five `--choice` flags,
+in that order, which is the order they are drawn and the order the number keys
+take. `no change` leads because it is the null result — the attempt did
+nothing — and the four after it are the ramp of attempts that did something.
 slopboard ships no named scale: a five-point comparative ramp is not the wall's
 vocabulary until a second consumer wants the same one. A first look at a render
 with nothing to compare against passes `keep, redo` instead.
