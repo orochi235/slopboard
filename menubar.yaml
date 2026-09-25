@@ -81,8 +81,9 @@ menu:
   - each: zones.data.zones
     when: "zones.ok"
     text: "{{it.zone}} — {{it.items}}"
-    # The sfkey in the zone's project's .hued, which most projects do not set.
-    icon: "{{it.icon != '' ? it.icon : 'folder'}}"
+    # The sfkey in the zone's project's .hued. Most projects do not set one,
+    # and an empty name draws no icon.
+    icon: "{{it.icon}}"
     open: "{{it.path}}"
   - separator
   - text: Undo last expiry

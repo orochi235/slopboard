@@ -134,7 +134,7 @@ func renderMenu(_ results: Results) -> [MenuNode] {
     menu.append(.separator)
     for it1 in results.zones.data.zones {
         if results.zones.ok {
-            menu.append(.item("\(it1.zone) — \(String(it1.items))", .open("\(it1.path)"), icon: MenuIcon.symbol("\(((it1.icon != "") ? it1.icon : "folder"))")))
+            menu.append(.item("\(it1.zone) — \(String(it1.items))", .open("\(it1.path)"), icon: MenuIcon.symbol("\(it1.icon)")))
         }
     }
     menu.append(.separator)
