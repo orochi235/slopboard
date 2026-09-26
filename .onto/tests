@@ -1,4 +1,7 @@
+enlist: 2
 run: npm run typecheck && npm test
+# No `runner:`: its reporter goes on the end of `run:`, so `run:` must be one
+# command. A package script ending in `vitest run` would carry it.
 setup: npm ci
 
 # The gate is both halves. `npm test` alone passes on a tree that does not
