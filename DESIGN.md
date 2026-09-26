@@ -1016,6 +1016,14 @@ the compositor with them: stutter, then black planes, then a hang.
 with a separate profile. Without a `webglcontextlost` handler the wall goes black
 overnight and reads as a crash. Handle it and rebuild.
 
+**The watcher and synth tests are timing budgets, so a loaded box fails them.**
+`server/watchTree`, `server/watchInbox` and `server/synth` wait on a real file
+landing through a real watcher, or on sharp writing real PNGs, against a 4s
+`waitFor` and vitest's 5s default. `vitest run` spawns a worker per file — 101
+of them — so on a machine already busy the failures wander between those three
+files from run to run and each one passes alone. A wandering set is contention,
+not a regression; run the file on its own before believing it.
+
 **Idle.** As described the wall renders at 60fps forever at a monitor nobody is
 watching. Drop to a low tick when nothing is animating and no pointer is present.
 
