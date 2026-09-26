@@ -21,7 +21,7 @@ const proxy = { target: daemon, ws: true, changeOrigin: false }
 
 export default defineConfig({
   plugins: [react()],
-  // A literal, not a lookup on `import.meta.env`: rollup has to see `false`
+  // A literal, not a lookup on `import.meta.env`: the bundler has to see `false`
   // to drop the demo branch, and with it the daemon and forty pictures. An
   // env var read at runtime keeps all of it in the ordinary bundle.
   define: {
