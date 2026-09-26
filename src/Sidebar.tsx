@@ -293,7 +293,13 @@ export function Sidebar({
   }
 
   return (
-    <aside className="sidebar" aria-label="Wall sidebar">
+    // `data-wzl-portal-host` and the skin sit together on purpose: a weasel
+    // overlay portals into the nearest ancestor carrying one, and resolves its
+    // `--wzl-*` there. On the body — the default — it paints no surface at all,
+    // so a dropdown opens as bare text over the wall. The sidebar is the
+    // highest element the panels share and nothing delaminates it, so an
+    // overlay hosted here is never under a plane's transform.
+    <aside className="sidebar wzl-skin" data-wzl-portal-host aria-label="Wall sidebar">
       <header className="sidebar__head">
         <span className="sidebar__title">slopboard</span>
         <button

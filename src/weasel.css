@@ -35,6 +35,24 @@
   --wzl-radius-pill: 999px;
   --wzl-motion-fast: 120ms;
   --wzl-font-ui: inherit;
+  /* A dropdown's list leaves the panel it belongs to and floats over the
+     stars, so its surface is opaque where the panels themselves are scrim.
+     Everything below is read only by an overlay: a select's list, its hovered
+     option, the rule between option groups. Left unset they resolve to
+     nothing — a list with no backdrop, no padding and no separator. */
+  --wzl-surface: color-mix(in srgb, var(--bg) 94%, var(--ink));
+  --wzl-surface-raised: color-mix(in srgb, var(--bg) 90%, var(--ink));
+  --wzl-surface-hover: color-mix(in srgb, var(--ink) 12%, transparent);
+  --wzl-line-subtle: color-mix(in srgb, var(--muted) 20%, transparent);
+  --wzl-radius-md: 4px;
+  --wzl-space-1: 2px;
+  --wzl-space-2: 4px;
+  --wzl-space-3: 6px;
+  --wzl-space-4: 8px;
+  --wzl-font-weight-medium: 500;
+  /* The wall scales its whole chrome from one dial, so a size in px here would
+     be the one thing that did not move with it. */
+  --wzl-font-size: inherit;
 }
 
 /* The row's readout is sized `calc(5em - 24px)` against a larger base font than

@@ -116,7 +116,7 @@ export function ZoneConfig({
       {/* Classes in here are static and state rides on attributes: delamin8r
           writes `dl-plane` onto these elements, and React setting `className`
           strips it. */}
-      <div className="zcfg__sheet wzl-skin">
+      <div className="zcfg__sheet wzl-skin" data-wzl-portal-host>
         <div className="zcfg__head" data-dl-lift="1">
           <span className="zcfg__title">{zone}</span>
           <button type="button" className="zcfg__close" onClick={onClose} aria-label="Close">
