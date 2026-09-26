@@ -514,8 +514,10 @@ function Wall({
   const move = useRef<Move | null>(null)
   const pose = useRef<Pose>({ x: 0, y: 0, distance: 2, halfHeight: 0.5 })
   /** The camera the plate hunt projects through: the live one's twin, posed
-   *  where the current move lands rather than where it is mid-ease. */
-  const seekCamera = useMemo(() => camera.clone(), [camera])
+   *  where the current move lands rather than where it is mid-ease. Held as
+   *  the base class because either projection can be live, and three's
+   *  `copy` is typed per subclass — the clone is whichever kind it copied. */
+  const seekCamera = useMemo<THREE.Camera>(() => camera.clone(), [camera])
 
   const [live, setLive] = useState<string[]>([])
   const liveRef = useRef<string[]>([])
