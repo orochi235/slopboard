@@ -8,6 +8,9 @@
 .wzl-skin {
   --wzl-accent: var(--accent);
   --wzl-accent-strong: color-mix(in srgb, var(--accent) 80%, white);
+  /* Accent as text, read by the property readouts. Unset it and they paint
+     `currentColor`, because the wall does not load weasel's tokens.css. */
+  --wzl-accent-fg: var(--wzl-accent-strong);
   --wzl-fg: var(--ink);
   --wzl-fg-muted: var(--muted);
   --wzl-fg-inverse: var(--bg);

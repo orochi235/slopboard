@@ -1,4 +1,4 @@
-import { PropertyList, SelectRow } from '@weasel-js/ui'
+import { PropertyField, PropertyList } from '@weasel-js/ui'
 import { ttlOptions } from '@/wall-settings.ts'
 import './params.css'
 
@@ -11,7 +11,8 @@ export function WallBody({ ttlMs, onTtl }: { ttlMs: number; onTtl: (ms: number) 
   return (
     <div className="params__group" data-open="">
       <PropertyList>
-        <SelectRow
+        <PropertyField
+          kind="enum"
           label="lifetime"
           layout="inline"
           value={String(ttlMs)}

@@ -19,8 +19,8 @@
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",
-    "@weasel-js/core": "^1.4.4",
-    "@weasel-js/ui": "^1.4.4",
+    "@weasel-js/core": "^1.6.1",
+    "@weasel-js/ui": "^1.6.1",
     "chokidar": "^4.0.3",
     "delamin8r": "^0.2.1",
     "express": "^5.1.0",

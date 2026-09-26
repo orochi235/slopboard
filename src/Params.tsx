@@ -1,13 +1,5 @@
 import { Fragment, useRef, useState } from 'react'
-import {
-  CheckboxRow,
-  ColorRow,
-  NumberRow,
-  PropertyList,
-  PropertyRow,
-  SelectRow,
-  Slider,
-} from '@weasel-js/ui'
+import { PropertyField, PropertyList, PropertyRow, Slider } from '@weasel-js/ui'
 import type { Backdrop } from '@shared/backdrops.ts'
 import { BackdropRuling } from '@/BackdropRuling.tsx'
 import { BackdropSwatches } from '@/BackdropSwatches.tsx'
@@ -232,7 +224,8 @@ export function ParamsBody({
                     )
                   }
                   return (
-                    <SelectRow
+                    <PropertyField
+                      kind="enum"
                       key={control.path}
                       label={label}
                       layout="inline"
@@ -249,11 +242,18 @@ export function ParamsBody({
                   )
                 case 'color':
                   return (
-                    <ColorRow key={control.path} label={label} value={String(value)} onChange={set} />
+                    <PropertyField
+                      kind="color"
+                      key={control.path}
+                      label={label}
+                      value={String(value)}
+                      onChange={set}
+                    />
                   )
                 case 'toggle':
                   return (
-                    <CheckboxRow
+                    <PropertyField
+                      kind="boolean"
                       key={control.path}
                       label={label}
                       value={value === true}
@@ -262,7 +262,8 @@ export function ParamsBody({
                   )
                 case 'number':
                   return (
-                    <NumberRow
+                    <PropertyField
+                      kind="number"
                       key={control.path}
                       label={label}
                       layout="inline"

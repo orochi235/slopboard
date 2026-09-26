@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CheckboxRow, ColorRow, PropertyList, SelectRow } from '@weasel-js/ui'
+import { PropertyField, PropertyList } from '@weasel-js/ui'
 import { delaminate } from 'delamin8r'
 import type { Backdrop } from '@shared/backdrops.ts'
 import { isEternal, type Lifetime } from '@shared/lifetime.ts'
@@ -125,7 +125,8 @@ export function ZoneConfig({
         </div>
         <div className="zcfg__body" data-dl-lift="1">
           <PropertyList>
-            <ColorRow
+            <PropertyField
+              kind="color"
               label="color"
               value={settings.color ?? hued ?? '#888888'}
               onChange={(next) => onChange({ color: next })}
@@ -154,7 +155,8 @@ export function ZoneConfig({
               inherits
               onChange={onChange}
             />
-            <SelectRow
+            <PropertyField
+              kind="enum"
               label="lifetime"
               layout="inline"
               value={settings.lifetime === undefined ? INHERIT : String(settings.lifetime)}
@@ -168,7 +170,7 @@ export function ZoneConfig({
                 if (next !== null) onChange({ lifetime: next })
               }}
             />
-            <CheckboxRow label="pinned to the top" value={pinned} onChange={onPin} />
+            <PropertyField kind="boolean" label="pinned to the top" value={pinned} onChange={onPin} />
           </PropertyList>
 
           {settings.color !== undefined && (
