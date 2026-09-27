@@ -154,30 +154,8 @@
   --wzl-border: color-mix(in srgb, var(--muted) 30%, transparent);
 }
 
-/* One kind per line: there are at most five, and stacked they read as a key
-   to what is on the wall rather than as a strip of controls. */
-.topbar__kinds {
-  display: grid;
-  gap: 3px;
-}
-
 /* The count is the part that changes as artifacts land, so it goes last in the
    row and takes the slack — a growing tally must not shove the label. */
-.topbar__kind {
-  display: flex;
-  gap: 8px;
-  text-align: left;
-  /* No box: a bucket is one of a row of alternatives, where the outline says
-     where one ends and the next begins. These are a stacked list of toggles
-     and read as rows without it. Pressed still fills. */
-  background: none;
-  border-color: transparent;
-}
-
-.topbar__kind:hover {
-  border-color: transparent;
-}
-
 .topbar__kind .topbar__count {
   margin-inline-start: auto;
   text-align: end;

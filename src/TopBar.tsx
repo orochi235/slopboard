@@ -223,20 +223,22 @@ export function TopBar({
           that filters nothing still has to be read before it can be ignored. */}
       {tally.length > 0 && (
         <Panel name="type" tight>
-          <div className="topbar__kinds">
+          {/* The sort's rows, so the two panels beside each other read as one
+              list: the name against the left wall, its tally against the
+              right, where the sort keeps its keys. */}
+          <PanelRows>
             {tally.map((kind) => (
-              <button
+              <PanelRow
                 key={kind.key}
-                type="button"
-                className="topbar__bucket topbar__kind"
-                aria-pressed={kinds.has(kind.key)}
-                onClick={() => onKind(kind.key)}
+                className="topbar__kind"
+                selected={kinds.has(kind.key)}
+                onSelect={() => onKind(kind.key)}
               >
                 <span>{kind.label}</span>
                 <span className="topbar__count">{kind.count}</span>
-              </button>
+              </PanelRow>
             ))}
-          </div>
+          </PanelRows>
         </Panel>
       )}
 
