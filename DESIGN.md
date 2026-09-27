@@ -1117,6 +1117,21 @@ Base64-over-WebSocket hitches every time a render lands.
   `transom wire` already enrolls a machine; run inside a repo it should also enroll that
   repo, writing a settings file the daemon and `transom` read. A repo that never
   runs it keeps today's defaults and still joins on its first render.
+- **Per-repo settings — decided, not built.** One `.transom.yaml` at the repo
+  root, committed with the repo, checked against a JSON Schema that transom
+  ships and the Pages site hosts, so the file's first line can point
+  `yaml-language-server` at it the way `menubar.yaml` does. The schema is the
+  one definition of the file and rejects unknown keys, which is also what makes
+  YAML's implicit typing safe here: `zone: 1.10` fails `type: string` instead
+  of becoming a number. Only node reads it. The daemon finds it through the
+  root the zone record already carries (`~/slop/zones/<zone>.json`), and
+  `transom post` asks a node helper only when the file exists, so a repo
+  without one sends as fast as before. A flag beats the file, and the file
+  beats the wall's own settings. It holds the zone name, `show: preview`
+  (then `transom post` opens the file locally, and the `CLAUDE.md` exception
+  blocks go away), default lifetime and *Open in…* apps, the loudest attention
+  level and whether it may sound, and what happens to unsent marks. Color and
+  icon stay in `.hued`.
 
 ## Running it
 
