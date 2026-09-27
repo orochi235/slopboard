@@ -17,7 +17,10 @@ import { homedir } from 'node:os'
 import path from 'node:path'
 
 const MARKER = 'slopboard'
-const REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
+// node resolves the entry script's symlinks, so under Homebrew this file sees the
+// versioned Cellar path; the formula points SLOPBOARD_HOME at the stable opt path.
+const REPO = process.env.SLOPBOARD_HOME
+  ?? path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const HOME = homedir()
 
 const args = new Set(process.argv.slice(2))
