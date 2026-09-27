@@ -167,6 +167,15 @@
   display: flex;
   gap: 8px;
   text-align: left;
+  /* No box: a bucket is one of a row of alternatives, where the outline says
+     where one ends and the next begins. These are a stacked list of toggles
+     and read as rows without it. Pressed still fills. */
+  background: none;
+  border-color: transparent;
+}
+
+.topbar__kind:hover {
+  border-color: transparent;
 }
 
 .topbar__kind .topbar__count {

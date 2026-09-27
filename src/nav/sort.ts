@@ -5,9 +5,9 @@ import type { WallItem } from '@shared/protocol.ts'
  *  sidebar's flag list together, so the two can never disagree about what is
  *  at the top. */
 export const SORTS = [
-  { key: 'project', label: 'project' },
+  { key: 'project', label: 'stack' },
   { key: 'severity', label: 'priority' },
-  { key: 'recency', label: 'recency' },
+  { key: 'recency', label: 'age' },
 ] as const
 
 export type SortKey = (typeof SORTS)[number]['key']
