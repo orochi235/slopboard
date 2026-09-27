@@ -2,6 +2,9 @@
   "name": "transom",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "dev": "concurrently -n daemon,client -c cyan,magenta \"npm:dev:daemon\" \"npm:dev:client\"",
     "dev:daemon": "node tools/free-port.mjs 8787 && tsx watch server/index.ts",
