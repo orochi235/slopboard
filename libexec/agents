@@ -57,7 +57,16 @@ PLIST
 
 each() { for label in "$base.daemon" "$base.client"; do "$1" "$label"; done; }
 boot()   { launchctl bootstrap "$domain" "$agents/$1.plist" 2>/dev/null || true; }
-unboot() { launchctl bootout "$domain/$1" 2>/dev/null || true; }
+# bootout returns before launchd has let go of the label, and a bootstrap in
+# that window fails, which left a second `install` with nothing loaded.
+unboot() {
+  launchctl bootout "$domain/$1" 2>/dev/null || true
+  tries=0
+  while launchctl print "$domain/$1" >/dev/null 2>&1 && [ $tries -lt 50 ]; do
+    sleep 0.1
+    tries=$((tries + 1))
+  done
+}
 kick()   { launchctl kickstart -k "$domain/$1" >/dev/null 2>&1 || true; }
 
 case "${1:-stat}" in
