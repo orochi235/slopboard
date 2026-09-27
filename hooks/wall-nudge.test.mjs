@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  candidates, excepted, isImage, message, onWall, pathsInCommand, sent, toNudge,
+  candidates, excepted, isImage, marksMessage, marksWaiting, message, onWall, pathsInCommand, sent,
+  toNudge,
 } from './wall-nudge.mjs'
 
 let dir
@@ -142,5 +143,36 @@ describe('message', () => {
   it('pluralizes for several', () => {
     const m = message(['/repo/a.png', '/repo/b.png'], '/repo')
     expect(m).toContain('a.png, b.png are only visible to you')
+  })
+})
+
+describe('marksWaiting', () => {
+  it('is true only while the daemon flags the session', () => {
+    touch('marks/waiting/abc-123')
+    expect(marksWaiting('abc-123', dir)).toBe(true)
+    expect(marksWaiting('other', dir)).toBe(false)
+  })
+  it('is false with no session to look for', () => {
+    expect(marksWaiting(undefined, dir)).toBe(false)
+    expect(marksWaiting('', dir)).toBe(false)
+  })
+  it('cannot be pointed outside the flag directory', () => {
+    touch('marks/waiting/.._x')
+    expect(marksWaiting('../x', dir)).toBe(true)
+    expect(marksWaiting('../../etc/passwd', dir)).toBe(false)
+  })
+})
+
+describe('marksMessage', () => {
+  it('names the render, the picture and what was said', () => {
+    const m = marksMessage([{ caption: 'the sky', image: '/t/marks/a.png', text: 'bluer' }])
+    expect(m).toContain('Your render "the sky" was marked up on the wall')
+    expect(m).toContain('/t/marks/a.png — "bluer"')
+  })
+  it('leaves the text out when there was none', () => {
+    expect(marksMessage([{ caption: 'x', image: '/a.png', text: '' }])).toContain('/a.png. Read')
+  })
+  it('says nothing for nothing claimed', () => {
+    expect(marksMessage([])).toBe('')
   })
 })

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // PostToolUse on Read|Write|Bash: catch an image the agent just made or looked
-// at that never reached the wall. Exits 2 with the nudge on stderr, which
-// Claude Code feeds back to the model.
+// at that never reached the wall, and hand the session any render of its own
+// that was marked up on the wall since its last tool call. Exits 2 with the
+// message on stderr, which Claude Code feeds back to the model.
 //
 // Prose in CLAUDE.md loses to the harness telling every session to write
 // generated files into its scratchpad; this fires after the fact, when the fix
@@ -106,6 +107,43 @@ export function toNudge(paths, { now = Date.now(), seen = {}, root = transomRoot
   return hits
 }
 
+/** The flag the daemon keeps while a drawing waits for this session: one
+ *  `stat` on every tool call, and a request to the daemon only when it is set. */
+export function marksWaiting(session, root = transomRoot()) {
+  if (typeof session !== 'string' || session === '') return false
+  return existsSync(path.join(root, 'marks', 'waiting', session.replace(/[^A-Za-z0-9._-]/g, '_')))
+}
+
+/** Collects what is waiting, which the daemon marks delivered as it hands it
+ *  over. Nothing when the daemon is not answering: the drawing stays pending
+ *  on the wall, and the next tool call asks again. */
+export async function claimMarks(session, port = process.env.TRANSOM_PORT || 8787) {
+  try {
+    const res = await fetch(`http://localhost:${port}/api/marks/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session }),
+      signal: AbortSignal.timeout(2000),
+    })
+    const body = await res.json()
+    return Array.isArray(body?.claimed) ? body.claimed : []
+  } catch {
+    return []
+  }
+}
+
+export function marksMessage(claimed) {
+  return claimed
+    .map((c) => {
+      const said = c.text ? ` — "${c.text}"` : ''
+      return (
+        `Your render "${c.caption}" was marked up on the wall ("No, like this"): ${c.image}${said}. ` +
+        `Read the picture and take the marks as the correction.\n`
+      )
+    })
+    .join('')
+}
+
 export function message(hits, cwd) {
   const names = hits.map((h) => path.relative(cwd || process.cwd(), h) || h)
   const one = names.length === 1
@@ -132,16 +170,17 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     writeSeen(seen)
   }
 
+  const marked = marksWaiting(p?.session_id) ? marksMessage(await claimMarks(p.session_id)) : ''
+
   const paths = candidates(p)
-  if (paths.length === 0) process.exit(0)
-  if (excepted(p?.cwd)) process.exit(0)
+  const hits = paths.length > 0 && !excepted(p?.cwd) ? toNudge(paths, { now, seen }) : []
+  if (hits.length > 0) {
+    for (const h of hits) seen[h] = now
+    writeSeen(seen)
+  }
 
-  const hits = toNudge(paths, { now, seen })
-  if (hits.length === 0) process.exit(0)
-
-  for (const h of hits) seen[h] = now
-  writeSeen(seen)
-
-  process.stderr.write(message(hits, p?.cwd))
+  const out = marked + (hits.length > 0 ? message(hits, p?.cwd) : '')
+  if (out === '') process.exit(0)
+  process.stderr.write(out)
   process.exit(2)
 }
