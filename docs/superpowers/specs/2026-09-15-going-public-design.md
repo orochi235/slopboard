@@ -122,7 +122,7 @@ context on load beside klieg's masthead and the magicsmoke tile.
   string) and `docs/superpowers/plans/HANDOFF.md` (live session state).
 - Seventy British spellings across tracked files, nearly all of them *color* in comments.
 
-`DESIGN.md`, the ten remaining specs and plans, `bin/`, `menubar.yaml` and
+`DESIGN.md`, the remaining specs, `bin/`, `menubar.yaml` and
 `skills/slopboard/` all stay. A tool for agent workflows that hides how it was built
 with one is strictly less interesting.
 
