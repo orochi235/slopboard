@@ -29,7 +29,11 @@ config directory as it goes, and puts three things in front of agents:
 - **The wall-nudge hook** (`hooks/wall-nudge.mjs`), registered as a
   `PostToolUse` entry tagged `transom` in each `settings.json`. It fires when
   an agent reads or creates an image that never reached the wall, and exits 2
-  with a one-line correction, which Claude Code feeds back to the model.
+  with a one-line correction, which Claude Code feeds back to the model. It is
+  also how a render the viewer marked up on the wall comes back: at the
+  sending session's next tool call it says `Your render "<caption>" was marked
+  up on the wall ("No, like this"): <png> — "<text>"`. Read that picture; the
+  marks are the correction.
 - **`transom` on PATH**, symlinked into `~/.local/bin`. Without this, an agent that
   half-remembers the rule types `transom post chart.png`, gets `command not found`, and
   falls back to reporting a path.
@@ -127,6 +131,11 @@ picked up at its next start, provided they are newer than the TTL.
   committed change.
 - **For one conversation only**, skip all of the above and pipe to
   `~/src/transom/bin/transom post --zone <name>` directly; there is nothing to install.
+- **A marked-up render goes back to the session that sent it**, which
+  `transom` records from `CLAUDE_CODE_SESSION_ID` and `CLAUDE_PID`. A `transom
+  ask` still waiting gets it as its reply and exits 5, printing the picture's
+  path and then the text. A session that has exited gets nothing: the wall
+  holds the marks on the card until the viewer discards them.
 - **The hook is a backstop, not the rule.** It fires after an image has already
   been missed. The `CLAUDE.md` bullet is what gets it right the first time, so a
   missing rule is worth fixing even with the hook in place.
