@@ -477,7 +477,7 @@ function ImageLightbox({
         <img
           className={`lightbox__img ${loaded ? 'lightbox__img--in' : ''}`}
           ref={img}
-          src={`/orig/${item.id}`}
+          src={item.origUrl}
           alt=""
           // Suppressed only once the drag means a pan; at fit the native drag
           // to Finder is the more useful of the two.
@@ -727,7 +727,7 @@ function VideoLightbox({
       <video
         className="lightbox__video"
         ref={video}
-        src={`/orig/${item.id}`}
+        src={item.origUrl}
         muted={muted}
         autoPlay
         loop={looping}
