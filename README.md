@@ -41,6 +41,14 @@ image's own metadata: the caption, plus the repo and commit the render ran in.
 ## Running it
 
 ```
+brew install orochi235/tap/slopboard
+wall install                                  # daemon :8787 + page :5183, as LaunchAgents
+wire                                          # skill, hook and `slop` for Claude Code
+```
+
+From a checkout:
+
+```
 npm install
 npm run dev                                   # daemon :8787 + client :5183
 npm run sim -- --rate=600 --count=40          # arrivals/hour; count 0 = forever
