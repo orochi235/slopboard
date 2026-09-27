@@ -39,6 +39,12 @@ export type FrameView = {
    * behind it at every zoom level.
    */
   insetTop?: number
+  /**
+   * How much world width to show, instead of whatever it takes to fit the box.
+   * A wall set this way holds its scale as zones arrive — the row gets longer
+   * rather than finer — and what runs off the sides is reached by panning.
+   */
+  showWidth?: number
 }
 
 /**
@@ -56,7 +62,9 @@ export function framePose(box: Pick<Rect, 'x' | 'y' | 'w' | 'h'>, view: FrameVie
   const insetTop = Math.min(Math.max(view.insetTop ?? 0, 0), 0.9)
   const usableAspect = view.aspect * (1 - insetRight)
   const halfHeight =
-    Math.max(box.h / (1 - insetTop) / 2, box.w / usableAspect / 2) * view.margin
+    view.showWidth === undefined
+      ? Math.max(box.h / (1 - insetTop) / 2, box.w / usableAspect / 2) * view.margin
+      : view.showWidth / usableAspect / 2
   const halfFov = (view.fovDeg * Math.PI) / 360
   // The uncovered part of the canvas is left of its center, so the camera moves
   // right by half the covered width to put the box in the middle of it.

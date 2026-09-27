@@ -4,6 +4,23 @@ import { createSlots } from './slots.ts'
 import type { StackParams } from '@/params.ts'
 
 /**
+ * The box the zone grid is laid out in.
+ *
+ * Normally the viewport: the cells divide it, so a zone's cell shrinks as zones
+ * arrive. With `cellW` set the box grows with the zone count instead, every
+ * cell holds that width, and the row runs off the sides — which only works
+ * where the camera has stopped fitting the wall's width.
+ */
+export function containerFor(
+  zoneCount: number,
+  aspect: number,
+  cfg: StackParams['zoneGrid'],
+): WeSize {
+  if (cfg.cellW === undefined) return { w: aspect, h: 1 }
+  return { w: Math.max(zoneCount, cfg.minCells) * cfg.cellW, h: 1 }
+}
+
+/**
  * Every cell the grid lays out for `count` items, in the order the strategy
  * placed them. Pure, so the wall can ask for the cells of a grid it is not
  * laying out — which is how it frames the room a spare cell reserves without

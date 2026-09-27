@@ -15,10 +15,11 @@ import { actions } from '@/actions.ts'
 import { posterTake, runBadge } from '@shared/runs.ts'
 import { ASK_GLYPH, askChip, asksOf } from '@/asks.ts'
 import type { Arrangement, SlopChannels } from '@/arrangements/index.ts'
-import { frontSlotOf, gridCells } from '@/arrangements/zones.ts'
+import { containerFor, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { frameExtent, framePose, type Pose } from '@/camera/frame.ts'
 import { type Move, poseAt } from '@/camera/move.ts'
 import { orbitOffset } from '@/camera/orbit.ts'
+import { clampPan, revealPan } from '@/camera/pan.ts'
 import { Lightbox } from '@/Lightbox.tsx'
 import { ResetView } from '@/ResetView.tsx'
 import { homeCamera } from '@/camera/home.ts'
@@ -491,6 +492,18 @@ function Wall({
 
   // Each of these is a reason to draw, not an input the effect reads.
   useEffect(() => wake(), [wake, items, params, view, sort, dimmed, zoneColors, zoneSettings, pinnedZones, connected, cursor, fontsReady, backedOff, showBounds])
+
+  // The arrows move the cursor across a row that may be wider than the window,
+  // so the row follows it rather than the cursor walking off the edge.
+  useEffect(() => {
+    if (params.camera.wallShows === undefined || cursor === null) return
+    const cell = bases.current.get(cursor)
+    const box = unionOf([...bases.current.values()])
+    if (!cell || !box) return
+    const halfWidth = pose.current.halfHeight * (window.innerWidth / window.innerHeight)
+    panX.current = revealPan(panX.current, cell, box, halfWidth)
+    wake()
+  }, [cursor, params.camera.wallShows, wake])
   useEffect(() => {
     const events = ['pointermove', 'pointerdown', 'pointerup', 'wheel', 'keydown', 'resize'] as const
     for (const name of events) window.addEventListener(name, wake, { passive: true })
@@ -585,7 +598,7 @@ function Wall({
     // `minCells` would change nothing you can see. Only while zones are short
     // of it: once there are enough, every cell is claimed and the fronts are
     // the whole grid already.
-    const container = { w: aspect, h: 1 }
+    const container = containerFor(zoneNamesRef.current.length, aspect, params.zoneGrid)
     const zones = zoneNamesRef.current
     const spare =
       !flatRef.current && zones.length < params.zoneGrid.minCells
@@ -614,11 +627,19 @@ function Wall({
         margin,
         insetRight: sidebarInset.current,
         insetTop: topInset.current,
+        // Only the wall rung holds a set width; every rung below frames one
+        // cell, which is the thing being looked at rather than a view of many.
+        showWidth: depth === 0 ? params.camera.wallShows : undefined,
       })
     const wallMargin = marginFor(params.camera.margins, 0)
     const target = frameAt(
       marginFor(params.camera.margins, depth) * (depth === 0 && backedOff ? params.camera.zoomOutRoom : 1),
     )
+    if (depth === 0 && params.camera.wallShows !== undefined) {
+      const held = clampPan(panX.current, box.w, target.halfHeight * aspect)
+      panX.current = held
+      target.x += held
+    }
     if (depth === 0) {
       bounds.current = {
         outer: frameExtent(frameAt(wallMargin * params.camera.zoomOutRoom), aspect),
@@ -775,6 +796,23 @@ function Wall({
   backOff.current = onBackOff
   const backedOffRef = useRef(backedOff)
   backedOffRef.current = backedOff
+  const paramsRef = useRef(params)
+  paramsRef.current = params
+
+  /**
+   * How far the wall has slid along x, in world units, while the camera is not
+   * fitting its width. A ref rather than state: it moves per frame under a drag
+   * and the framing reads it on the next pass, so re-rendering on each step
+   * would cost a React pass per pixel and change nothing else on screen.
+   */
+  const panX = useRef(0)
+  const panBy = (dx: number) => {
+    if (paramsRef.current.camera.wallShows === undefined) return
+    panX.current += dx
+    // `retarget` runs inside the frame loop and reads the ref, so waking the
+    // loop is the whole of applying a pan.
+    wake()
+  }
 
   // Bound to the canvas, not to a mesh, so the empty space between piles turns
   // the scene. A press that never travels is a click, and picks a rung.
@@ -847,6 +885,14 @@ function Wall({
             pitchDeg: p.camera.pitchDeg,
           }),
         }))
+        return
+      }
+      // With the orbit off the same drag slides the row instead, which is the
+      // only way left to reach a zone that is off the side.
+      if (!paramsRef.current.nav.orbit) {
+        if (paramsRef.current.camera.wallShows === undefined) return
+        el.classList.add('scene--moving')
+        panBy((-dx * (pose.current.halfHeight * 2)) / el.clientHeight)
         return
       }
       el.classList.add('scene--turning')
@@ -949,6 +995,14 @@ function Wall({
           ...p,
           step: { ...p.step, z: p.step.z - (notches * p.nav.dragDepthPerNotch) / Math.max(1, rank) },
         }))
+      }
+      // A two-finger sideways swipe slides the row. Taken before the rail so a
+      // horizontal gesture never spends a rung, and only where the wall is
+      // wider than the window — elsewhere deltaX is noise from a diagonal
+      // scroll.
+      if (paramsRef.current.camera.wallShows !== undefined && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        const el = gl.domElement
+        return panBy((e.deltaX * (pose.current.halfHeight * 2)) / el.clientHeight)
       }
       const step = rail.feed({ deltaY: e.deltaY, ctrlKey: e.ctrlKey }, e.timeStamp)
       if (!step) return
@@ -1102,7 +1156,11 @@ function Wall({
 
     const result = arrangement.strategy.layout({
       items: model,
-      container: { w: window.innerWidth / window.innerHeight, h: 1 },
+      container: containerFor(
+        zoneNamesRef.current.length,
+        window.innerWidth / window.innerHeight,
+        params.zoneGrid,
+      ),
       state: undefined,
       // `project` keeps the held cells the wall has always had, so the
       // default order is the one nobody asked to change. The other two keys
@@ -2456,42 +2514,44 @@ export function WebglBackend(props: Props) {
         />
         <Sky settings={props.params.sky} colors={props.params.colors} />
       </Canvas>
-      <TopBar
-        where={scope}
-        whereColor={scope ? props.zoneColors[scope] : undefined}
-        arrangement={props.arrangement.name}
-        count={countInScope}
-        offWall={props.arrangement.flat ? offWall : 0}
-        listed={listed}
-        onList={toggleList}
-        connected={props.connected}
-        stale={props.stale}
-        look={props.params.band}
-        allowParallax={props.params.general.parallax}
-        plan={
-          <Minimap
-            cells={plan.cells}
-            focus={zoneOf(view)}
-            tints={planTints}
-            zones={props.params.zones}
-            zoneSettings={props.zoneSettings}
-            onFocus={(zone) => dispatch({ type: 'to', path: [zone] })}
-          />
-        }
-        axes={
-          <div className="axes">
-            <Axes yawDeg={props.params.camera.yawDeg} pitchDeg={props.params.camera.pitchDeg} />
-          </div>
-        }
-        items={items}
-        now={now}
-        range={filter}
-        onRange={setFilter}
-        sort={sort}
-        onSort={setSort}
-        kinds={kinds}
-        onKind={onKind}
-      />
+      {props.params.band.shown && (
+        <TopBar
+          where={scope}
+          whereColor={scope ? props.zoneColors[scope] : undefined}
+          arrangement={props.arrangement.name}
+          count={countInScope}
+          offWall={props.arrangement.flat ? offWall : 0}
+          listed={listed}
+          onList={toggleList}
+          connected={props.connected}
+          stale={props.stale}
+          look={props.params.band}
+          allowParallax={props.params.general.parallax}
+          plan={
+            <Minimap
+              cells={plan.cells}
+              focus={zoneOf(view)}
+              tints={planTints}
+              zones={props.params.zones}
+              zoneSettings={props.zoneSettings}
+              onFocus={(zone) => dispatch({ type: 'to', path: [zone] })}
+            />
+          }
+          axes={
+            <div className="axes">
+              <Axes yawDeg={props.params.camera.yawDeg} pitchDeg={props.params.camera.pitchDeg} />
+            </div>
+          }
+          items={items}
+          now={now}
+          range={filter}
+          onRange={setFilter}
+          sort={sort}
+          onSort={setSort}
+          kinds={kinds}
+          onKind={onKind}
+        />
+      )}
       <ResetView sidebarOpen={sidebarOpen} onReset={resetView} />
       <Sidebar
         open={sidebarOpen}

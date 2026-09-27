@@ -207,6 +207,13 @@ export type StackParams = {
     cols?: number
     rows?: number
     /**
+     * The width one cell holds, in container units, instead of dividing the
+     * viewport between the zones. Set, a zone keeps its size as zones arrive
+     * and the wall gets longer rather than finer — which needs
+     * `camera.fitWidth` off, or the camera shrinks it all back to fit.
+     */
+    cellW?: number
+    /**
      * The fewest cells the grid lays out, however few zones there are. A wall
      * with one repo writing to it otherwise hands that pile the whole
      * container, so the general view is a different size every time a zone
@@ -248,6 +255,14 @@ export type StackParams = {
   }
   camera: {
     projection: Projection
+    /**
+     * How much world width the wall rung shows, instead of fitting whatever is
+     * on it. Set, a zone holds its size as zones arrive and the row runs off
+     * the sides, where a horizontal scroll, a drag of the sky or the wall
+     * cursor reaches it. Undefined fits the wall, which is what a board on one
+     * monitor wants.
+     */
+    wallShows?: number
     /** Perspective only. */
     fovDeg: number
     /** Orthographic only: how far off the wall the camera sits. Scale-neutral
@@ -286,6 +301,9 @@ export type StackParams = {
      *  hard it is spun. The gate stops a flick's tail; this paces a sustained
      *  stream and a pinch, which carries no tail to gate. */
     floorMs: number
+    /** A drag turns the wall. Off holds the camera where the parameters put
+     *  it: the rungs still walk in and out, but nothing can be flung loose. */
+    orbit: boolean
     /** A drag begun on a card moves its pile instead of turning the wall.
      *  Turning still works from the sky and the gaps between piles. */
     dragCardSetsStep: boolean
@@ -314,6 +332,10 @@ export type StackParams = {
   /** The filter band's parallax, handed to delamin8r. It moves only while the
    *  pointer is over the band. */
   band: {
+    /** Draw the band at all. Off is a wall with no controls on it — what the
+     *  public demo wants, where every control is a thing a stranger has to
+     *  read before deciding to ignore it. */
+    shown: boolean
     parallax: boolean
     /** Z between adjacent planes, px. */
     step: number
@@ -623,6 +645,7 @@ export const defaultParams: StackParams = {
     pinchThreshold: 8,
     quietMs: 90,
     floorMs: 800,
+    orbit: true,
     dragCardSetsStep: true,
     dragDepthPerNotch: 0.0006,
   },
@@ -633,6 +656,7 @@ export const defaultParams: StackParams = {
     tilt: 12,
   },
   band: {
+    shown: true,
     parallax: true,
     step: 20,
     perspective: 500,
@@ -752,11 +776,17 @@ export const demoParams: StackParams = {
     // and in a single row the leftmost pile is the one that leaves the frame.
     margins: [1.3, 1.12],
     homeMargin: 1.3,
+    wallShows: 2.4,
   },
-  zoneGrid: { ...defaultParams.zoneGrid, rows: 1 },
+  zoneGrid: { ...defaultParams.zoneGrid, rows: 1, cellW: 0.55 },
   // A row of cells is narrower than a grid's, and a pile hung at the cell's
   // top-left corner then leans out past the first cell's left edge — off the
   // frame, since the camera frames the cells and not what overhangs them.
   origin: { x: 0.5, y: 0.5 },
   side: 0.26,
+  // No band and no loose camera. A stranger gets a wall that plays, not a
+  // console: every control is something to read before deciding to ignore it,
+  // and one flick of an orbit leaves the framing these parameters exist to set.
+  band: { ...defaultParams.band, shown: false },
+  nav: { ...defaultParams.nav, orbit: false, dragCardSetsStep: false },
 }

@@ -161,3 +161,18 @@ describe('frameExtent', () => {
     })
   })
 })
+
+describe('a wall that shows a set width', () => {
+  it('holds its scale however wide the box gets', () => {
+    const view = { projection: 'orthographic' as const, fovDeg: 35, standoff: 18, aspect: 2, margin: 1 }
+    const narrow = framePose({ x: 0, y: 0, w: 2, h: 1 }, { ...view, showWidth: 4 })
+    const wide = framePose({ x: 0, y: 0, w: 20, h: 1 }, { ...view, showWidth: 4 })
+    expect(narrow.halfHeight).toBe(1)
+    expect(wide.halfHeight).toBe(1)
+  })
+
+  it('still centers on the box, which is what a pan then moves off', () => {
+    const view = { projection: 'orthographic' as const, fovDeg: 35, standoff: 18, aspect: 2, margin: 1 }
+    expect(framePose({ x: 4, y: 0, w: 20, h: 1 }, { ...view, showWidth: 4 }).x).toBe(14)
+  })
+})

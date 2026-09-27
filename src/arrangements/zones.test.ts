@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createZoneGrid, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
+import { containerFor, createZoneGrid, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { defaultParams } from '@/params.ts'
 
 const container = { w: 16 / 9, h: 1 }
@@ -140,5 +140,22 @@ describe('the grid fits its container', () => {
   it('answers differently for the same count, which is the whole point', () => {
     expect(colsOf(6, 30, 5)).toBe(6)
     expect(colsOf(6, 5, 30)).toBe(1)
+  })
+})
+
+describe('containerFor', () => {
+  it('is the viewport where a cell has no fixed width', () => {
+    expect(containerFor(6, 1.78, cfg)).toEqual({ w: 1.78, h: 1 })
+  })
+
+  it('grows with the zones once one does, so a cell keeps its size', () => {
+    const fixed = { ...cfg, cellW: 0.5, minCells: 4 }
+    expect(containerFor(6, 1.78, fixed)).toEqual({ w: 3, h: 1 })
+    expect(containerFor(10, 1.78, fixed)).toEqual({ w: 5, h: 1 })
+  })
+
+  it('never falls below the room the spare cells reserve', () => {
+    const fixed = { ...cfg, cellW: 0.5, minCells: 4 }
+    expect(containerFor(1, 1.78, fixed)).toEqual({ w: 2, h: 1 })
   })
 })
