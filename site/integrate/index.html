@@ -28,7 +28,14 @@
 
       <section>
         <h2>Run the wall</h2>
-        <p>macOS, Node 22 or newer. The daemon and the client come up together.</p>
+        <p>macOS. Homebrew is the way in, and it brings its own Node:</p>
+        <pre><code>brew install orochi235/tap/slopboard
+wall install    # daemon and client, as LaunchAgents</code></pre>
+        <p>
+          <code>wall</code> keeps both running across logins and restarts; <code>wall stat</code>
+          says whether they answer, and <code>wall cycle</code> restarts them.
+        </p>
+        <p>To hack on it, run it from a clone instead. That needs Node 22 or newer:</p>
         <pre><code>git clone https://github.com/orochi235/slopboard
 cd slopboard
 npm install
@@ -42,8 +49,11 @@ npm run dev</code></pre>
 
       <section>
         <h2>Wire it to your agents</h2>
-        <p>Once per machine, and again after you change anything here &mdash; it is idempotent.</p>
-        <pre><code>bin/wire        # --dry says what it would change
+        <p>
+          Once per machine, and again after you change anything here &mdash; it is idempotent.
+          From a clone it is <code>bin/wire</code>.
+        </p>
+        <pre><code>wire            # --dry says what it would change
                 # --off takes it all back out</code></pre>
         <p>It puts three things where an agent will meet them:</p>
         <ul>
