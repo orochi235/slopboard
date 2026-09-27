@@ -60,20 +60,21 @@ set -eu
 
 usage() { sed -n '2,58p' "$0" | sed 's/^# \{0,1\}//'; }
 
+# `wire` leaves this on PATH as a symlink, and the rest of the checkout is
+# beside the file it points at. Homebrew's formula says where instead.
+self=$0
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case "$link" in /*) self=$link ;; *) self=$(dirname -- "$self")/$link ;; esac
+done
+TRANSOM_HOME=${TRANSOM_HOME:-$(CDPATH= cd -- "$(dirname -- "$self")/.." && pwd)}
+export TRANSOM_HOME
+
 verb=${1:-help}
 [ $# -gt 0 ] && shift
 case "$verb" in
   post|ask|wait|zone) ;;
   install|up|down|cycle|stat|wire)
-    # `wire` leaves this on PATH as a symlink, and the rest of the checkout is
-    # beside the file it points at. Homebrew's formula says where instead.
-    self=$0
-    while [ -L "$self" ]; do
-      link=$(readlink "$self")
-      case "$link" in /*) self=$link ;; *) self=$(dirname -- "$self")/$link ;; esac
-    done
-    TRANSOM_HOME=${TRANSOM_HOME:-$(CDPATH= cd -- "$(dirname -- "$self")/.." && pwd)}
-    export TRANSOM_HOME
     if [ "$verb" = wire ]; then exec node "$TRANSOM_HOME/libexec/wire.mjs" "$@"; fi
     exec sh "$TRANSOM_HOME/libexec/agents" "$verb" "$@"
     ;;
@@ -185,10 +186,6 @@ while :; do
     *) break ;;
   esac
 done
-# A dot-segment before the extension, which is where the daemon looks.
-# Not `[ -n ... ] && ...`: that returns non-zero when unset, and set -e exits.
-suffix=""
-if [ -n "$ttl" ]; then suffix=".ttl$ttl"; fi
 # The main checkout, not the worktree: an agent worktree is named for its own
 # hash and carries no untracked `.hued`, so sending from one both invented a
 # zone called `agent-a4ac2473…` and cost the real zone its color.
@@ -199,6 +196,22 @@ case "$root" in
 esac
 repo=$(basename "$root")
 sha=$(git rev-parse --short HEAD 2>/dev/null || true)
+
+# The repo's own settings. A flag beats the file, so each only fills a blank.
+file_zone="" file_show="" file_ttl="" file_apps="" file_quiet=""
+if [ -f "$root/.transom.yaml" ]; then
+  settings=$(node "$TRANSOM_HOME/libexec/settings.mjs" "$root/.transom.yaml" "$root" "$attention") || exit 1
+  eval "$settings"
+fi
+[ -z "$zone" ] && zone=$file_zone
+[ -z "$ttl" ] && ttl=$file_ttl
+[ -z "$apps" ] && apps=$file_apps
+quiet=$file_quiet
+
+# A dot-segment before the extension, which is where the daemon looks.
+# Not `[ -n ... ] && ...`: that returns non-zero when unset, and set -e exits.
+suffix=""
+if [ -n "$ttl" ]; then suffix=".ttl$ttl"; fi
 if [ -z "$zone" ]; then
   # printf, not a bare pipe: tr -c would turn basename's trailing newline into a
   # separator character and silently bind the repo to a second, adjacent zone.
@@ -206,6 +219,19 @@ if [ -z "$zone" ]; then
 fi
 
 if [ "$verb" = zone ]; then echo "$zone"; exit 0; fi
+
+if [ "$file_show" = preview ] && [ "$verb" != wait ]; then
+  [ "$verb" = post ] || fail "this repo opens renders in Preview (.transom.yaml), so there is no card to ask on"
+  if [ $# -eq 0 ]; then
+    [ -t 0 ] && fail "no file, and nothing piped in"
+    piped="${TMPDIR:-/tmp}/transom-$(uuidgen).png"
+    cat > "$piped"
+    set -- "$piped"
+  fi
+  for f in "$@"; do [ -f "$f" ] || fail "no such file: $f"; done
+  ${TRANSOM_OPEN:-open} "$@"
+  exit 0
+fi
 
 ext_of() {
   e="${1##*.}"
@@ -219,7 +245,7 @@ ext_of() {
 write_sidecar() {
   dest_image=$1
   dest_caption=$2
-  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && [ -z "$run" ] && [ -z "$apps" ] && [ -z "$links" ] && return 0
+  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && [ -z "$run" ] && [ -z "$apps" ] && [ -z "$links" ] && [ -z "$quiet" ] && return 0
   {
     printf '{"repo":"%s"' "$(json_escape "$repo")"
     [ -n "$sha" ] && printf ',"sha":"%s"' "$(json_escape "$sha")"
@@ -235,6 +261,7 @@ write_sidecar() {
     [ -n "$of" ] && printf ',"of":%s' "$of"
     [ -n "$apps" ] && printf ',"apps":[%s]' "$(apps_json "$dest_image")"
     [ -n "$links" ] && printf ',"links":[%s]' "$links"
+    [ -n "$quiet" ] && printf ',"quiet":true'
     printf '}\n'
   } > "$dest_image.transom.json"
 }

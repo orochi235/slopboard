@@ -160,6 +160,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
         ...(attention !== null && note ? { note } : {}),
         ...(sidecar.repo ? { repo: sidecar.repo } : {}),
         ...(sidecar.sha ? { sha: sidecar.sha } : {}),
+        ...(sidecar.quiet ? { quiet: true as const } : {}),
         // Overwritten by the poster the store picks; a run's card has no
         // pixels of its own, only whichever take it is drawing.
         url: take.url,
@@ -199,6 +200,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
     ...(reply === null ? {} : { reply }),
     ...(sidecar?.repo ? { repo: sidecar.repo } : {}),
     ...(sidecar?.sha ? { sha: sidecar.sha } : {}),
+    ...(sidecar?.quiet ? { quiet: true as const } : {}),
     ...(kind === 'image' ? {} : { kind }),
     ...(frames === null ? {} : { frames }),
     ...(duration === null ? {} : { duration }),

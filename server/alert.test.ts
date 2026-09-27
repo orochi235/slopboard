@@ -7,6 +7,10 @@ describe('planFor', () => {
     expect(planFor(null, false)).toEqual({ sound: false, notify: false, raise: 'none' })
   })
 
+  it('keeps everything but the sound for a quiet card', () => {
+    expect(planFor('problem', true, true)).toEqual({ sound: false, notify: true, raise: 'front' })
+  })
+
   it('leaves the screen alone for a level that only wants to be noticed', () => {
     expect(planFor('look', false).raise).toBe('none')
     expect(planFor('look', false).sound).toBe(false)

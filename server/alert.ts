@@ -15,11 +15,11 @@ export type Plan = { sound: boolean; notify: boolean; raise: Raise }
  * `wallOpen` is the count of connected clients, not a guess about processes —
  * the daemon is the thing they are connected to.
  */
-export function planFor(level: Level | null, wallOpen: boolean): Plan {
+export function planFor(level: Level | null, wallOpen: boolean, quiet = false): Plan {
   const alerts: Alerts | undefined = level ? ALERTS[level] : undefined
   if (!alerts) return { sound: false, notify: false, raise: 'none' }
   return {
-    sound: alerts.sound,
+    sound: alerts.sound && !quiet,
     notify: alerts.notify,
     raise: !alerts.raise ? 'none' : wallOpen ? 'front' : 'start',
   }
@@ -82,7 +82,7 @@ function fire(argv: readonly [string, ...string[]]) {
 const quote = (text: string) => text.replace(/["\\]/g, '\\$&')
 
 export function alert(item: WallItem, wallOpen: boolean): Plan {
-  const plan = planFor(item.attention?.level ?? null, wallOpen)
+  const plan = planFor(item.attention?.level ?? null, wallOpen, item.quiet === true)
   if (plan.sound) fire(['afplay', config.alertSound])
   if (plan.notify) {
     const body = item.note ?? item.name

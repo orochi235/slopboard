@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  candidates, excepted, isImage, message, onWall, pathsInCommand, sent, toNudge,
+  candidates, isImage, message, onWall, pathsInCommand, previewHere, sent, toNudge,
 } from './wall-nudge.mjs'
 
 let dir
@@ -81,23 +81,27 @@ describe('candidates', () => {
   })
 })
 
-describe('excepted', () => {
-  it('is false with no CLAUDE.local.md', () => {
-    expect(excepted(dir)).toBe(false)
+describe('previewHere', () => {
+  it('is false with no .transom.yaml', async () => {
+    expect(await previewHere(dir)).toBe(false)
   })
-  it('is true for the Preview marker block', () => {
-    writeFileSync(path.join(dir, 'CLAUDE.local.md'),
-      '<!-- transom:begin -->\nRenders open in Preview here.\n<!-- transom:end -->\n')
-    expect(excepted(dir)).toBe(true)
+  it('is true for show: preview, from a directory below it', async () => {
+    writeFileSync(path.join(dir, '.transom.yaml'), 'show: preview\n')
+    mkdirSync(path.join(dir, 'sub'))
+    expect(await previewHere(path.join(dir, 'sub'))).toBe(true)
   })
-  it('is false for a zone-rename block, which still uses the wall', () => {
-    writeFileSync(path.join(dir, 'CLAUDE.local.md'),
-      '<!-- transom:begin -->\nRenders go to the `alt` zone.\n<!-- transom:end -->\n')
-    expect(excepted(dir)).toBe(false)
+  it('is false for a file that only renames the zone', async () => {
+    writeFileSync(path.join(dir, '.transom.yaml'), 'zone: alt\n')
+    expect(await previewHere(dir)).toBe(false)
   })
-  it('is false when the word appears outside the block', () => {
-    writeFileSync(path.join(dir, 'CLAUDE.local.md'), 'Preview is unrelated prose here.\n')
-    expect(excepted(dir)).toBe(false)
+  it('is false for a file with an error, which transom post refuses anyway', async () => {
+    writeFileSync(path.join(dir, '.transom.yaml'), 'show: preveiw\n')
+    expect(await previewHere(dir)).toBe(false)
+  })
+  it('stops at the repo root', async () => {
+    writeFileSync(path.join(dir, '.transom.yaml'), 'show: preview\n')
+    mkdirSync(path.join(dir, 'inner', '.git'), { recursive: true })
+    expect(await previewHere(path.join(dir, 'inner'))).toBe(false)
   })
 })
 

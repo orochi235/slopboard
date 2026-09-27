@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://michaelbaker.tech/transom/schema/transom.json",
+  "title": ".transom.yaml",
+  "description": "How transom treats renders sent from this repo. Every key is optional; a flag on `transom post` beats the file.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "zone": {
+      "description": "The zone renders from this repo land in. Defaults to the repo's directory name.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "show": {
+      "description": "`wall` sends to the wall. `preview` makes `transom post` open the file locally instead, and nothing reaches the wall.",
+      "enum": ["wall", "preview"]
+    },
+    "defaults": {
+      "description": "What a send from this repo gets when it does not say.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ttl": {
+          "description": "How long a card lives, as `--ttl` takes it: `30m`, `2h`, `1d`, or a bare number of seconds.",
+          "type": ["string", "number"]
+        },
+        "apps": {
+          "description": "Offered as \"Open in …\" in the lightbox, as `--app` takes them. A path is relative to the repo root.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              { "type": "string", "minLength": 1 },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1 },
+                  "path": { "type": "string", "minLength": 1 }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "attention": {
+      "description": "How much a card from this repo may ask for.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "loudest": {
+          "description": "The highest level a send may ask for. A higher `--attention` is lowered to this.",
+          "enum": ["look", "soon", "urgent", "problem"]
+        },
+        "sound": {
+          "description": "`false` keeps a card's attention level but never plays its sound.",
+          "type": "boolean"
+        }
+      }
+    },
+    "marks": {
+      "description": "Marks drawn on a card in the lightbox.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unsent": {
+          "description": "What happens to marks when the session that sent the card is gone. `keep` holds them on the card until they are sent or thrown away.",
+          "enum": ["keep"]
+        }
+      }
+    }
+  }
+}

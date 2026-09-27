@@ -34,6 +34,8 @@ export type Stamp = {
    *  rather than strings, so they never reach the XMP packet. */
   apps?: TakeApp[]
   links?: TakeLink[]
+  /** The repo said never to play this card's sound (`.transom.yaml`). */
+  quiet?: boolean
   /** How the question closed, what it was answered with, and when (ISO).
    *  `choice` is the chip, `reply` the free text; a question offering both
    *  carries both. */

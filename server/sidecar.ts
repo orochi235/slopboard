@@ -38,6 +38,7 @@ export function parseStamp(blob: unknown): Stamp {
   // exactly the artifact that wanted `--app`, and `javascript:` is not a link.
   const links = pairs(held.links, 'label', 'url').filter((l) => /^https?:\/\//i.test(l.url))
   if (links.length > 0) out.links = links as Stamp['links']
+  if (held.quiet === true) out.quiet = true
   return out
 }
 

@@ -114,6 +114,9 @@ export type WallItem = {
    *  take, since each one is about a different render. */
   apps?: TakeApp[]
   links?: TakeLink[]
+  /** Its level stands but its sound never plays: the repo it came from said
+   *  so in `.transom.yaml`. */
+  quiet?: true
   /** The pixels behind the card. For a picture that is its own size, which is
    *  what `/orig` serves — not the cache thumbnail's, which is capped at
    *  `maxEdge`. For a page it is the shot's viewport, since the document has

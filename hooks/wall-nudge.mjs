@@ -60,15 +60,23 @@ export function candidates(payload) {
   return []
 }
 
-/** Repos that opted out via the skill's marker block keep Preview. */
-export function excepted(cwd) {
+/** A repo whose `.transom.yaml` says `show: preview` keeps its renders local.
+ *  The parser loads only when there is a file, so a repo without one costs
+ *  this hook nothing; a node that cannot load it nudges as before. */
+export async function previewHere(cwd) {
   if (!cwd) return false
-  const local = path.join(cwd, 'CLAUDE.local.md')
-  if (!existsSync(local)) return false
-  let text
-  try { text = readFileSync(local, 'utf8') } catch { return false }
-  const block = text.match(/<!-- transom:begin -->([\s\S]*?)<!-- transom:end -->/)
-  return block ? /Preview/i.test(block[1]) : false
+  for (let at = path.resolve(cwd); ; at = path.dirname(at)) {
+    const file = path.join(at, '.transom.yaml')
+    if (existsSync(file)) {
+      try {
+        const { parseRepoSettings } = await import('../shared/repoSettings.ts')
+        return parseRepoSettings(readFileSync(file, 'utf8')).settings.show === 'preview'
+      } catch {
+        return false
+      }
+    }
+    if (existsSync(path.join(at, '.git')) || path.dirname(at) === at) return false
+  }
 }
 
 function seenPath() { return path.join(transomRoot(), 'wall-nudge-seen.json') }
@@ -134,7 +142,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
   const paths = candidates(p)
   if (paths.length === 0) process.exit(0)
-  if (excepted(p?.cwd)) process.exit(0)
+  if (await previewHere(p?.cwd)) process.exit(0)
 
   const hits = toNudge(paths, { now, seen })
   if (hits.length === 0) process.exit(0)
