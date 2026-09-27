@@ -32,7 +32,14 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
-      ...sibling('windease', { windease: 'src/index.ts' }),
+      // Every subpath, before the bare name: an alias matches as a prefix, so
+      // labkit's `windease/react` would otherwise become `src/index.ts/react`.
+      ...sibling('windease', {
+        'windease/react': 'src/react/index.ts',
+        'windease/nuts': 'src/nuts/index.ts',
+        'windease/styles.css': 'src/react/styles.css',
+        windease: 'src/index.ts',
+      }),
       ...sibling('delamin8r', {
         'delamin8r/react': 'src/react.ts',
         delamin8r: 'src/index.ts',

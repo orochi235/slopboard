@@ -26,8 +26,10 @@ export function isImage(p) {
 
 /** Already on the wall: nudging about it would be the second nudge. */
 export function onWall(p, root = transomRoot()) {
-  const inbox = path.join(root, 'inbox') + path.sep
-  return path.resolve(p).startsWith(inbox)
+  const abs = path.resolve(p)
+  // `marks/` too: a drawing sent back from the wall came from there, and
+  // nudging to post it would put the correction on the wall as a new card.
+  return ['inbox', 'marks'].some((d) => abs.startsWith(path.join(root, d) + path.sep))
 }
 
 /** Image-looking paths named anywhere in a shell command. */

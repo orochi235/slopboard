@@ -110,6 +110,9 @@ describe('onWall', () => {
   it('is true inside the inbox', () => {
     expect(onWall('/s/inbox/zone/a.png', '/s')).toBe(true)
   })
+  it('is true for a drawing sent back from the wall', () => {
+    expect(onWall('/s/marks/abc.png', '/s')).toBe(true)
+  })
   it('is false elsewhere under the wall root', () => {
     expect(onWall('/s/zones/a.png', '/s')).toBe(false)
   })
