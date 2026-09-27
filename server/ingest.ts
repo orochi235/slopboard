@@ -9,6 +9,7 @@ import { captionFor } from './captionName.ts'
 import { idFor, origUrlFor, runIdFor } from './itemId.ts'
 import { kindOf } from './kind.ts'
 import { keptFrom, readStamp, replyFrom } from './sidecar.ts'
+import * as marks from './markup.ts'
 import { ttlMs as wallTtlMs } from './settings.ts'
 import { orientedSize } from './sourceSize.ts'
 import { framesOf } from './frames.ts'
@@ -130,6 +131,14 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
   const attention = reply !== null ? null : (asked ?? (question === null ? null : parseAttention('look')))
   const note = sidecar?.note ?? question
   const keptAt = keptFrom(sidecar)
+  const sender = sidecar?.session
+    ? { session: sidecar.session, ...(sidecar.pid ? { pid: sidecar.pid } : {}) }
+    : undefined
+  // A drawing sent back before a restart is still on the card after it.
+  const drawn = await marks.read(id)
+  const markup = drawn ? marks.view(id, drawn, drawn.status === 'pending' && (await marks.isLive(sender))) : null
+  const own = { ...(sender ? { sender } : {}), ...(drawn ? { marks: drawn } : {}) }
+  if (drawn?.status === 'pending' && drawn.sender) await marks.flagWaiting(drawn.sender.session, true)
 
   // A file naming a run is a take: it joins that run's card rather than
   // standing up one of its own. Everything above this is the picture pipeline
@@ -148,6 +157,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
       ...(question !== null && sidecar.choices ? { choices: sidecar.choices } : {}),
       ...(question !== null && sidecar.why ? { why: sidecar.why } : {}),
       ...(reply === null ? {} : { reply }),
+      ...(markup === null ? {} : { markup }),
       ...(sidecar.apps ? { apps: sidecar.apps } : {}),
       ...(sidecar.links ? { links: sidecar.links } : {}),
     }
@@ -172,7 +182,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
         h: take.h,
       },
       take,
-      { sourcePath, cachePath },
+      { sourcePath, cachePath, ...own },
       {
         ...(sidecar.runLabel ? { label: sidecar.runLabel } : {}),
         ...(sidecar.of === undefined ? {} : { of: sidecar.of }),
@@ -197,6 +207,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
     ...(question === null ? {} : { question }),
     ...(question !== null && sidecar?.choices ? { choices: sidecar.choices } : {}),
     ...(reply === null ? {} : { reply }),
+    ...(markup === null ? {} : { markup }),
     ...(sidecar?.repo ? { repo: sidecar.repo } : {}),
     ...(sidecar?.sha ? { sha: sidecar.sha } : {}),
     ...(kind === 'image' ? {} : { kind }),
@@ -218,7 +229,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
     w: source?.w ?? info.width,
     h: source?.h ?? info.height,
   }
-  store.add({ item, sourcePath, cachePath })
+  store.add({ item, sourcePath, cachePath, ...own })
   return { as: 'card', item }
 }
 
@@ -229,7 +240,9 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
  */
 async function adopt(sourcePath: string): Promise<Landed | null> {
   const { mtimeMs } = await stat(sourcePath)
-  const rescued = keptFrom(await readStamp(sourcePath)) !== null
+  // Unsent marks hold a card the way a rescue does: nothing drops them unasked.
+  const rescued =
+    keptFrom(await readStamp(sourcePath)) !== null || (await marks.read(idFor(sourcePath)))?.status === 'pending'
   if (!rescued && Date.now() - mtimeMs > (ttlFromName(basename(sourcePath)) ?? wallTtlMs())) {
     await mkdir(config.trash, { recursive: true })
     await rename(sourcePath, join(config.trash, basename(sourcePath))).catch(() => {})

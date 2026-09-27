@@ -41,6 +41,11 @@ export type Stamp = {
   choice?: string
   reply?: string
   closedAt?: string
+  /** The Claude Code session that sent this and its process, from the
+   *  environment `bin/transom` ran in. Where a drawing on the card goes back
+   *  to. Sidecar only. */
+  session?: string
+  pid?: number
   /** When the wall rescued this, ISO. Wall state rather than provenance, so it
    *  stays in the sidecar and never reaches the XMP packet. */
   kept?: string

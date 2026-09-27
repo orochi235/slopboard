@@ -1,16 +1,19 @@
-import { rename, mkdir, writeFile } from 'node:fs/promises'
+import { rename, mkdir, rm, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { config } from './config.ts'
 import { clearAttention, closeQuestion, setKept, trashStamp } from './sidecar.ts'
 import { ttlMs as wallTtlMs } from './settings.ts'
 import { lifetimeFor as zoneLifetime } from './zones.ts'
-import type { Poster, Reply, Take, WallItem } from '@shared/protocol.ts'
+import type { Markup, Poster, Reply, Take, WallItem } from '@shared/protocol.ts'
+import * as marks from './markup.ts'
+import type { MarkRecord, Sender } from './markup.ts'
 import { isEternal, lifetimeMs } from '@shared/lifetime.ts'
 import { MAX_TAKES, posterOf, posterTake, runIsOpen, takeIsOpen } from '@shared/runs.ts'
 
 /** One artifact's files: the original the sender wrote and the thumbnail the
- *  daemon made of it. A run has a pair per take. */
-type Files = { sourcePath: string; cachePath: string }
+ *  daemon made of it. A run has a pair per take. `sender` is the session that
+ *  sent it, where `bin/transom` saw one, and `marks` the drawing sent back. */
+type Files = { sourcePath: string; cachePath: string; sender?: Sender; marks?: MarkRecord }
 
 /**
  * A run's own `sourcePath`/`cachePath` mirror whichever take it is drawing, so
@@ -25,12 +28,21 @@ const entries = new Map<string, Entry>()
 const takeOwner = new Map<string, string>()
 const listeners = new Set<(id: string) => void>()
 
-export function add(entry: { item: WallItem; sourcePath: string; cachePath: string }) {
+export function add(entry: { item: WallItem } & Files) {
   entries.set(entry.item.id, { ...entry, takes: new Map() })
 }
 
-const filesOf = (entry: Entry): Files[] =>
-  entry.takes.size > 0 ? [...entry.takes.values()] : [{ sourcePath: entry.sourcePath, cachePath: entry.cachePath }]
+const filesOf = (entry: Entry): Files[] => artifactsOf(entry).map(([, files]) => files)
+
+/** Each artifact the card holds, by its own id: the card itself, or a run's
+ *  takes. A run's own fields mirror whichever take it is drawing, so they are
+ *  never read as an artifact of their own. */
+const artifactsOf = (entry: Entry): [string, Files][] =>
+  entry.takes.size > 0 ? [...entry.takes.entries()] : [[entry.item.id, entry]]
+
+/** A drawing its sender has not got holds the whole card: the run is the unit
+ *  of lifetime, as it is for an open question. */
+const holdsMarks = (entry: Entry) => artifactsOf(entry).some(([, f]) => f.marks?.status === 'pending')
 
 export function has(sourcePath: string) {
   for (const e of entries.values()) {
@@ -178,6 +190,15 @@ async function expire(entry: Entry): Promise<Gone> {
     await trashStamp(files.sourcePath, dest)
     moves.push({ from: files.sourcePath, to: dest })
   }
+  // A drawing goes with its card, and comes back with it on an undo.
+  for (const [id, files] of artifactsOf(entry)) {
+    if (!files.marks) continue
+    for (const from of marks.filesOf(id)) {
+      const to = join(config.trash, `${entry.item.id}-marks-${basename(from)}`)
+      if (await rename(from, to).then(() => true, () => false)) moves.push({ from, to })
+    }
+    if (files.marks.status === 'pending' && files.marks.sender) await syncWaiting(files.marks.sender.session)
+  }
   for (const fn of listeners) fn(entry.item.id)
   return { entry, moves }
 }
@@ -188,12 +209,15 @@ export function startSweeper(): () => void {
     const now = Date.now()
     for (const entry of entries.values()) {
       // An open question has someone waiting on it.
-      if (entry.item.keptAt || isOpen(entry.item)) continue
+      if (entry.item.keptAt || isOpen(entry.item) || holdsMarks(entry)) continue
       // A question can stay open for longer than a TTL, so an answered card
       // gets a whole life from its answer — and a run from its last one, since
       // reviewing the twelfth take is not a reason to have already dropped it.
+      // A drawing resolved gets the same: the composite's path went to its
+      // sender, who may not read it for a while.
       const replies = (entry.item.takes ?? []).map((t) => t.reply?.at ?? 0)
-      const from = Math.max(entry.item.bornAt, entry.item.reply?.at ?? 0, ...replies)
+      const resolved = artifactsOf(entry).map(([, f]) => f.marks?.resolvedAt ?? 0)
+      const from = Math.max(entry.item.bornAt, entry.item.reply?.at ?? 0, ...replies, ...resolved)
       // The item's own, then its zone's, then the wall's. Read per sweep
       // rather than stamped at arrival, so shortening a zone's lifetime
       // reaches what is already hanging in it.
@@ -281,8 +305,12 @@ export async function undoExpiry(): Promise<WallItem[]> {
     // Its old bornAt is already past its TTL, so it would be swept again on the
     // next tick.
     const item = { ...gone.entry.item, bornAt: Date.now() }
-    entries.set(item.id, { ...gone.entry, item })
+    const entry = { ...gone.entry, item }
+    entries.set(item.id, entry)
     for (const take of item.takes ?? []) takeOwner.set(take.id, item.id)
+    for (const [, files] of artifactsOf(entry)) {
+      if (files.marks?.status === 'pending' && files.marks.sender) await syncWaiting(files.marks.sender.session)
+    }
     back.push(item)
   }
   return back
@@ -316,11 +344,12 @@ const isOpen = (item: WallItem) =>
  * `sh` and has no JSON parser, and a blank line 2 is what tells it a free-text
  * answer's first line is not a choice.
  */
-async function writeAnswer(sourcePath: string, reply: Reply): Promise<void> {
+async function writeAnswer(sourcePath: string, reply: Reply, image?: string): Promise<void> {
   await mkdir(config.answers, { recursive: true })
   const dest = join(config.answers, basename(sourcePath))
-  // Renamed into place, so the waiting reader never sees half a file.
-  await writeFile(`${dest}.tmp`, `${reply.status}\n${reply.choice ?? ''}\n${reply.text}`)
+  // Renamed into place, so the waiting reader never sees half a file. A
+  // drawing has no chip, so its second line is the composite's path instead.
+  await writeFile(`${dest}.tmp`, `${reply.status}\n${reply.choice ?? image ?? ''}\n${reply.text}`)
   await rename(`${dest}.tmp`, dest)
 }
 
@@ -335,12 +364,18 @@ const replyAt = (status: Closed, choice: string | undefined, text: string): Repl
  * Ends a question: the answer file first, since something is waiting on it,
  * then the flag and the sidecar. The question itself stays.
  */
-async function close(entry: Entry, status: Closed, text: string, choice?: string): Promise<boolean> {
+async function close(
+  entry: Entry,
+  status: Closed,
+  text: string,
+  choice?: string,
+  image?: string,
+): Promise<boolean> {
   if (!isOpen(entry.item)) return false
   const reply = replyAt(status, choice, text)
   entry.item.reply = reply
   delete entry.item.attention
-  await writeAnswer(entry.sourcePath, reply)
+  await writeAnswer(entry.sourcePath, reply, image)
   await closeQuestion(entry.sourcePath, reply)
   return true
 }
@@ -353,13 +388,14 @@ async function closeTake(
   status: Closed,
   text: string,
   choice?: string,
+  image?: string,
 ): Promise<Poster | null> {
   const take = (entry.item.takes ?? []).find((t) => t.id === takeId)
   const files = entry.takes.get(takeId)
   if (!take || !files || !takeIsOpen(take)) return null
   const reply = replyAt(status, choice, text)
   take.reply = reply
-  await writeAnswer(files.sourcePath, reply)
+  await writeAnswer(files.sourcePath, reply, image)
   await closeQuestion(files.sourcePath, reply)
   // A run stops asking once nothing in it is waiting.
   if (!runIsOpen(entry.item)) delete entry.item.attention
@@ -437,4 +473,144 @@ export function resolveCache(id: string) {
 
 export function resolveOriginal(id: string) {
   return filesAt(id)?.sourcePath
+}
+
+/** A card or a take, by its own id, with the entry that holds it. */
+function locate(id: string): { entry: Entry; files: Files; take?: Take } | null {
+  const entry = entries.get(id)
+  // A run's card is not an artifact: its drawings are on its takes.
+  if (entry) return entry.takes.size > 0 ? null : { entry, files: entry }
+  const owner = takeOwner.get(id)
+  const run = owner === undefined ? undefined : entries.get(owner)
+  const files = run?.takes.get(id)
+  const take = run?.item.takes?.find((t) => t.id === id)
+  return run && files && take ? { entry: run, files, take } : null
+}
+
+/** What the wall is told about a drawing: which card, which take, and its
+ *  state now. */
+export type MarkNews = { id: string; take?: string; markup: Markup; reply?: Reply; poster?: Poster }
+
+function show(id: string, where: { entry: Entry; take?: Take }, markup: Markup): MarkNews {
+  if (where.take) where.take.markup = markup
+  else where.entry.item.markup = markup
+  return { id: where.entry.item.id, ...(where.take ? { take: where.take.id } : {}), markup }
+}
+
+/** Keeps the hook's flag for a session true exactly while something waits. */
+async function syncWaiting(session: string): Promise<void> {
+  let waiting = false
+  for (const entry of entries.values()) {
+    for (const [, f] of artifactsOf(entry)) {
+      if (f.marks?.status === 'pending' && f.marks.sender?.session === session) waiting = true
+    }
+  }
+  await marks.flagWaiting(session, waiting)
+}
+
+/**
+ * Holds a drawing sent back from the lightbox, and hands it on where it can
+ * go at once.
+ *
+ * A question still open, from a sender that is running or that recorded no
+ * session at all, is answered by it: that is the `transom ask` blocked on the
+ * card, and the reply is the fastest way back. Anything else stays pending on
+ * the card, flagged for the hook to collect at the sender's next tool call —
+ * or for nobody, if the sender has gone, until the wall discards it.
+ */
+export async function markUp(
+  id: string,
+  drawn: { png: Buffer; marks: unknown; text: string },
+): Promise<MarkNews | null> {
+  const where = locate(id)
+  if (!where) return null
+  const { entry, files, take } = where
+  const sender = files.sender
+  const previous = files.marks
+  const record: MarkRecord = {
+    status: 'pending',
+    text: drawn.text,
+    at: Date.now(),
+    marks: drawn.marks,
+    ...(sender ? { sender } : {}),
+    card: entry.item.id,
+    ...(take ? { take: take.id } : {}),
+    caption: take?.name ?? entry.item.name,
+  }
+  await marks.write(id, record, drawn.png)
+  files.marks = record
+  const live = await marks.isLive(sender)
+  const asking = take ? takeIsOpen(take) : isOpen(entry.item)
+  let reply: Reply | undefined
+  let poster: Poster | undefined
+  if (asking && (live || !sender)) {
+    const image = marks.pngOf(id)
+    if (take) poster = (await closeTake(entry, take.id, 'marked', drawn.text, undefined, image)) ?? undefined
+    else await close(entry, 'marked', drawn.text, undefined, image)
+    reply = take ? take.reply : entry.item.reply
+    Object.assign(record, { status: 'delivered', via: 'ask', resolvedAt: Date.now() } satisfies Partial<MarkRecord>)
+    await marks.write(id, record)
+  }
+  if (sender) await syncWaiting(sender.session)
+  if (previous?.sender && previous.sender.session !== sender?.session) await syncWaiting(previous.sender.session)
+  return {
+    ...show(id, where, marks.view(id, record, live)),
+    ...(reply ? { reply } : {}),
+    ...(poster ? { poster } : {}),
+  }
+}
+
+/** Throws a pending drawing away on purpose. Its composite goes; the record
+ *  stays with the card, which ages again from now. */
+export async function discardMarks(id: string): Promise<MarkNews | null> {
+  const where = locate(id)
+  const record = where?.files.marks
+  if (!where || record?.status !== 'pending') return null
+  record.status = 'discarded'
+  record.resolvedAt = Date.now()
+  await marks.write(id, record)
+  await rm(marks.pngOf(id), { force: true })
+  if (record.sender) await syncWaiting(record.sender.session)
+  return show(id, where, marks.view(id, record, false))
+}
+
+/** What the hook hands a session: every drawing waiting for it, each marked
+ *  delivered as it goes. */
+export type Claimed = { id: string; caption: string; zone: string; image: string; text: string }
+
+export async function claimMarks(session: string): Promise<{ claimed: Claimed[]; news: MarkNews[] }> {
+  const claimed: Claimed[] = []
+  const news: MarkNews[] = []
+  for (const entry of entries.values()) {
+    for (const [id, files] of artifactsOf(entry)) {
+      const record = files.marks
+      if (record?.status !== 'pending' || record.sender?.session !== session) continue
+      Object.assign(record, { status: 'delivered', via: 'hook', resolvedAt: Date.now() } satisfies Partial<MarkRecord>)
+      await marks.write(id, record)
+      claimed.push({ id, caption: record.caption, zone: entry.item.zone, image: marks.pngOf(id), text: record.text })
+      const take = entry.takes.size > 0 ? entry.item.takes?.find((t) => t.id === id) : undefined
+      news.push(show(id, { entry, ...(take ? { take } : {}) }, marks.view(id, record, true)))
+    }
+  }
+  await marks.flagWaiting(session, false)
+  return { claimed, news }
+}
+
+/** Looks again at whether each pending drawing's sender is running, and
+ *  reports the ones that changed — a session that exits turns its drawings
+ *  from waiting into held. */
+export async function recheckSenders(): Promise<MarkNews[]> {
+  const news: MarkNews[] = []
+  for (const entry of entries.values()) {
+    for (const [id, files] of artifactsOf(entry)) {
+      const record = files.marks
+      if (record?.status !== 'pending') continue
+      const take = entry.takes.size > 0 ? entry.item.takes?.find((t) => t.id === id) : undefined
+      const shown = take ? take.markup : entry.item.markup
+      const live = await marks.isLive(record.sender)
+      if (shown?.live === live) continue
+      news.push(show(id, { entry, ...(take ? { take } : {}) }, marks.view(id, record, live)))
+    }
+  }
+  return news
 }

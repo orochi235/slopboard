@@ -47,7 +47,12 @@
 #                              landed. Collect the answer with `transom wait`.
 #
 # `ask` exits 3 if the question is dismissed and 4 if the card is expired
-# first. It blocks, so run it in the background.
+# first. It exits 5 if the viewer drew on the picture instead (*No, like this*):
+# it prints the marked-up PNG's path, then any text they wrote. It blocks, so
+# run it in the background.
+#
+# Run from Claude Code, a send records the session it came from, so a picture
+# marked up on the wall later goes back to that session while it is running.
 #
 # A video's card is a poster frame and the lightbox plays it. Needs ffmpeg.
 #
@@ -58,7 +63,7 @@
 # triggers on.
 set -eu
 
-usage() { sed -n '2,58p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,63p' "$0" | sed 's/^# \{0,1\}//'; }
 
 verb=${1:-help}
 [ $# -gt 0 ] && shift
@@ -199,6 +204,12 @@ case "$root" in
 esac
 repo=$(basename "$root")
 sha=$(git rev-parse --short HEAD 2>/dev/null || true)
+# The Claude Code session this runs under, where there is one: a drawing sent
+# back from the wall goes to it, and the pid is how the daemon tells whether it
+# is still running. A pid that is not a number is not written.
+session=${CLAUDE_CODE_SESSION_ID:-}
+pid=${CLAUDE_PID:-}
+case "$pid" in ""|*[!0-9]*) pid="" ;; esac
 if [ -z "$zone" ]; then
   # printf, not a bare pipe: tr -c would turn basename's trailing newline into a
   # separator character and silently bind the repo to a second, adjacent zone.
@@ -219,10 +230,12 @@ ext_of() {
 write_sidecar() {
   dest_image=$1
   dest_caption=$2
-  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && [ -z "$run" ] && [ -z "$apps" ] && [ -z "$links" ] && return 0
+  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$session" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && [ -z "$run" ] && [ -z "$apps" ] && [ -z "$links" ] && return 0
   {
     printf '{"repo":"%s"' "$(json_escape "$repo")"
     [ -n "$sha" ] && printf ',"sha":"%s"' "$(json_escape "$sha")"
+    [ -n "$session" ] && printf ',"session":"%s"' "$(json_escape "$session")"
+    [ -n "$session" ] && [ -n "$pid" ] && printf ',"pid":%s' "$pid"
     [ -n "$dest_caption" ] && printf ',"caption":"%s"' "$(json_escape "$dest_caption")"
     [ -n "$attention" ] && printf ',"attention":"%s"' "$(json_escape "$attention")"
     [ -n "$note" ] && printf ',"note":"%s"' "$(json_escape "$note")"
@@ -264,11 +277,22 @@ await_answer() {
   answer="$transom_root/answers/$(basename "$1")"
   while [ ! -f "$answer" ]; do sleep 1; done
   # Three parts: the status, the chip, then the free text. A blank second line
-  # is what tells a free-text answer's first line apart from a choice.
+  # is what tells a free-text answer's first line apart from a choice. A
+  # drawing has no chip, and its second line is the marked-up picture.
   status=$(sed -n 1p "$answer")
   choice=$(sed -n 2p "$answer")
   text=$(tail -n +3 "$answer")
   rm -f "$answer"
+  if [ "$status" = marked ]; then
+    if [ -n "$as_json" ]; then
+      printf '{"status":"marked","image":"%s","text":"%s"}\n' "$(json_escape "$choice")" "$(json_escape "$text")"
+    else
+      printf '%s\n' "$choice"
+      [ -n "$text" ] && printf '%s\n' "$text"
+    fi
+    echo "transom $verb: marked up instead of answered — read the picture above" >&2
+    exit 5
+  fi
   if [ -n "$as_json" ]; then
     printf '{"status":"%s","choice":"%s","text":"%s"}\n' \
       "$(json_escape "$status")" "$(json_escape "$choice")" "$(json_escape "$text")"

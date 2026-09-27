@@ -20,7 +20,7 @@ export function parseStamp(blob: unknown): Stamp {
   if (blob === null || typeof blob !== 'object' || Array.isArray(blob)) return {}
   const held = blob as Record<string, unknown>
   const out: Stamp = {}
-  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox', 'reply', 'closed', 'closedAt', 'why', 'run', 'runLabel', 'choice'] as const) {
+  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox', 'reply', 'closed', 'closedAt', 'why', 'run', 'runLabel', 'choice', 'session'] as const) {
     const value = held[key]
     if (typeof value === 'string' && value !== '') out[key] = value
   }
@@ -32,6 +32,7 @@ export function parseStamp(blob: unknown): Stamp {
   // A count of zero or a fraction says nothing a missing count does not, and
   // both would reach the badge as a total the run cannot reach.
   if (typeof held.of === 'number' && Number.isInteger(held.of) && held.of > 0) out.of = held.of
+  if (typeof held.pid === 'number' && Number.isInteger(held.pid) && held.pid > 1) out.pid = held.pid
   const apps = pairs(held.apps, 'name', 'path')
   if (apps.length > 0) out.apps = apps as Stamp['apps']
   // Only what a browser will open. A `file:` link a page silently blocks is
@@ -115,7 +116,7 @@ export async function closeQuestion(imagePath: string, reply: Reply): Promise<vo
 /** The reply a closed question carries, or null while it is open. */
 export function replyFrom(stamp: Stamp | null): Reply | null {
   const status = stamp?.closed
-  if (status !== 'answered' && status !== 'dismissed' && status !== 'expired') return null
+  if (status !== 'answered' && status !== 'dismissed' && status !== 'expired' && status !== 'marked') return null
   const at = Date.parse(stamp?.closedAt ?? '')
   return {
     status,
