@@ -86,6 +86,11 @@ export function menuFor(
       items.push({ action: 'zipRun', label: `Zip the run (${ctx.item.takes?.length ?? 0})` })
     items.push({ action: 'copyArtifact', label: 'Copy artifact' })
     items.push({ action: 'copyPath', label: 'Copy path' })
+    // The pile the card is sitting in. Here as well as on the zone's own menu
+    // because a card is what the pointer lands on — a zone target needs the
+    // label or the floor between piles, which is not the gesture anyone makes.
+    if ((ctx.zoneCount ?? 0) > 0)
+      items.push({ action: 'zipZone', label: `Zip the zone (${ctx.zoneCount})` })
     items.push({ action: 'expire', label: 'Expire now', grave: true })
   }
   // Taking a zone is the one gesture that can take thirty artifacts at once,

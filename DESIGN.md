@@ -405,8 +405,10 @@ the artifact that wanted `--app`.
 
 "Copy artifact" carries one picture. A pile is the other unit a viewer wants
 whole — the twelve frames a sweep left in a zone, the eight takes of a run — so
-the right-click menu offers **Zip the zone (12)** on a zone and **Zip the run
-(8)** on a run's card. Originals, never the wall's capped thumbnails. A run
+the right-click menu offers **Zip the zone (12)** and, on a run, **Zip the run
+(8)**. The zone's zip is on a card's menu as well as the zone's own: a zone
+target needs the label or the floor between piles, and the thing the pointer
+actually lands on is a card. Originals, never the wall's capped thumbnails. A run
 inside a zipped zone contributes a folder of every take, not the one take its
 card happens to be drawing: the card stands for all of them and a zip that
 quietly dropped seven would be the wrong archive.

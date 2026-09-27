@@ -178,4 +178,12 @@ describe('menuFor on a zone', () => {
     expect(card.map((i) => i.action)).not.toContain('expireZone')
     expect(card.map((i) => i.action)).not.toContain('pinZone')
   })
+
+  it('offers the pile from a card too, since a card is what the pointer lands on', () => {
+    const card = menuFor(targetOf(['slopboard', 'a']), { item: item(), canUndo: false, zoneCount: 30 })
+    expect(card.find((i) => i.action === 'zipZone')?.label).toBe('Zip the zone (30)')
+    // Last before the row that takes the card away: the widest thing the menu
+    // offers, and the only one that is not about the card itself.
+    expect(card.map((i) => i.action).slice(-2)).toEqual(['zipZone', 'expire'])
+  })
 })

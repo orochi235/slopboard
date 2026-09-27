@@ -2381,7 +2381,9 @@ export function WebglBackend(props: Props) {
   /** The menu row clicked once and waiting to be meant. Cleared with the menu,
    *  so arming never survives the gesture that armed it. */
   const [armed, setArmed] = useState<Action | null>(null)
-  const menuZone = menuTarget?.kind === 'zone' ? menuTarget.zone : null
+  // A card's zone as well as a zone's own: the card menu offers to zip the
+  // pile the card is in, and the row says how many that is.
+  const menuZone = menuTarget && 'zone' in menuTarget ? menuTarget.zone : null
   const zoneCount = menuZone === null ? 0 : items.filter((i) => i.zone === menuZone).length
 
   const act = useCallback(
@@ -2401,7 +2403,7 @@ export function WebglBackend(props: Props) {
         setMenu(null)
         return props.onConfigureZone(target.zone)
       }
-      if (action === 'zipZone' && target?.kind === 'zone') {
+      if (action === 'zipZone' && target && 'zone' in target) {
         setArmed(null)
         setMenu(null)
         return actions.zipZone(target.zone)
