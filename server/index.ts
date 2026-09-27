@@ -19,6 +19,7 @@ import { alert, debugItem, toastFor } from './alert.ts'
 import { MAX_SYNTH_TAKES, synthAnswered, synthAsk, synthRun } from './synth.ts'
 import { withKeyForwarder } from './page-keys.ts'
 import { readOriginal, serveZip } from './serveZip.ts'
+import { idFromOrig } from './itemId.ts'
 import { zipName, zipPlanForRun, zipPlanForZone } from '@shared/zipPlan.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { Lifetime } from '@shared/lifetime.ts'
@@ -85,7 +86,7 @@ app.get('/img/:id', (req, res) => {
 })
 
 app.get('/orig/:id', (req, res) => {
-  const path = store.resolveOriginal(req.params.id)
+  const path = store.resolveOriginal(idFromOrig(req.params.id))
   if (!path) return void res.sendStatus(404)
   res.sendFile(path, { dotfiles: 'allow' })
 })

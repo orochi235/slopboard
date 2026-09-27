@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { extname } from 'node:path'
 
 /**
  * An artifact's id, derived from where it lives rather than minted fresh.
@@ -25,4 +26,17 @@ export function idFor(sourcePath: string): string {
  */
 export function runIdFor(zone: string, run: string): string {
   return createHash('sha1').update(`run:${zone}:${run}`).digest('hex').slice(0, 32)
+}
+
+/**
+ * Where the original is served, carrying the source's extension so that a
+ * save, a new tab or a hand-off to another app gets a name it can open.
+ */
+export function origUrlFor(id: string, sourcePath: string): string {
+  return `/orig/${id}${extname(sourcePath).toLowerCase()}`
+}
+
+/** The id an `/orig/` path segment names, with or without the extension. */
+export function idFromOrig(segment: string): string {
+  return segment.replace(/\.[a-z0-9]+$/i, '')
 }

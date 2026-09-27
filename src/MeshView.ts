@@ -34,7 +34,7 @@ export type MeshView = {
 export function mountMesh(
   host: HTMLElement,
   url: string,
-  // `stl` rather than a sniff of the URL: `/orig/<id>` carries no extension,
+  // `stl` rather than a sniff of the URL: an `/orig/<id>` from an older card has no extension,
   // and the wrong loader reads an ASCII mesh as JSON and says so.
   { stl, onError }: { stl: boolean; onError: (message: string) => void },
 ): MeshView {

@@ -6,7 +6,7 @@ import * as store from './store.ts'
 import type { Poster, Take, WallItem } from '@shared/protocol.ts'
 import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
-import { idFor, runIdFor } from './itemId.ts'
+import { idFor, origUrlFor, runIdFor } from './itemId.ts'
 import { kindOf } from './kind.ts'
 import { keptFrom, readStamp, replyFrom } from './sidecar.ts'
 import { ttlMs as wallTtlMs } from './settings.ts'
@@ -138,7 +138,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
     const take: Take = {
       id,
       url: `/img/${id}`,
-      origUrl: `/orig/${id}`,
+      origUrl: origUrlFor(id, sourcePath),
       name: caption,
       path: sourcePath,
       at: bornAt,
@@ -207,7 +207,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
     ...(sidecar?.apps ? { apps: sidecar.apps } : {}),
     ...(sidecar?.links ? { links: sidecar.links } : {}),
     url: `/img/${id}`,
-    origUrl: `/orig/${id}`,
+    origUrl: origUrlFor(id, sourcePath),
     path: sourcePath,
     zone,
     name: caption,
