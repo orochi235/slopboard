@@ -56,8 +56,8 @@
 }
 
 .pxm__wordmark {
-  inset: auto -70px -66px auto;
-  font: 600 132px/0.8 'Orbitron', ui-monospace, monospace;
+  inset: auto -70px -48px auto;
+  font: 600 96px/0.8 'Orbitron', ui-monospace, monospace;
   letter-spacing: 0.06em;
   color: transparent;
   -webkit-text-stroke: 1px color-mix(in srgb, var(--ink) 26%, transparent);
