@@ -39,6 +39,13 @@ export function pathsInCommand(cmd) {
   return [...new Set(out)]
 }
 
+/** The images a command sent to the wall itself, or asked a question with. */
+export function sent(payload) {
+  const cmd = payload?.tool_input?.command
+  if (payload?.tool_name !== 'Bash' || !/\btransom\b/.test(cmd ?? '')) return []
+  return pathsInCommand(cmd)
+}
+
 /** Paths the tool call put in front of us that we should judge. */
 export function candidates(payload) {
   const tool = payload?.tool_name
@@ -47,7 +54,6 @@ export function candidates(payload) {
     return isImage(input.file_path) ? [input.file_path] : []
   }
   if (tool === 'Bash') {
-    // The command sent it itself, or asked a question with it.
     if (/\btransom\b/.test(input.command ?? '')) return []
     return pathsInCommand(input.command)
   }
@@ -116,12 +122,20 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for await (const c of process.stdin) raw += c
   let p; try { p = JSON.parse(raw) } catch { process.exit(0) }
 
+  const now = Date.now()
+  const seen = readSeen(now)
+  // A send counts as seen, or reading the same file afterwards is nudged as
+  // though it had never reached the wall.
+  const posted = sent(p)
+  if (posted.length > 0) {
+    for (const s of posted) seen[path.resolve(p?.cwd ?? process.cwd(), s)] = now
+    writeSeen(seen)
+  }
+
   const paths = candidates(p)
   if (paths.length === 0) process.exit(0)
   if (excepted(p?.cwd)) process.exit(0)
 
-  const now = Date.now()
-  const seen = readSeen(now)
   const hits = toNudge(paths, { now, seen })
   if (hits.length === 0) process.exit(0)
 

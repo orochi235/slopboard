@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  candidates, excepted, isImage, message, onWall, pathsInCommand, toNudge,
+  candidates, excepted, isImage, message, onWall, pathsInCommand, sent, toNudge,
 } from './wall-nudge.mjs'
 
 let dir
@@ -45,6 +45,17 @@ describe('pathsInCommand', () => {
   })
   it('returns nothing for a command with no image', () => {
     expect(pathsInCommand('npm test')).toEqual([])
+  })
+})
+
+describe('sent', () => {
+  it('names what a send put on the wall', () => {
+    expect(sent({ tool_name: 'Bash', tool_input: { command: 'transom post --caption "x" /t/a.png b.jpg' } }))
+      .toEqual(['/t/a.png', 'b.jpg'])
+  })
+  it('names nothing for a command that sent nothing', () => {
+    expect(sent({ tool_name: 'Bash', tool_input: { command: 'magick in.png out.png' } })).toEqual([])
+    expect(sent({ tool_name: 'Read', tool_input: { file_path: '/t/a.png' } })).toEqual([])
   })
 })
 
