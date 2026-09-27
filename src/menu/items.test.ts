@@ -109,7 +109,7 @@ describe('menuFor on a zone', () => {
   })
 
   it('says what a zip of the zone would hold', () => {
-    expect(rowFor('zipZone', { canUndo: false, zoneCount: 12 })?.label).toBe('Zip the zone (12)')
+    expect(rowFor('zipZone', { canUndo: false, zoneCount: 12 })?.label).toBe('Download zip (12)')
   })
 
   it('offers to zip a run, and nothing else on the wall', () => {
@@ -125,7 +125,7 @@ describe('menuFor on a zone', () => {
     }))
     const card = targetOf(['slopboard', 'a'])
     const run = menuFor(card, { item: item({ kind: 'run', takes }), canUndo: false })
-    expect(run.find((i) => i.action === 'zipRun')?.label).toBe('Zip the run (3)')
+    expect(run.find((i) => i.action === 'zipRun')?.label).toBe('Download zip of the run (3)')
     // A picture is one file, which Copy artifact and the lightbox's save both
     // already hand over.
     expect(menuFor(card, { item: item(), canUndo: false }).map((i) => i.action)).not.toContain(
@@ -181,7 +181,7 @@ describe('menuFor on a zone', () => {
 
   it('offers the pile from a card too, since a card is what the pointer lands on', () => {
     const card = menuFor(targetOf(['slopboard', 'a']), { item: item(), canUndo: false, zoneCount: 30 })
-    expect(card.find((i) => i.action === 'zipZone')?.label).toBe('Zip the zone (30)')
+    expect(card.find((i) => i.action === 'zipZone')?.label).toBe('Download zip (30)')
     // Last before the row that takes the card away: the widest thing the menu
     // offers, and the only one that is not about the card itself.
     expect(card.map((i) => i.action).slice(-2)).toEqual(['zipZone', 'expire'])
