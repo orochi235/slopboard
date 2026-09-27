@@ -77,6 +77,16 @@ describe('metaOf', () => {
 })
 
 describe('statusOf', () => {
+  it('says whether a drawing is waiting on a session, held for nobody, or sent', () => {
+    const markup = { text: '', at: 1, url: '/api/marks/a.png' }
+    expect(statusOf(item({ markup: { ...markup, status: 'pending', live: true } }))).toEqual(['marks unsent'])
+    expect(statusOf(item({ markup: { ...markup, status: 'pending', live: false } }))).toEqual(['marks held'])
+    expect(statusOf(item({ markup: { ...markup, status: 'delivered', via: 'hook', live: true } }))).toEqual([
+      'marks sent',
+    ])
+    expect(statusOf(item({ markup: { ...markup, status: 'discarded', live: false } }))).toEqual([])
+  })
+
   it('says nothing about an artifact that is in no particular state', () => {
     expect(statusOf(item())).toEqual([])
   })

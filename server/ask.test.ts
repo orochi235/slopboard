@@ -23,16 +23,16 @@ afterEach(async () => {
 })
 
 /** Runs `transom`, with nothing on stdin so that a send with no file ends. */
-function transom(args: string[]) {
+function transom(args: string[], env: Record<string, string> = {}) {
   return spawn('sh', [TRANSOM, ...args], {
-    env: { ...process.env, TRANSOM_ROOT: root, TRANSOM_ZONE: 'z' },
+    env: { ...process.env, TRANSOM_ROOT: root, TRANSOM_ZONE: 'z', ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 }
 
 /** Runs it to the end, for a command that does not wait on the wall. */
-async function run(args: string[]) {
-  const child = transom(args)
+async function run(args: string[], env: Record<string, string> = {}) {
+  const child = transom(args, env)
   let out = ''
   let err = ''
   child.stdout.on('data', (d) => (out += d))
@@ -100,6 +100,18 @@ describe('transom ask', () => {
     expect((await ask('q', [], 'expired\n\n')).code).toBe(4)
   })
 
+  it('prints the marked-up picture and the text, and exits 5, when the viewer drew instead', async () => {
+    const { code, out, err, sent } = await ask('q', ['--choice', 'yes'], 'marked\n/t/marks/a.png\nbluer')
+    expect(code).toBe(5)
+    expect(out).toBe(`${sent}\n/t/marks/a.png\nbluer\n`)
+    expect(err).toContain('marked up')
+  })
+
+  it('names the picture in --json for a drawing', async () => {
+    const { out, sent } = await ask('q', ['--json'], 'marked\n/t/marks/a.png\n')
+    expect(out.slice(sent.length + 1)).toBe(`${JSON.stringify({ status: 'marked', image: '/t/marks/a.png', text: '' })}\n`)
+  })
+
   it('offers a free-text box only where something asked', async () => {
     const { sent } = await ask('q', ['--why', 'what is off about it?'], 'answered\n\nnothing')
     expect((await stampOf(sent)).why).toBe('what is off about it?')
@@ -146,6 +158,22 @@ describe('transom wait', () => {
 })
 
 describe('transom post', () => {
+  it('records the Claude Code session it ran under, where a drawing goes back to', async () => {
+    const { sent } = await run(['post', png], { CLAUDE_CODE_SESSION_ID: 'sess-1', CLAUDE_PID: '4242' })
+    const blob = JSON.parse(await readFile(`${sent[0]}.transom.json`, 'utf8'))
+    expect(blob.session).toBe('sess-1')
+    expect(blob.pid).toBe(4242)
+    expect(parseStamp(blob)).toMatchObject({ session: 'sess-1', pid: 4242 })
+  })
+
+  it('drops a pid that is not a number, and records nothing outside a session', async () => {
+    const odd = await run(['post', png], { CLAUDE_CODE_SESSION_ID: 'sess-1', CLAUDE_PID: '12; rm' })
+    expect(JSON.parse(await readFile(`${odd.sent[0]}.transom.json`, 'utf8')).pid).toBeUndefined()
+    const none = await run(['post', png], { CLAUDE_CODE_SESSION_ID: '', CLAUDE_PID: '' })
+    const stamp = await stampOf(none.sent[0]!)
+    expect(stamp.session).toBeUndefined()
+  })
+
   it('sends and returns, with no question on the card', async () => {
     const { code, sent } = await run(['post', png])
     expect(code).toBe(0)

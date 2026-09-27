@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   barsOf,
+  boxOf,
   clampPan,
   fillScale,
   fitScale,
@@ -188,5 +189,18 @@ describe('barsOf', () => {
     const at = (x: number) => barsOf(clampPan({ scale: 1, x, y: 0 }, image, port), image, port).x?.at
     expect(at(10_000)).toBeCloseTo(0)
     expect(at(-10_000)).toBeCloseTo(0.75)
+  })
+})
+
+describe('boxOf', () => {
+  it('centers a fitted image in the viewport', () => {
+    const view = fitView(big, port)
+    const box = boxOf(view, big, port)
+    expect(box.w).toBeCloseTo(big.w * view.scale)
+    expect(box.x + box.w / 2).toBeCloseTo(port.w / 2)
+    expect(box.y + box.h / 2).toBeCloseTo(port.h / 2)
+  })
+  it('moves with the pan', () => {
+    expect(boxOf({ scale: 1, x: 30, y: -20 }, small, port)).toEqual({ x: 430, y: 330, w: 200, h: 100 })
   })
 })

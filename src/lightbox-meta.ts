@@ -78,5 +78,8 @@ export function statusOf(item: WallItem): string[] {
   // In words, since there is room for them here: the wall's own chip is a glyph.
   const asks = asksOf(item)
   if (asks) parts.push(askWords(item, asks))
+  if (item.markup?.status === 'pending') parts.push(item.markup.live ? 'marks unsent' : 'marks held')
+  // Sent as the answer to the question, the reply above already says so.
+  else if (item.markup?.status === 'delivered' && item.markup.via !== 'ask') parts.push('marks sent')
   return parts
 }

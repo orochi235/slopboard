@@ -7,10 +7,11 @@ import type { Lifetime } from './lifetime.ts'
  * How a question closed. `choice` is the chip that was clicked, absent for a
  * free-text answer and for every way of closing without one; `text` is the
  * free-text box, empty unless something was typed in it. A question offering
- * choices *and* a box answers with both.
+ * choices *and* a box answers with both. `marked` means the viewer drew on the
+ * picture instead and pressed *No, like this*; `text` is what they wrote.
  */
 export type Reply = {
-  status: 'answered' | 'dismissed' | 'expired'
+  status: 'answered' | 'dismissed' | 'expired' | 'marked'
   choice?: string
   text: string
   at: number
@@ -46,8 +47,34 @@ export type Take = {
   /** The free-text box's placeholder. Absent means the take offers no box. */
   why?: string
   reply?: Reply
+  markup?: Markup
   apps?: TakeApp[]
   links?: TakeLink[]
+}
+
+/**
+ * A picture the viewer drew on and sent back with *No, like this*, flattened
+ * onto the render. One per artifact: drawing again replaces it.
+ *
+ * `pending` has not reached the session that sent the card, and holds the card
+ * off the clock until it does or is discarded. `delivered` says how it got
+ * there: as the reply to a waiting `transom ask`, or through the hook at that
+ * session's next tool call. `discarded` was thrown away on the wall.
+ */
+export type Markup = {
+  status: 'pending' | 'delivered' | 'discarded'
+  text: string
+  /** When it was sent from the wall. */
+  at: number
+  /** When it stopped being pending. */
+  resolvedAt?: number
+  via?: 'ask' | 'hook'
+  /** The composite, served by the daemon. */
+  url: string
+  /** Whether the session that sent the card was still running when the daemon
+   *  last looked. False while pending means nothing will collect it: no session
+   *  was recorded, or it has exited. */
+  live: boolean
 }
 
 /** What a run's card draws, derived from its takes: the first unanswered, else
@@ -81,6 +108,8 @@ export type WallItem = {
   question?: string
   choices?: string[]
   reply?: Reply
+  /** A drawing sent back from the lightbox. A run carries these per take. */
+  markup?: Markup
   /** What `bin/transom` saw when it ran: the repository and the short commit.
    *  Absent for anything dropped in by hand. */
   repo?: string
@@ -202,6 +231,9 @@ export type ServerMessage =
    *  which member of a run answered, and the poster moves on to the next
    *  unanswered one. */
   | { type: 'reply'; id: string; reply: Reply; take?: string; poster?: Poster }
+  /** A drawing sent back, delivered, discarded, or its sender found gone.
+   *  `take` names which member of a run it is on. */
+  | { type: 'markup'; id: string; markup: Markup; take?: string }
   /** Rescued, or let go again. `keptAt` is null for the second. */
   | { type: 'keep'; id: string; keptAt: number | null }
   /** A zone held at the top of the wall, or let back into the order.

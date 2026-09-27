@@ -12,6 +12,7 @@ import { runBadge } from '@shared/runs.ts'
 import { mountMeshView } from './meshview.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { readPins, setPinned } from './pins.ts'
+import { pngOf } from './markup.ts'
 import * as zones from './zones.ts'
 import * as settings from './settings.ts'
 import { zoneCounts } from './zoneCounts.ts'
@@ -173,6 +174,64 @@ app.post('/api/items/:id/answer', express.json(), async (req, res) => {
     })
   }
   res.json({ ok: answered })
+})
+
+/** A drawing's change, and the reply it closed a question with if it did. */
+function announceMarks(news: store.MarkNews) {
+  broadcast({ type: 'markup', id: news.id, markup: news.markup, ...(news.take ? { take: news.take } : {}) })
+  if (news.reply) {
+    broadcast({
+      type: 'reply',
+      id: news.id,
+      reply: news.reply,
+      ...(news.take ? { take: news.take } : {}),
+      ...(news.poster ? { poster: news.poster } : {}),
+    })
+  }
+}
+
+// *No, like this*: a picture drawn on in the lightbox, flattened onto the
+// render. `:id` is a card's or one take's. The body carries the composite as a
+// data URL, so it is sized for a full-resolution PNG rather than a verdict.
+app.post('/api/items/:id/markup', express.json({ limit: '64mb' }), async (req, res) => {
+  const body = (req.body ?? {}) as { png?: unknown; marks?: unknown; text?: unknown }
+  const png = typeof body.png === 'string' ? /^data:image\/png;base64,(.+)$/.exec(body.png)?.[1] : undefined
+  if (!png) return void res.status(400).json({ ok: false })
+  const news = await store.markUp(req.params.id, {
+    png: Buffer.from(png, 'base64'),
+    marks: body.marks ?? null,
+    text: typeof body.text === 'string' ? body.text : '',
+  })
+  if (!news) return void res.status(404).json({ ok: false })
+  console.log(`[marks] ${req.params.id.slice(0, 8)} ${news.markup.status}${news.markup.via ? ` via ${news.markup.via}` : ''}`)
+  announceMarks(news)
+  res.json({ ok: true, markup: news.markup })
+})
+
+app.post('/api/items/:id/markup/discard', async (req, res) => {
+  const news = await store.discardMarks(req.params.id)
+  if (news) announceMarks(news)
+  res.json({ ok: news !== null })
+})
+
+// The hook, at a session's tool call, collecting every drawing waiting for
+// it. Delivered the moment it is handed over: the hook prints it to the model
+// in the same breath.
+app.post('/api/marks/claim', express.json(), async (req, res) => {
+  const session = (req.body as { session?: unknown } | undefined)?.session
+  if (typeof session !== 'string' || session === '') return void res.status(400).json({ ok: false })
+  const { claimed, news } = await store.claimMarks(session)
+  for (const n of news) announceMarks(n)
+  if (claimed.length > 0) console.log(`[marks] ${claimed.length} to ${session.slice(0, 8)}`)
+  res.json({ ok: true, claimed })
+})
+
+app.get('/api/marks/:file', (req, res) => {
+  const id = /^([0-9a-f]{32})\.png$/.exec(req.params.file)?.[1]
+  if (!id) return void res.sendStatus(404)
+  res.sendFile(pngOf(id), { dotfiles: 'allow' }, (err) => {
+    if (err && !res.headersSent) res.sendStatus(404)
+  })
 })
 
 app.post('/api/items/:id/keep', async (req, res) => {
@@ -364,6 +423,11 @@ watchZoneColors((colors, icons) => {
 
 store.onExpire((id) => broadcast({ type: 'expire', id }))
 store.startSweeper()
+// A session exiting says nothing, so whether a drawing's sender is still there
+// to collect it is looked at on a tick.
+setInterval(() => {
+  void store.recheckSenders().then((news) => news.forEach(announceMarks))
+}, 15_000).unref()
 watchInbox((landed) => {
   const { item } = landed
   if (landed.as === 'take' && !landed.opened) {

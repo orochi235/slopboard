@@ -187,3 +187,21 @@ export function barsOf(
     y: axis(image.h * view.scale, port.h, view.y),
   }
 }
+
+/** Where the image is drawn under a view, in viewport pixels: its top-left
+ *  corner and its drawn size. */
+export function boxOf(view: View, image: Size, port: Size): { x: number; y: number; w: number; h: number } {
+  const w = image.w * view.scale
+  const h = image.h * view.scale
+  return { x: port.w / 2 + view.x - w / 2, y: port.h / 2 + view.y - h / 2, w, h }
+}
+
+/** Room the drawing bar takes at the foot of the window, below the meta line's
+ *  own margin: the picture is fitted above it so no mark lands under a button. */
+export const MARKING_BAR_PX = 120
+
+/** The view a drawing is made in: fitted, and lifted clear of the bar. */
+export function markingView(image: Size, port: Size): View {
+  const scale = fitScale(image, { w: port.w, h: Math.max(1, port.h - MARKING_BAR_PX) })
+  return { scale, x: 0, y: -MARKING_BAR_PX / 2 + 24 }
+}

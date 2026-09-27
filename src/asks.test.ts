@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { askChip, askWords, asksOf } from '@/asks.ts'
-import type { Reply, Take, WallItem } from '@shared/protocol.ts'
+import { askChip, askWords, asksOf, cornerChip } from '@/asks.ts'
+import type { Markup, Reply, Take, WallItem } from '@shared/protocol.ts'
 
 const answered: Reply = { status: 'answered', choice: 'better', text: '', at: 2 }
 
@@ -84,5 +84,28 @@ describe('the same thing in words', () => {
       const shut = item({ question: 'reads?', reply: { status, text: '', at: 2 } })
       expect(askWords(shut, asksOf(shut)!)).toBe(status)
     }
+  })
+})
+
+const marked = (status: Markup['status']): Markup => ({ status, text: '', at: 1, url: '/api/marks/a.png', live: false })
+
+describe('the corner', () => {
+  it('shows unsent marks over a question, since they are what would be lost', () => {
+    expect(cornerChip(item({ question: 'reads?', markup: marked('pending') }))).toEqual({ text: '✎', open: true })
+  })
+
+  it('finds them on a run take too', () => {
+    const run = item({ kind: 'run', takes: [{ ...take('t1'), markup: marked('pending') }] })
+    expect(cornerChip(run)?.text).toBe('✎')
+  })
+
+  it('goes back to the question once they are sent or thrown away', () => {
+    expect(cornerChip(item({ question: 'reads?', markup: marked('delivered') }))).toEqual({ text: '?', open: true })
+    expect(cornerChip(item({ markup: marked('discarded') }))).toBeNull()
+  })
+
+  it('says a question closed by a drawing was marked up', () => {
+    const shut = item({ question: 'reads?', reply: { status: 'marked', text: '', at: 2 } })
+    expect(askWords(shut, asksOf(shut)!)).toBe('marked up')
   })
 })

@@ -13,6 +13,9 @@ export const config = {
   /** Where a question's answer lands, named for the file `bin/transom` sent.
    *  Not beside the image: expiry renames that into the trash. */
   answers: join(root, 'answers'),
+  /** Drawings sent back from the lightbox, one composite and one record per
+   *  artifact. Beside the answers for the same reason. */
+  marks: join(root, 'marks'),
   port: DAEMON_PORT,
   ttlMs: parseDuration(process.env.TRANSOM_TTL ?? '8h') ?? 28_800_000,
   trashMs: 24 * 60 * 60 * 1000,

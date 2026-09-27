@@ -287,11 +287,12 @@ own. Either way the card goes on living out its TTL as an ordinary card.
 
 `transom ask "..." [--choice a --choice b] FILE` puts a question on the card and
 waits for the answer: it prints the answer and exits 0, or exits 3 if the
-question is dismissed and 4 if the card is expired first. An agent runs it in
+question is dismissed, 4 if the card is expired first and 5 if it was marked
+up instead (*Marking up a render*). An agent runs it in
 the background, so the answer arrives as the command finishing.
 
 - **The answer is a file**, `~/transom/answers/<the name transom gave the file>`: the
-  status on the first line (`answered`, `dismissed`, `expired`), the answer
+  status on the first line (`answered`, `dismissed`, `expired`, `marked`), the answer
   after it. Not beside the image, since expiry renames that into the trash.
   `transom wait PATH` waits on it again if the first wait was lost.
 - **A question always flags its card**, at `look` unless the agent names a
@@ -330,6 +331,51 @@ the background, so the answer arrives as the command finishing.
   free-text answer's first line apart from a choice, and it stays line-based
   because `bin/transom` is `sh` and has no JSON parser. `transom ask --json` prints
   the whole reply for a caller that wants both fields.
+
+### Marking up a render
+
+In the lightbox a picture — a card, or one take of a run — can be drawn on
+and sent back. `mark up` in the meta row fits the picture above a bar of tools
+(freehand, arrow, box, note, select, undo) and a line of text; **No, like
+this** flattens the marks onto the original at its own resolution and hands the
+result to the daemon. Pages, videos and meshes have no picture to draw on.
+
+- **The drawing is labkit's annotation overlay**, hosted outside a lab through
+  its public exports only: the lightbox owns the surface a lab would (a
+  container and one buffer from `@weasel-js/labkit/surface`) and mounts
+  `AnnotationOverlay` over the image, with `createAnnotationStore` holding the
+  marks and its `capture` producing the PNG. A note's words are asked for where
+  it was put down, since the overlay makes text marks with none. The overlay's
+  one input rule is copied into `markup.css` rather than importing labkit's
+  stylesheet, which sets weasel's document tokens for the same reason
+  `weasel.css` exists.
+- **It goes back to the session that sent the card.** `bin/transom` records
+  `CLAUDE_CODE_SESSION_ID` and `CLAUDE_PID` in the sidecar, and the sender is
+  live while that pid is a running `claude` process. Three outcomes:
+  - **A question still open** — the `transom ask` blocked on the card, or one
+    sent with `--no-wait` — is answered by the drawing, when its sender is live
+    or recorded no session at all. The answer file's status is `marked` and its
+    second line is the composite's path; `transom ask` prints the path and the
+    text and exits 5.
+  - **Live, not asking:** the drawing waits for the `wall-nudge` hook, which on
+    that session's next Read, Write or Bash asks the daemon for it and tells the
+    model `Your render "<caption>" was marked up on the wall`, with the path and
+    the text. Handing it over is what marks it delivered.
+  - **Not live:** it stays pending on the card, and nothing is dropped.
+- **Pending holds the card.** A card with unsent marks never ages out and is
+  not trashed at startup, the way a rescue is not; the corner chip reads `✎` in
+  the flag's color, the lightbox shows the composite in place of the original,
+  and the status row says `marks unsent` while the sender is running and `marks
+  held` once it is not — rechecked every 15 seconds. `discard marks` throws it
+  away on purpose. Delivered or discarded, the card ages again from then, a
+  whole lifetime, the same as an answered question.
+- **On disk**, beside the answers: `~/transom/marks/<id>.png` and `<id>.json`
+  (status, text, the serialized marks, the sender), one per artifact — drawing
+  again replaces it. Discarding deletes the composite. Expiry moves both into
+  the trash with the card and undo brings them back, so they are bounded by
+  the card's own life and then by the trash, which is not. While any pending
+  drawing is for a session, `marks/waiting/<session>` exists: the hook stats it
+  on every tool call and only asks the daemon when it is there.
 
 ### Runs: many pictures, one card
 
@@ -747,6 +793,11 @@ sidecar with no caption means the CLI had nothing to say, and the wall shows
 nothing. A file dropped in by hand has no sidecar, and its name is the only
 thing it says.
 
+**A sidecar names the session that sent it.** `session` and `pid` are
+`CLAUDE_CODE_SESSION_ID` and `CLAUDE_PID` from the environment `bin/transom`
+ran in, written only inside Claude Code. They are where a drawing on the card
+goes back to (*Marking up a render*), and never reach the XMP packet.
+
 **A sidecar naming a run makes the file a take rather than a card.** `run` is
 the id `--run` gave it, with `runLabel` and `of` saying what the run is called
 and how many takes are coming. That one field is the whole of the run protocol
@@ -1135,17 +1186,13 @@ Base64-over-WebSocket hitches every time a render lands.
   card, and needs a history in the lightbox and a way to mark it resolved. Worth
   it only if follow-ups keep arriving as new cards.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
-- **Marking up a render and sending it back — decided, not built.** Draw on a
-  card in the lightbox (labkit's annotation overlay) and press *No, like this*;
-  the marked-up picture goes back to the session that sent the card if that
-  session is still live. Otherwise nothing is dropped: the wall keeps the marks
-  and any text on the card until they are resolved one way or the other,
-  delivered or thrown away on purpose. That means a card holding unsent marks
-  cannot age out. A Bash call sees `CLAUDE_CODE_SESSION_ID` and `CLAUDE_PID`, so
-  `transom` can record the sender and the daemon can tell whether it is still
-  running. **TODO:** a queue that hands unsent marks to a later session is
-  deliberately unbuilt. A repo chooses it with `marks.unsent` in its
-  `.transom.yaml` (*A repo's settings*), which takes only `keep` until then.
+- **Where unsent marks go when their session has gone — TODO, deliberately
+  unbuilt.** Today a drawing whose sender has exited stays on its card until
+  the viewer discards it (see *Marking up a render*). A queue that hands it to
+  a later session in the same repo is the other answer. A repo will choose
+  with `marks.unsent` in its `.transom.yaml` (*A repo's settings*), which takes
+  only `keep` until the queue exists; the daemon reads that key through the
+  zone record's root.
 
 ## Running it
 

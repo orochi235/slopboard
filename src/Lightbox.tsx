@@ -6,8 +6,11 @@ import { createQuietGate } from '@/nav/quiet.ts'
 import { sandboxFor } from '@/lightbox-sandbox.ts'
 import { mountMesh } from '@/MeshView.ts'
 import { KEY_MESSAGE } from '@shared/page-keys.ts'
+import { Markup, type Box, type MarkedUp } from '@/lightbox/Markup.tsx'
 import {
   barsOf,
+  boxOf,
+  markingView,
   fitView,
   isPanorama,
   isZoomed,
@@ -22,7 +25,9 @@ import {
 } from '@/lightbox/view.ts'
 import type { Reply, Take, TakeApp, TakeLink, WallItem } from '@shared/protocol.ts'
 import { countOf, nextOpen, posterTake } from '@shared/runs.ts'
+import { replyWords } from '@/asks.ts'
 import './lightbox.css'
+import '@/lightbox/markup.css'
 
 /** What a question is, wherever it hangs: on a card, or on one take of a run. */
 type Asked = {
@@ -148,8 +153,11 @@ function Ask({
         {reply.status === 'answered' && reply.text ? (
           <p className="lightbox__reply lightbox__reply--closed">{reply.text}</p>
         ) : null}
+        {reply.status === 'marked' && reply.text ? (
+          <p className="lightbox__reply lightbox__reply--closed">{reply.text}</p>
+        ) : null}
         {reply.status !== 'answered' ? (
-          <p className="lightbox__reply lightbox__reply--closed">{reply.status}</p>
+          <p className="lightbox__reply lightbox__reply--closed">{replyWords(reply)}</p>
         ) : (
           !choices && !reply.text && <p className="lightbox__reply lightbox__reply--closed">answered</p>
         )}
@@ -258,6 +266,13 @@ function ImageLightbox({
   /** Set by a discrete zoom — a key or a double-click — and cleared by anything
    *  continuous. Easing a wheel or a drag makes it lag the hand instead. */
   const [eased, setEased] = useState(false)
+  /** Drawing on the picture. The view is held at fit while it is, since the
+   *  marks are laid down in the picture's on-screen box. */
+  const [marking, setMarking] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sendFailed, setSendFailed] = useState(false)
+  const markingRef = useRef(marking)
+  markingRef.current = marking
   const port = useRef<HTMLDivElement>(null)
   const img = useRef<HTMLImageElement>(null)
   /** The window size the current view was computed against. Read by the resize
@@ -282,6 +297,7 @@ function ImageLightbox({
     setLoaded(false)
     setImage({ w: 0, h: 0 })
     setView({ scale: 1, x: 0, y: 0 })
+    setMarking(false)
     armed.current = false
   }, [item.id])
 
@@ -360,12 +376,33 @@ function ImageLightbox({
     const natural = { w: el.naturalWidth, h: el.naturalHeight }
     size.current = portOf()
     setImage(natural)
-    setView(openView(natural, size.current))
+    // Drawing again swaps a held composite back for the original, and the
+    // load that follows must not move the picture out from under the marks.
+    setView(markingRef.current ? markingView(natural, size.current) : openView(natural, size.current))
     setLoaded(true)
     // A visible element can take focus, and until the first paint this one is
     // still transparent. Focus is what decides the wheel is ours.
     port.current?.focus()
   }, [])
+
+  const startMarking = () => {
+    setEased(false)
+    setView(markingView(image, size.current))
+    setSendFailed(false)
+    setMarking(true)
+  }
+  const sendMarks = async (marked: MarkedUp) => {
+    setSending(true)
+    const ok = await actions.markUp(item.id, marked)
+    setSending(false)
+    setSendFailed(!ok)
+    if (ok) setMarking(false)
+  }
+  const box: Box = boxOf(view, image, size.current)
+  // A drawing that has not reached its sender is shown on the picture, so the
+  // card says what it is holding. Drawing again starts from the original.
+  const pending = item.markup?.status === 'pending'
+  const src = pending && !marking ? item.markup!.url : item.origUrl
 
   const zoomed = isZoomed(view, image, size.current)
   // How much of the image is off screen, per axis. Null on an axis that fits.
@@ -450,6 +487,7 @@ function ImageLightbox({
       aria-modal="true"
       aria-label="Full resolution image"
       data-closing={closing ? '' : undefined}
+      data-marking={marking ? '' : undefined}
     >
       <div
         className="lightbox__port"
@@ -477,7 +515,7 @@ function ImageLightbox({
         <img
           className={`lightbox__img ${loaded ? 'lightbox__img--in' : ''}`}
           ref={img}
-          src={item.origUrl}
+          src={src}
           alt=""
           // Suppressed only once the drag means a pan; at fit the native drag
           // to Finder is the more useful of the two.
@@ -533,6 +571,20 @@ function ImageLightbox({
             {isZoomed(view, image, size.current) ? 'whole' : 'fill'}
           </button>
         )}
+        {loaded && !marking && (
+          <button type="button" className="lightbox__metaPart lightbox__metaButton" onClick={startMarking}>
+            mark up
+          </button>
+        )}
+        {pending && !marking && (
+          <button
+            type="button"
+            className="lightbox__metaPart lightbox__metaButton"
+            onClick={() => actions.discardMarkup(item.id)}
+          >
+            discard marks
+          </button>
+        )}
         {/* Last in the row: it changes on every wheel notch, and anything after
             a readout that changes width is a control that shifts under the
             hand. */}
@@ -542,6 +594,17 @@ function ImageLightbox({
           </span>
         )}
       </div>
+      {marking && (
+        <Markup
+          src={item.origUrl}
+          box={box}
+          natural={image}
+          sending={sending}
+          failed={sendFailed}
+          onSend={(marked) => void sendMarks(marked)}
+          onCancel={() => setMarking(false)}
+        />
+      )}
       {item.name && <figcaption className="lightbox__caption">{item.name}</figcaption>}
     </div>
   )
@@ -878,7 +941,7 @@ function MeshLightbox({
 /** One take drawn as the picture it is: the run's own fields, with the take's
  *  pixels and its own name, and its question left to `Ask` to draw. */
 function takeItem(item: WallItem, take: Take): WallItem {
-  const { kind: _run, takes: _members, question: _q, choices: _c, reply: _r, ...card } = item
+  const { kind: _run, takes: _members, question: _q, choices: _c, reply: _r, markup: _m, ...card } = item
   return {
     ...card,
     id: take.id,
@@ -889,6 +952,7 @@ function takeItem(item: WallItem, take: Take): WallItem {
     bornAt: take.at,
     w: take.w,
     h: take.h,
+    ...(take.markup ? { markup: take.markup } : {}),
     ...(take.apps ? { apps: take.apps } : {}),
     ...(take.links ? { links: take.links } : {}),
   }

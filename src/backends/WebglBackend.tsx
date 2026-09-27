@@ -13,7 +13,7 @@ import * as THREE from 'three'
 import type { Rect } from 'windease'
 import { actions } from '@/actions.ts'
 import { posterTake, runBadge } from '@shared/runs.ts'
-import { ASK_GLYPH, askChip, asksOf } from '@/asks.ts'
+import { ASK_GLYPH, cornerChip, replyWords } from '@/asks.ts'
 import type { Arrangement, TransomChannels } from '@/arrangements/index.ts'
 import { containerFor, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { frameExtent, framePose, type Pose } from '@/camera/frame.ts'
@@ -278,7 +278,7 @@ function Wall({
       if (i.attention) {
         out.set(i.id, { level: i.attention.level, ...(i.note ? { note: i.note } : {}) })
       } else if (i.question && i.reply) {
-        const got = i.reply.status === 'answered' ? i.reply.text.split('\n')[0] : i.reply.status
+        const got = i.reply.status === 'answered' ? i.reply.text.split('\n')[0] : replyWords(i.reply)
         out.set(i.id, { level: 'look', note: `${i.question} → ${got}`, inert: true })
       }
     }
@@ -1135,8 +1135,8 @@ function Wall({
     // all that something was, which is what the wall had no way to say.
     const asksText = new Map(
       current.items.flatMap((i) => {
-        const state = asksOf(i)
-        return state ? [[i.id, { text: askChip(state), open: state.open }] as const] : []
+        const chip = cornerChip(i)
+        return chip ? [[i.id, chip] as const] : []
       }),
     )
     // A chip annotates its subject, so it shrinks when the camera closes on
