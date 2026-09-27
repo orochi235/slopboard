@@ -18,7 +18,7 @@ const file = join(config.root, 'zones.json')
  *
  * A file of its own beside `pins.json`, for the same reason: a zone is not an
  * artifact and owns no file to sit beside. Durations are written the way
- * `settings.json` writes them and the way `SLOP_TTL` takes them, because this
+ * `settings.json` writes them and the way `TRANSOM_TTL` takes them, because this
  * is a file someone may open and edit.
  *
  * Held in memory as well as on disk: the sweeper asks for a zone's lifetime on

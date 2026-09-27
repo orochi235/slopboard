@@ -17,14 +17,14 @@ const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|avif)$/i
 const FRESH_MS = 120_000
 const SEEN_TTL_MS = 3_600_000
 
-export const slopRoot = () => process.env.SLOP_ROOT || path.join(homedir(), 'slop')
+export const transomRoot = () => process.env.TRANSOM_ROOT || path.join(homedir(), 'transom')
 
 export function isImage(p) {
   return typeof p === 'string' && IMAGE_EXT.test(p)
 }
 
 /** Already on the wall: nudging about it would be the second nudge. */
-export function onWall(p, root = slopRoot()) {
+export function onWall(p, root = transomRoot()) {
   const inbox = path.join(root, 'inbox') + path.sep
   return path.resolve(p).startsWith(inbox)
 }
@@ -47,8 +47,8 @@ export function candidates(payload) {
     return isImage(input.file_path) ? [input.file_path] : []
   }
   if (tool === 'Bash') {
-    // The command sent it itself, or asked slop a question.
-    if (/\bslop\b/.test(input.command ?? '')) return []
+    // The command sent it itself, or asked a question with it.
+    if (/\btransom\b/.test(input.command ?? '')) return []
     return pathsInCommand(input.command)
   }
   return []
@@ -61,11 +61,11 @@ export function excepted(cwd) {
   if (!existsSync(local)) return false
   let text
   try { text = readFileSync(local, 'utf8') } catch { return false }
-  const block = text.match(/<!-- slopboard:begin -->([\s\S]*?)<!-- slopboard:end -->/)
+  const block = text.match(/<!-- transom:begin -->([\s\S]*?)<!-- transom:end -->/)
   return block ? /Preview/i.test(block[1]) : false
 }
 
-function seenPath() { return path.join(slopRoot(), 'wall-nudge-seen.json') }
+function seenPath() { return path.join(transomRoot(), 'wall-nudge-seen.json') }
 
 export function readSeen(now = Date.now(), file = seenPath()) {
   let raw
@@ -86,7 +86,7 @@ function writeSeen(seen, file = seenPath()) {
 }
 
 /** Images worth nudging about: real, fresh, off the wall, not already flagged. */
-export function toNudge(paths, { now = Date.now(), seen = {}, root = slopRoot() } = {}) {
+export function toNudge(paths, { now = Date.now(), seen = {}, root = transomRoot() } = {}) {
   const hits = []
   for (const p of paths) {
     const abs = path.resolve(p)
@@ -105,8 +105,8 @@ export function message(hits, cwd) {
   const one = names.length === 1
   return (
     `${names.join(', ')} ${one ? 'is' : 'are'} only visible to you. ` +
-    `Put ${one ? 'it' : 'them'} on the slopboard wall now — ` +
-    `\`slop ${names.join(' ')}\` (or \`~/src/slopboard/bin/slop\` if it is not on PATH) — ` +
+    `Put ${one ? 'it' : 'them'} on the transom wall now — ` +
+    `\`transom post ${names.join(' ')}\` (or \`~/src/transom/bin/transom\` if it is not on PATH) — ` +
     `then say which zone ${one ? 'it' : 'they'} went to. Do not \`open\` renders in Preview.\n`
   )
 }

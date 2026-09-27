@@ -26,10 +26,10 @@ describe('captionFor', () => {
   })
 
   it('captions nothing rather than a UUID when the sidecar has no caption', () => {
-    // `some-generator | slop` has no source name to fall back to, and a hex
+    // `some-generator | transom post` has no source name to fall back to, and a hex
     // string is worse than an empty caption.
     expect(captionFor('7304CB52-827D-4768.png', {})).toBe('')
-    expect(captionFor('7304CB52-827D-4768.png', { repo: 'slopboard' })).toBe('')
+    expect(captionFor('7304CB52-827D-4768.png', { repo: 'transom' })).toBe('')
   })
 
   it('reads the filename only for a file dropped in by hand', () => {

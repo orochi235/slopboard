@@ -83,7 +83,7 @@ describe.skipIf(!hasFfmpeg)('against a real clip', () => {
   let clip = ''
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'slop-poster-test-'))
+    dir = await mkdtemp(join(tmpdir(), 'transom-poster-test-'))
     clip = join(dir, 'clip.mp4')
     // Three seconds of color bars at a size nothing else on the wall uses,
     // so a poster measured off the source is obvious if it goes wrong.

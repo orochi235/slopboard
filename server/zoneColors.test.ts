@@ -3,28 +3,28 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-let slopRoot: string
+let transomRoot: string
 let projects: string
 
 beforeEach(async () => {
-  const base = await mkdtemp(join(tmpdir(), 'slop-zones-'))
-  slopRoot = join(base, 'slop')
+  const base = await mkdtemp(join(tmpdir(), 'transom-zones-'))
+  transomRoot = join(base, 'transom')
   projects = join(base, 'src')
-  await mkdir(join(slopRoot, 'zones'), { recursive: true })
+  await mkdir(join(transomRoot, 'zones'), { recursive: true })
   await mkdir(projects, { recursive: true })
   vi.resetModules()
-  process.env.SLOP_ROOT = slopRoot
+  process.env.TRANSOM_ROOT = transomRoot
 })
 
 afterEach(() => {
-  delete process.env.SLOP_ROOT
+  delete process.env.TRANSOM_ROOT
 })
 
 async function project(name: string, hued?: string) {
   const root = join(projects, name)
   await mkdir(root, { recursive: true })
   if (hued !== undefined) await writeFile(join(root, '.hued'), hued)
-  await writeFile(join(slopRoot, 'zones', `${name}.json`), JSON.stringify({ root }))
+  await writeFile(join(transomRoot, 'zones', `${name}.json`), JSON.stringify({ root }))
   return root
 }
 
@@ -46,7 +46,7 @@ test('a zone whose project has no .hued has no entry', async () => {
 
 test('a record pointing at a directory that no longer exists is skipped', async () => {
   await writeFile(
-    join(slopRoot, 'zones', 'ghost.json'),
+    join(transomRoot, 'zones', 'ghost.json'),
     JSON.stringify({ root: join(projects, 'gone') }),
   )
   expect(await read()).toEqual({})
@@ -54,12 +54,12 @@ test('a record pointing at a directory that no longer exists is skipped', async 
 
 test('an unparseable record does not lose the other zones', async () => {
   await project('weasel', 'background=#1b2a41  # navy\n')
-  await writeFile(join(slopRoot, 'zones', 'half-written.json'), '{"root":')
+  await writeFile(join(transomRoot, 'zones', 'half-written.json'), '{"root":')
   expect(await read()).toEqual({ weasel: '#1b2a41' })
 })
 
 test('no zones directory yields no colors rather than throwing', async () => {
-  process.env.SLOP_ROOT = join(slopRoot, 'nonexistent')
+  process.env.TRANSOM_ROOT = join(transomRoot, 'nonexistent')
   await expect(read()).resolves.toEqual({})
 })
 

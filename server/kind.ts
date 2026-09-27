@@ -19,7 +19,7 @@ const VIDEO_EXT = new Set(['.mp4', '.m4v', '.mov', '.webm'])
  *  the same format with all of that inside it. */
 const MESH_EXT = new Set(['.glb', '.stl'])
 
-/** Every extension the wall holds. `bin/slop` refuses the rest at the send,
+/** Every extension the wall holds. `bin/transom` refuses the rest at the send,
  *  and `kind.test.ts` holds the two lists to each other. */
 export const HELD_EXT: readonly string[] = [
   ...IMAGE_EXT,

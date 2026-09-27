@@ -6,11 +6,11 @@
  * Wants a wall of its own, so the run neither disturbs the real one nor waits
  * on it. In three terminals:
  *
- *   SLOP_ROOT=/tmp/slop-flicker SLOP_PORT=8799 npx tsx server/index.ts
- *   SLOP_PORT=8799 SLOP_CLIENT_PORT=5184 npx vite
- *   SLOP_ROOT=/tmp/slop-flicker npx tsx server/sim.ts --rate=3600 --zones=onto,astv --ttl=300
+ *   TRANSOM_ROOT=/tmp/transom-flicker TRANSOM_PORT=8799 npx tsx server/index.ts
+ *   TRANSOM_PORT=8799 TRANSOM_CLIENT_PORT=5184 npx vite
+ *   TRANSOM_ROOT=/tmp/transom-flicker npx tsx server/sim.ts --rate=3600 --zones=onto,astv --ttl=300
  *
- * Seed `/tmp/slop-flicker/inbox` first — some images, and at least one `.html`
+ * Seed `/tmp/transom-flicker/inbox` first — some images, and at least one `.html`
  * in a zone of its own, or there is no page to open.
  *
  * The trace buffer can fill before the run ends, which costs the last hold its

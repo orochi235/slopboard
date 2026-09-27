@@ -3,7 +3,7 @@ import { createRanks, ramp } from './slots.ts'
 import { createZoneGrid } from './zones.ts'
 import { createGlides, easeOut } from './glide.ts'
 import { defaultParams, type StackParams } from '@/params.ts'
-import type { Arrangement, SlopChannels } from './types.ts'
+import type { Arrangement, TransomChannels } from './types.ts'
 
 type StackItem = LayoutItem & {
   zone: string
@@ -84,7 +84,7 @@ export function createStack(
           : 0.5 / Math.tan((params.camera.fovDeg * Math.PI) / 360),
     },
     strategy: {
-      name: 'slop-stack',
+      name: 'transom-stack',
       layout({ items, container, options }): LayoutResult {
         const now = typeof options.now === 'number' ? options.now : Date.now()
         // The wall's sort key, as the only thing about it the strategy needs to
@@ -169,7 +169,7 @@ export function createStack(
               rotZ: noise * params.jitter.rot,
               lod: lodFor(entry.rank, params.lod.tiers),
               emphasis,
-            } satisfies SlopChannels)
+            } satisfies TransomChannels)
           }
         }
 

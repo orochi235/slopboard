@@ -160,7 +160,7 @@ Every test in `src/` is pure logic under vitest with no DOM, and there is no
 component-test harness to add one to. So the split is:
 
 - **Unit**: the step-to-decimals formatter, beside the other `params.*` tests.
-- **Screenshot**: both surfaces to the slopboard wall. The before shots are
+- **Screenshot**: both surfaces to the transom wall. The before shots are
   already on it, captured off the running wall with headless playwright —
   `.sidebar` with every `<details>` forced open, and `.topbar`. Take the after
   shots the same way and compare. The band's before shot is the one carrying

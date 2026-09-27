@@ -42,7 +42,7 @@ export interface TreeWatchOptions {
   /** Test seam; also lets a caller opt into chokidar. */
   backend?: 'native' | 'chokidar'
   /** How long a file's size must hold steady before it counts as written.
-   *  `gen | slop renders` streams, and sharp cannot read half a PNG. */
+   *  `gen | transom post` streams, and sharp cannot read half a PNG. */
   settleMs?: number
   pollMs?: number
 }

@@ -1,56 +1,85 @@
 #!/bin/sh
-# Put an image on the slopboard wall.
+# transom: a wall for renders. One command sends to it, asks on it and runs it.
 #
-#   slop FILE...              zone defaults to the repo directory name
-#   slop --zone Z FILE...
-#   slop --ttl 5m FILE...      how long it lives; bare number is seconds
-#   slop --caption "what it shows" FILE
-#   slop --attention look FILE   asks to be looked at. Levels: look, soon,
-#                                urgent, problem. Also `look:90s`, `30m`,
-#                                `until-dismissed`.
-#   slop --note "what it needs" FILE   badge text on a flagged card
-#   slop clip.mp4             video too: the card is a poster frame and the
-#                             lightbox plays it. Needs ffmpeg.
-#   slop --sandbox "allow-scripts allow-forms" PAGE.html
-#                                what an HTML page may do in the lightbox.
-#                                `none` removes the sandbox entirely. Whoever
-#                                pushes the page decides this; the wall
-#                                applies what it is told.
-#   slop --ask "which crop reads better?" --choice left --choice right FILE
-#                             asks on the card and waits for the answer, then
-#                             prints it. No --choice is a free-text answer.
-#                             Exits 3 if the question is dismissed, 4 if the
-#                             card is expired first. Run it in the background.
-#   slop --ask "..." --why    also offers a free-text box under the choices.
-#                             `--why "what is off about it?"` sets its
-#                             placeholder; bare, the wall picks the words.
-#   slop --json --ask "..." FILE
-#                             prints the whole reply rather than the answer
-#                             alone: the status, the chip and the text.
-#   slop --run sweep-3 FILE   a take in a run: every send naming the same run
-#                             joins one card, which the lightbox pages through.
-#                             `--run-label "outline sweep"` names it on the
-#                             wall and `--of 12` says how many are coming.
-#   slop --no-wait --ask ... FILE
-#                             sends the question and returns, printing where it
-#                             landed. Collect the answer later with --wait.
-#   slop --app LDView FILE    offers "Open in LDView" in the lightbox, on the
-#                             artifact itself. `--app "LDView=parts/3001.dat"`
-#                             hands it another file instead. Repeatable.
-#   slop --link "part 3001=https://rebrickable.com/parts/3001/" FILE
-#                             a link in the lightbox. Without an `=` the label
-#                             is the URL's host. http(s) only. Repeatable.
-#   slop --wait PATH          waits on a question already sent, by the path
-#                             `slop --ask` printed
-#   some-generator | slop     reads stdin, writes a .png
-#   slop --print-zone         prints the zone this repo resolves to, and exits
+#   transom post FILE...          puts it on the wall and returns
+#   some-generator | transom post reads stdin, writes a .png
+#   transom ask "QUESTION" FILE   asks on the card, waits, prints the answer
+#   transom wait PATH             waits on a question already sent, by the path
+#                                 `transom ask --no-wait` printed
+#   transom zone                  prints the zone this repo resolves to
+#   transom install               writes the wall's launchd agents and loads them
+#   transom up | down | cycle     starts, stops or restarts them
+#   transom stat                  what launchd thinks, and whether they answer
+#   transom wire [--off] [--dry]  the skill, the hook and this command, for
+#                                 Claude Code
+#
+# `post` and `ask` both take:
+#   --zone Z                   the zone; defaults to the repo directory name
+#   --ttl 5m                   how long it lives; a bare number is seconds
+#   --caption "what it shows"
+#   --attention look           asks to be looked at. Levels: look, soon, urgent,
+#                              problem. Also `look:90s`, `30m`, `until-dismissed`.
+#   --note "what it needs"     badge text on a flagged card
+#   --sandbox "allow-scripts allow-forms"
+#                              what an HTML page may do in the lightbox. `none`
+#                              removes the sandbox entirely. Whoever pushes the
+#                              page decides this; the wall applies what it is told.
+#   --run sweep-3              a take in a run: every send naming the same run
+#                              joins one card, which the lightbox pages through.
+#                              `--run-label "outline sweep"` names it on the wall
+#                              and `--of 12` says how many are coming.
+#   --app LDView               offers "Open in LDView" in the lightbox, on the
+#                              artifact itself. `--app "LDView=parts/3001.dat"`
+#                              hands it another file instead. Repeatable.
+#   --link "part 3001=https://rebrickable.com/parts/3001/"
+#                              a link in the lightbox. Without an `=` the label
+#                              is the URL's host. http(s) only. Repeatable.
+#
+# `ask` also takes:
+#   --choice left              a chip to answer with. Repeatable. With none, the
+#                              answer is free text.
+#   --why                      also offers a free-text box under the choices.
+#                              `--why "what is off about it?"` sets its
+#                              placeholder; bare, the wall picks the words.
+#   --json                     prints the whole reply rather than the answer
+#                              alone: the status, the chip and the text.
+#   --no-wait                  sends the question and returns, printing where it
+#                              landed. Collect the answer with `transom wait`.
+#
+# `ask` exits 3 if the question is dismissed and 4 if the card is expired
+# first. It blocks, so run it in the background.
+#
+# A video's card is a poster frame and the lightbox plays it. Needs ffmpeg.
 #
 # Writing the file is the whole protocol; there is nothing to start or connect to.
-# Provenance rides in a `<image>.slop.json` sidecar the daemon folds into the
+# Provenance rides in a `<image>.transom.json` sidecar the daemon folds into the
 # image's own metadata: the caption, plus the repo and commit this ran in. The
 # sidecar is written first, because the image landing is what the daemon
 # triggers on.
 set -eu
+
+usage() { sed -n '2,58p' "$0" | sed 's/^# \{0,1\}//'; }
+
+verb=${1:-help}
+[ $# -gt 0 ] && shift
+case "$verb" in
+  post|ask|wait|zone) ;;
+  install|up|down|cycle|stat|wire)
+    # `wire` leaves this on PATH as a symlink, and the rest of the checkout is
+    # beside the file it points at. Homebrew's formula says where instead.
+    self=$0
+    while [ -L "$self" ]; do
+      link=$(readlink "$self")
+      case "$link" in /*) self=$link ;; *) self=$(dirname -- "$self")/$link ;; esac
+    done
+    TRANSOM_HOME=${TRANSOM_HOME:-$(CDPATH= cd -- "$(dirname -- "$self")/.." && pwd)}
+    export TRANSOM_HOME
+    if [ "$verb" = wire ]; then exec node "$TRANSOM_HOME/libexec/wire.mjs" "$@"; fi
+    exec sh "$TRANSOM_HOME/libexec/agents" "$verb" "$@"
+    ;;
+  help|-h|--help) usage; exit 0 ;;
+  *) echo "transom: no such command: $verb" >&2; usage >&2; exit 1 ;;
+esac
 
 # What the wall holds, matching server/kind.ts — held to it by kind.test.ts.
 # Anything else is never adopted, so accepting it here would produce exactly the
@@ -61,6 +90,8 @@ held_ext="png jpg jpeg webp gif avif tiff html htm mp4 m4v mov webm glb stl"
 # nothing either, which is the silently invisible artifact this check exists to
 # prevent — the same reason the extension check is here and not at ingest.
 video_ext="mp4 m4v mov webm"
+
+fail() { echo "transom $verb: $1" >&2; exit 1; }
 
 # JSON string escaping, for text that may hold a quote, a backslash or a
 # newline. The awk joins lines with a literal \n, since sed works a line at a time.
@@ -89,10 +120,22 @@ link_json() {
   case "$1" in
     http://*|https://*) url=$1; label=$(printf '%s' "$url" | sed -e 's|^[a-z]*://||' -e 's|/.*||') ;;
     *=http://*|*=https://*) label=${1%%=*}; url=${1#*=} ;;
-    *) echo "slop: --link takes an http(s) URL, or label=URL ($1)" >&2; exit 1 ;;
+    *) fail "--link takes an http(s) URL, or label=URL ($1)" ;;
   esac
   printf '{"label":"%s","url":"%s"}' "$(json_escape "$label")" "$(json_escape "$url")"
 }
+
+question=""
+if [ "$verb" = ask ]; then
+  case "${1:-}" in
+    ""|--*) fail 'the question comes first: transom ask "which reads better?" FILE' ;;
+  esac
+  question=$1
+  shift
+fi
+
+# A flag that only means something beside a question.
+asking() { [ "$verb" = ask ] || fail "$1 belongs to \`transom ask\`"; }
 
 zone=""
 ttl=""
@@ -100,9 +143,7 @@ caption=""
 attention=""
 note=""
 sandbox=""
-question=""
 choices=""
-wait_for=""
 why=""
 run=""
 run_label=""
@@ -111,7 +152,7 @@ apps=""
 links=""
 as_json=""
 no_wait=""
-[ -n "${SLOP_ZONE:-}" ] && zone="$SLOP_ZONE"
+[ -n "${TRANSOM_ZONE:-}" ] && zone="$TRANSOM_ZONE"
 while :; do
   case "${1:-}" in
     --zone) zone="$2"; shift 2 ;;
@@ -120,12 +161,12 @@ while :; do
     --attention) attention="$2"; shift 2 ;;
     --note) note="$2"; shift 2 ;;
     --sandbox) sandbox="$2"; shift 2 ;;
-    --ask) question="$2"; shift 2 ;;
-    --choice) choices="$choices${choices:+,}\"$(json_escape "$2")\""; shift 2 ;;
+    --choice) asking --choice; choices="$choices${choices:+,}\"$(json_escape "$2")\""; shift 2 ;;
     # Optional value: bare at the end of the arguments, before another flag, or
     # before the file it is sending. A placeholder is a sentence and a file is a
     # path, so the one that exists on disk is the one that is not the prompt.
     --why)
+      asking --why
       if [ $# -gt 1 ] && [ -n "${2:-}" ] && [ "${2#-}" = "$2" ] && [ ! -f "$2" ]; then
         why="$2"; shift 2
       else
@@ -137,9 +178,10 @@ while :; do
     --app) apps="$apps$2
 "; shift 2 ;;
     --link) links="$links${links:+,}$(link_json "$2")"; shift 2 ;;
-    --json) as_json=1; shift ;;
-    --no-wait) no_wait=1; shift ;;
-    --wait) wait_for="$2"; shift 2 ;;
+    --json) [ "$verb" = wait ] || asking --json; as_json=1; shift ;;
+    --no-wait) asking --no-wait; no_wait=1; shift ;;
+    --) shift; break ;;
+    -?*) fail "no such flag: $1" ;;
     *) break ;;
   esac
 done
@@ -162,6 +204,8 @@ if [ -z "$zone" ]; then
   # separator character and silently bind the repo to a second, adjacent zone.
   zone=$(printf '%s' "$repo" | tr -c 'A-Za-z0-9._-' '-')
 fi
+
+if [ "$verb" = zone ]; then echo "$zone"; exit 0; fi
 
 ext_of() {
   e="${1##*.}"
@@ -192,7 +236,7 @@ write_sidecar() {
     [ -n "$apps" ] && printf ',"apps":[%s]' "$(apps_json "$dest_image")"
     [ -n "$links" ] && printf ',"links":[%s]' "$links"
     printf '}\n'
-  } > "$dest_image.slop.json"
+  } > "$dest_image.transom.json"
 }
 
 # `Name` hands the app the artifact itself, which is the copy in the inbox and
@@ -212,14 +256,12 @@ apps_json() {
   done
 }
 
-if [ "${1:-}" = "--print-zone" ]; then echo "$zone"; exit 0; fi
+transom_root="${TRANSOM_ROOT:-$HOME/transom}"
 
-slop_root="${SLOP_ROOT:-$HOME/slop}"
-
-# The daemon writes the answer to answers/<the name slop gave the file>: the
+# The daemon writes the answer to answers/<the name this gave the file>: the
 # status on the first line, the answer after it.
 await_answer() {
-  answer="$slop_root/answers/$(basename "$1")"
+  answer="$transom_root/answers/$(basename "$1")"
   while [ ! -f "$answer" ]; do sleep 1; done
   # Three parts: the status, the chip, then the free text. A blank second line
   # is what tells a free-text answer's first line apart from a choice.
@@ -237,38 +279,35 @@ await_answer() {
   fi
   case "$status" in
     answered) exit 0 ;;
-    dismissed) echo "slop: dismissed without an answer" >&2; exit 3 ;;
-    *) echo "slop: the card was expired before it was answered" >&2; exit 4 ;;
+    dismissed) echo "transom $verb: dismissed without an answer" >&2; exit 3 ;;
+    *) echo "transom $verb: the card was expired before it was answered" >&2; exit 4 ;;
   esac
 }
 
-if [ -n "$wait_for" ]; then await_answer "$wait_for"; fi
+if [ "$verb" = wait ]; then
+  [ $# -eq 1 ] || fail "takes the path \`transom ask --no-wait\` printed"
+  await_answer "$1"
+fi
 # A run answers per take, so several files are several answers and the caller
 # waits on the paths this printed. Without one, one send is one answer.
 if [ -n "$question" ] && [ -z "$run" ] && [ $# -gt 1 ]; then
-  echo "slop: --ask takes one file, since one answer comes back" >&2
-  exit 1
+  fail "takes one file, since one answer comes back"
 fi
-if [ -n "$why" ] && [ -z "$question" ]; then
-  echo "slop: --why needs --ask" >&2
-  exit 1
-fi
-if [ -n "$run_label" ] && [ -z "$run" ]; then echo "slop: --run-label needs --run" >&2; exit 1; fi
-if [ -n "$of" ] && [ -z "$run" ]; then echo "slop: --of needs --run" >&2; exit 1; fi
+if [ -n "$run_label" ] && [ -z "$run" ]; then fail "--run-label needs --run"; fi
+if [ -n "$of" ] && [ -z "$run" ]; then fail "--of needs --run"; fi
 if [ -n "$of" ]; then
-  case "$of" in *[!0-9]*|0) echo "slop: --of takes a count of takes ($of)" >&2; exit 1 ;; esac
+  case "$of" in *[!0-9]*|0) fail "--of takes a count of takes ($of)" ;; esac
 fi
-if [ -z "$question" ] && [ -n "$choices" ]; then
-  echo "slop: --choice needs --ask" >&2
-  exit 1
-fi
-dir="$slop_root/inbox/$zone"
+# With no file this reads stdin, and at a terminal that is a command that
+# hangs without saying what it is waiting for.
+if [ $# -eq 0 ] && [ -t 0 ]; then fail "no file, and nothing piped in"; fi
+dir="$transom_root/inbox/$zone"
 mkdir -p "$dir"
 
 # Where this zone's renders come from, so the daemon can find the project's
 # `.hued` and color the zone. One file per zone, rewritten on every send: a
 # shared registry would be a read-modify-write that two concurrent sends lose.
-zones_dir="$slop_root/zones"
+zones_dir="$transom_root/zones"
 mkdir -p "$zones_dir"
 tmp="$zones_dir/.$zone.$$"
 printf '{"root":"%s"}\n' "$(json_escape "$root")" > "$tmp" && mv "$tmp" "$zones_dir/$zone.json"
@@ -285,24 +324,21 @@ fi
 # A whole pass before the first copy, so a bad argument at the end of the list
 # cannot leave the earlier ones half-sent.
 for f in "$@"; do
-  [ -f "$f" ] || { echo "slop: no such file: $f" >&2; exit 1; }
+  [ -f "$f" ] || fail "no such file: $f"
   ext=$(ext_of "$f")
   # Named ahead of the general refusal: a .gltf is the one unheld extension
   # somebody sends on purpose, and "the wall does not hold it" would not say why.
   if [ "$ext" = "gltf" ]; then
-    echo "slop: a .gltf points at sibling files this send does not carry ($f). Export a .glb." >&2
-    exit 1
+    fail "a .gltf points at sibling files this send does not carry ($f). Export a .glb."
   fi
   case " $held_ext " in
     *" $ext "*) ;;
-    *) echo "slop: the wall does not hold .$ext ($f). It holds: $held_ext" >&2; exit 1 ;;
+    *) fail "the wall does not hold .$ext ($f). It holds: $held_ext" ;;
   esac
   case " $video_ext " in
     *" $ext "*)
-      command -v ffmpeg >/dev/null 2>&1 || {
-        echo "slop: .$ext needs ffmpeg for the poster frame ($f). brew install ffmpeg" >&2
-        exit 1
-      } ;;
+      command -v ffmpeg >/dev/null 2>&1 ||
+        fail ".$ext needs ffmpeg for the poster frame ($f). brew install ffmpeg" ;;
   esac
 done
 
@@ -320,6 +356,6 @@ for f in "$@"; do
   cp "$f" "$dest"
   echo "$dest"
   # An if, not `[ -n ... ] &&`: as the loop's last command, a false test would
-  # be the script's exit status, and every send without --ask reported failure.
+  # be the script's exit status, and every send without a question reported failure.
   if [ -n "$question" ] && [ -z "$no_wait" ]; then await_answer "$dest"; fi
 done

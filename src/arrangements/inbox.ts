@@ -2,7 +2,7 @@ import type { LayoutItem, LayoutResult, Rect } from 'windease'
 import { createGlides } from './glide.ts'
 import { ramp } from './slots.ts'
 import { defaultParams, type StackParams } from '@/params.ts'
-import type { Arrangement, SlopChannels, Size } from './types.ts'
+import type { Arrangement, TransomChannels, Size } from './types.ts'
 
 type InboxItem = LayoutItem & { age01: number; emphasis?: number; excluded?: boolean }
 
@@ -174,7 +174,7 @@ export function createInbox(params: StackParams = defaultParams): Arrangement {
           : 0.5 / Math.tan((params.camera.fovDeg * Math.PI) / 360),
     },
     strategy: {
-      name: 'slop-inbox',
+      name: 'transom-inbox',
       layout({ items, container, options }): LayoutResult {
         const now = typeof options.now === 'number' ? options.now : Date.now()
         // Kept first, newest first: an excluded artifact goes to the back of
@@ -213,7 +213,7 @@ export function createInbox(params: StackParams = defaultParams): Arrangement {
             rotZ: 0,
             lod: edgeFor(target.w),
             emphasis: it.emphasis ?? 0,
-          } satisfies SlopChannels)
+          } satisfies TransomChannels)
         }
         return { placements, affordances: [], channels, ...(unplaced.length ? { unplaced } : {}) }
       },

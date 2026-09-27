@@ -3,7 +3,7 @@ import { keptFrom, parseStamp, sidecarFor } from './sidecar.ts'
 
 describe('sidecarFor', () => {
   it('sits beside the image, keeping the extension so two images never collide', () => {
-    expect(sidecarFor('/i/a.png')).toBe('/i/a.png.slop.json')
+    expect(sidecarFor('/i/a.png')).toBe('/i/a.png.transom.json')
     expect(sidecarFor('/i/a.jpg')).not.toBe(sidecarFor('/i/a.png'))
   })
 })

@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>slopboard &mdash; putting your repos on the wall</title>
+    <title>transom &mdash; putting your repos on the wall</title>
     <meta
       name="description"
-      content="How to run slopboard, wire it to the agents on your machine, and get a repo onto the wall."
+      content="How to run transom, wire it to the agents on your machine, and get a repo onto the wall."
     />
     <link rel="stylesheet" href="../site.css" />
   </head>
@@ -20,7 +20,7 @@
         </p>
         <p class="actions">
           <a class="button" href="../">Back to the front</a>
-          <a class="button button--quiet" href="https://github.com/orochi235/slopboard"
+          <a class="button button--quiet" href="https://github.com/orochi235/transom"
             >Source on GitHub</a
           >
         </p>
@@ -29,20 +29,20 @@
       <section>
         <h2>Run the wall</h2>
         <p>macOS. Homebrew is the way in, and it brings its own Node:</p>
-        <pre><code>brew install orochi235/tap/slopboard
-wall install    # daemon and client, as LaunchAgents</code></pre>
+        <pre><code>brew install orochi235/tap/transom
+transom install    # daemon and client, as LaunchAgents</code></pre>
         <p>
           <code>wall</code> keeps both running across logins and restarts; <code>wall stat</code>
           says whether they answer, and <code>wall cycle</code> restarts them.
         </p>
         <p>To hack on it, run it from a clone instead. That needs Node 22 or newer:</p>
-        <pre><code>git clone https://github.com/orochi235/slopboard
-cd slopboard
+        <pre><code>git clone https://github.com/orochi235/transom
+cd transom
 npm install
 npm run dev</code></pre>
         <p>
-          The client is at <code>localhost:5183</code> and the daemon at
-          <code>localhost:8787</code>, watching <code>~/slop/inbox/</code>. Put it on the monitor
+          The client is at <code>localhost:7750</code> and the daemon at
+          <code>localhost:8787</code>, watching <code>~/transom/inbox/</code>. Put it on the monitor
           you do not type on.
         </p>
       </section>
@@ -51,9 +51,9 @@ npm run dev</code></pre>
         <h2>Wire it to your agents</h2>
         <p>
           Once per machine, and again after you change anything here &mdash; it is idempotent.
-          From a clone it is <code>bin/wire</code>.
+          From a clone it is <code>bin/transom wire</code>.
         </p>
-        <pre><code>wire            # --dry says what it would change
+        <pre><code>transom wire    # --dry says what it would change
                 # --off takes it all back out</code></pre>
         <p>It puts three things where an agent will meet them:</p>
         <ul>
@@ -69,14 +69,14 @@ npm run dev</code></pre>
             dying in a scratch directory.
           </li>
           <li>
-            <strong><code>slop</code> on PATH</strong>, symlinked into <code>~/.local/bin</code>.
-            Without it an agent that half-remembers the rule types <code>slop chart.png</code>,
+            <strong><code>transom</code> on PATH</strong>, symlinked into <code>~/.local/bin</code>.
+            Without it an agent that half-remembers the rule types <code>transom post chart.png</code>,
             gets <code>command not found</code>, and goes back to reporting a file path.
           </li>
         </ul>
         <p class="note">
           A session that was already running keeps the hooks it started with, so a live one is not
-          evidence that wiring failed. <code>wire</code> also prints a rule for your
+          evidence that wiring failed. <code>transom wire</code> also prints a rule for your
           <code>CLAUDE.md</code> and leaves you to paste it: that file is hand-written prose, and a
           tool that rewrites preferences fights their author.
         </p>
@@ -87,12 +87,12 @@ npm run dev</code></pre>
         <p>
           A zone is one pile on the wall, and the zone is the directory name of the repository you
           ran in. Nothing registers a project: the first send creates its zone, and
-          <code>bin/slop</code> records which directory the renders came from so the daemon can
+          <code>bin/transom</code> records which directory the renders came from so the daemon can
           read that project&rsquo;s <code>.hued</code> file and paint the pile in its color.
         </p>
-        <pre><code>slop render.png              # the zone is this repo
-slop --zone icons sheet.png  # or say where it goes
-some-generator | slop        # a pipe is a send too</code></pre>
+        <pre><code>transom post render.png              # the zone is this repo
+transom post --zone icons sheet.png  # or say where it goes
+some-generator | transom post        # a pipe is a send too</code></pre>
       </section>
 
       <section>
@@ -101,13 +101,13 @@ some-generator | slop        # a pipe is a send too</code></pre>
           Every flag is optional, and the file alone is the whole protocol. These are the ones
           worth knowing on the first day:
         </p>
-        <pre><code>slop --ttl 5m draft.png           # how long it lives
-slop --caption "after the fix" a.png
-slop --attention soon broken.png  # or look, urgent, problem
-slop --ask "which crop reads better?" \
+        <pre><code>transom post --ttl 5m draft.png           # how long it lives
+transom post --caption "after the fix" a.png
+transom post --attention soon broken.png  # or look, urgent, problem
+transom ask "which crop reads better?" \
      --choice left --choice right crop.png</code></pre>
         <p>
-          <code>--ask</code> puts the question on the card, waits, and prints the answer, so an
+          <code>transom ask</code> puts the question on the card, waits, and prints the answer, so an
           agent can stop and ask you something about a picture instead of guessing. Runs of
           pictures share one card with <code>--run</code>; video, self-contained HTML pages and
           <code>.glb</code>/<code>.stl</code> meshes land as cards whose lightbox plays, runs or

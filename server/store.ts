@@ -311,8 +311,8 @@ const isOpen = (item: WallItem) =>
   item.kind === 'run' ? runIsOpen(item) : item.question !== undefined && item.reply === undefined
 
 /**
- * The answer file, which is what `bin/slop --ask` is waiting on. Three parts:
- * the status, then the chip, then the free text from line 3 on. `bin/slop` is
+ * The answer file, which is what `transom ask` is waiting on. Three parts:
+ * the status, then the chip, then the free text from line 3 on. `bin/transom` is
  * `sh` and has no JSON parser, and a blank line 2 is what tells it a free-text
  * answer's first line is not a choice.
  */

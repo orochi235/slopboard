@@ -93,7 +93,7 @@ describe('storage that will not play along', () => {
 
   it('is the defaults when the stored text is not JSON', () => {
     const storage = fake()
-    storage.setItem('slopboard.band.v1', '{oops')
+    storage.setItem('transom.band.v1', '{oops')
     expect(loadBand(storage)).toEqual(DEFAULT_BAND)
   })
 })
@@ -101,15 +101,15 @@ describe('storage that will not play along', () => {
 describe('the standalone keys this object replaced', () => {
   it('carries the list flag over', () => {
     const storage = fake()
-    storage.setItem('slopboard.list.v1', '1')
+    storage.setItem('transom.list.v1', '1')
     expect(loadBand(storage).listed).toBe(true)
   })
 
   it('retires the old key and writes through, so the migration runs once', () => {
     const storage = fake()
-    storage.setItem('slopboard.list.v1', '1')
+    storage.setItem('transom.list.v1', '1')
     loadBand(storage)
-    expect(storage.getItem('slopboard.list.v1')).toBeNull()
-    expect(storage.getItem('slopboard.band.v1')).not.toBeNull()
+    expect(storage.getItem('transom.list.v1')).toBeNull()
+    expect(storage.getItem('transom.band.v1')).not.toBeNull()
   })
 })

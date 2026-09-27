@@ -275,7 +275,7 @@ export function watchInbox(onLand: (landed: Landed) => void) {
   const unheld = new Set<string>()
   const notAnArtifact = (p: string) => {
     if (kindOf(p) !== null) return false
-    if (!p.endsWith('.slop.json') && !unheld.has(p)) {
+    if (!p.endsWith('.transom.json') && !unheld.has(p)) {
       unheld.add(p)
       console.warn(
         `[ingest] the wall does not hold ${extname(p) || 'that'}: ` +

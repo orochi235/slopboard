@@ -15,7 +15,7 @@ export const arrangements: Arrangement[] = arrangementsFor(defaultParams)
 export type {
   Arrangement,
   Camera,
-  SlopChannels,
-  SlopStrategy,
+  TransomChannels,
+  TransomStrategy,
   Size,
 } from './types.ts'

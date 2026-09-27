@@ -32,11 +32,11 @@ export const DEFAULT_BAND: BandState = {
   listed: false,
 }
 
-const KEY = 'slopboard.band.v1'
+const KEY = 'transom.band.v1'
 
 /** The standalone keys this object replaced. Read once, then removed. */
 const LEGACY: { key: string; into: (raw: string) => Partial<BandState> }[] = [
-  { key: 'slopboard.list.v1', into: (raw) => ({ listed: raw === '1' }) },
+  { key: 'transom.list.v1', into: (raw) => ({ listed: raw === '1' }) },
 ]
 
 /** A stored field back, or undefined for anything this build cannot read —

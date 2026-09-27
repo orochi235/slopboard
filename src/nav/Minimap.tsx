@@ -86,7 +86,7 @@ export function Minimap({
 
   // Indexed rather than named: a zone is a directory name, and a URL reference
   // cannot carry everything one of those is allowed to hold.
-  const ids = new Map([...tints.keys()].map((zone, i) => [zone, `slop-hatch-${i}`]))
+  const ids = new Map([...tints.keys()].map((zone, i) => [zone, `transom-hatch-${i}`]))
 
   return (
     <div className="minimap">

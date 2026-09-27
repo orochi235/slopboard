@@ -41,7 +41,7 @@ describe('debugItem', () => {
 })
 
 describe('toastFor', () => {
-  const item = { ...debugItem('urgent'), zone: 'renders', repo: 'slopboard', sha: 'abc1234' }
+  const item = { ...debugItem('urgent'), zone: 'renders', repo: 'transom', sha: 'abc1234' }
 
   it('owes a toast for every sound, and none for a silent arrival', () => {
     expect(toastFor(item, planFor('urgent', true))).not.toBeNull()
@@ -51,7 +51,7 @@ describe('toastFor', () => {
 
   it('says where the sound came from and what it wants', () => {
     const toast = toastFor(item, planFor('urgent', true))
-    expect(toast).toMatchObject({ zone: 'renders', level: 'urgent', repo: 'slopboard', sha: 'abc1234' })
+    expect(toast).toMatchObject({ zone: 'renders', level: 'urgent', repo: 'transom', sha: 'abc1234' })
     expect(toast?.asks).toBe(item.note)
   })
 

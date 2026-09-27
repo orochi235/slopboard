@@ -48,12 +48,12 @@ describe('sweepOnce', () => {
   it('skips what the caller ignores, so sidecars are not offered forever', async () => {
     // A sidecar is never ingested, so the store will never claim to have one.
     // Without this the sweep re-offers every sidecar on every tick.
-    const [, sidecar] = await tree(['z/a.png', 'z/a.png.slop.json'])
+    const [, sidecar] = await tree(['z/a.png', 'z/a.png.transom.json'])
     const offered: string[] = []
 
     await sweepOnce(root, {
       has: () => false,
-      ignore: (p) => p.endsWith('.slop.json'),
+      ignore: (p) => p.endsWith('.transom.json'),
       onFile: (p) => offered.push(p),
     })
 

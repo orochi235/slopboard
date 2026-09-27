@@ -25,12 +25,12 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     fileprivate func poll() {
         let group = DispatchGroup()
-        let sync = DispatchQueue(label: "tech.michaelbaker.slopboard.menubar.results")
+        let sync = DispatchQueue(label: "tech.michaelbaker.transom.menubar.results")
         var next = Results()
 
         group.enter()
         DispatchQueue.global(qos: .utility).async {
-            let r = DaemonResult(Watcher.launchAgent(label: "tech.michaelbaker.slopboard.daemon", plist: "~/Library/LaunchAgents/tech.michaelbaker.slopboard.daemon.plist"))
+            let r = DaemonResult(Watcher.launchAgent(label: "tech.michaelbaker.transom.daemon", plist: "~/Library/LaunchAgents/tech.michaelbaker.transom.daemon.plist"))
             sync.async {
                 next.daemon = r
                 group.leave()
@@ -39,7 +39,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         group.enter()
         DispatchQueue.global(qos: .utility).async {
-            let r = ClientResult(Watcher.launchAgent(label: "tech.michaelbaker.slopboard.client", plist: "~/Library/LaunchAgents/tech.michaelbaker.slopboard.client.plist"))
+            let r = ClientResult(Watcher.launchAgent(label: "tech.michaelbaker.transom.client", plist: "~/Library/LaunchAgents/tech.michaelbaker.transom.client.plist"))
             sync.async {
                 next.client = r
                 group.leave()

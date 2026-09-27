@@ -6,9 +6,9 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
   id: 'a',
   url: '/img/a',
   origUrl: '/orig/a',
-  zone: 'slopboard',
+  zone: 'transom',
   name: 'a render',
-  path: '/slop/inbox/slopboard/a.png',
+  path: '/transom/inbox/transom/a.png',
   bornAt: 0,
   w: 1024,
   h: 576,
@@ -17,50 +17,50 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
 
 describe('metaOf', () => {
   it("leads with the zone and the age, in the wall's own register", () => {
-    expect(metaOf(item(), 240_000)).toEqual(['slopboard', '4m', 'png', '1024×576'])
+    expect(metaOf(item(), 240_000)).toEqual(['transom', '4m', 'png', '1024×576'])
   })
 
   it('says the repo only when it is not already the zone', () => {
-    expect(metaOf(item({ repo: 'slopboard', sha: 'abc1234' }), 0)).toContain('abc1234')
-    expect(metaOf(item({ repo: 'slopboard', sha: 'abc1234' }), 0)).not.toContain(
-      'slopboard@abc1234',
+    expect(metaOf(item({ repo: 'transom', sha: 'abc1234' }), 0)).toContain('abc1234')
+    expect(metaOf(item({ repo: 'transom', sha: 'abc1234' }), 0)).not.toContain(
+      'transom@abc1234',
     )
     expect(metaOf(item({ repo: 'weasel', sha: 'abc1234' }), 0)).toContain('weasel@abc1234')
   })
 
   it('says nothing about provenance for a file dropped in by hand', () => {
-    expect(metaOf(item(), 0)).toEqual(['slopboard', '0s', 'png', '1024×576'])
+    expect(metaOf(item(), 0)).toEqual(['transom', '0s', 'png', '1024×576'])
   })
 
   it('names the format the original is in, not the thumbnail the card drew', () => {
-    expect(metaOf(item({ path: '/slop/inbox/z/a.ttl30m.gif' }), 0)).toContain('gif')
-    expect(metaOf(item({ path: '/slop/inbox/z/A.JPEG' }), 0)).toContain('jpeg')
+    expect(metaOf(item({ path: '/transom/inbox/z/a.ttl30m.gif' }), 0)).toContain('gif')
+    expect(metaOf(item({ path: '/transom/inbox/z/A.JPEG' }), 0)).toContain('jpeg')
   })
 
   it('calls a page a page, since its card is only a screenshot of one', () => {
-    expect(metaOf(item({ kind: 'page', path: '/slop/inbox/z/a.html' }), 0)).toContain('page')
-    expect(metaOf(item({ kind: 'page', path: '/slop/inbox/z/a.html' }), 0)).not.toContain('html')
+    expect(metaOf(item({ kind: 'page', path: '/transom/inbox/z/a.html' }), 0)).toContain('page')
+    expect(metaOf(item({ kind: 'page', path: '/transom/inbox/z/a.html' }), 0)).not.toContain('html')
   })
 
   it('counts the frames of an animation, which no still card can show', () => {
-    expect(metaOf(item({ path: '/slop/inbox/z/a.gif', frames: 88 }), 0)).toContain('88 frames')
+    expect(metaOf(item({ path: '/transom/inbox/z/a.gif', frames: 88 }), 0)).toContain('88 frames')
     expect(metaOf(item(), 0).some((p) => p.endsWith('frames'))).toBe(false)
   })
 
   it('gives a video its runtime, which the poster cannot show', () => {
-    const video = { kind: 'video' as const, path: '/slop/inbox/z/a.mp4', duration: 243_000 }
+    const video = { kind: 'video' as const, path: '/transom/inbox/z/a.mp4', duration: 243_000 }
     expect(metaOf(item(video), 0)).toContain('4:03')
     // Its container, not the word "video": that is what `/orig` hands over.
     expect(metaOf(item(video), 0)).toContain('mp4')
   })
 
   it('leaves the runtime out of a container that declared none', () => {
-    const parts = metaOf(item({ kind: 'video', path: '/slop/inbox/z/a.webm' }), 0)
+    const parts = metaOf(item({ kind: 'video', path: '/transom/inbox/z/a.webm' }), 0)
     expect(parts.some((p) => p.includes(':'))).toBe(false)
   })
 
   it('gives a mesh its file size, and drops the poster size it would lie with', () => {
-    const mesh = { kind: 'mesh' as const, path: '/slop/inbox/z/head.glb', bytes: 4_404_019 }
+    const mesh = { kind: 'mesh' as const, path: '/transom/inbox/z/head.glb', bytes: 4_404_019 }
     const parts = metaOf(item({ ...mesh, w: 1024, h: 1024 }), 0)
     expect(parts).toContain('glb')
     expect(parts).toContain('4.2 MB')
@@ -68,8 +68,8 @@ describe('metaOf', () => {
   })
 
   it('says nothing about a format for a file expiry has already renamed', () => {
-    expect(metaOf(item({ path: '/slop/trash/abc123-slopboard' }), 0)).toEqual([
-      'slopboard',
+    expect(metaOf(item({ path: '/transom/trash/abc123-transom' }), 0)).toEqual([
+      'transom',
       '0s',
       '1024×576',
     ])

@@ -9,7 +9,7 @@ const file = () => join(root, 'zones.json')
 /** `config` reads the environment at import, so each test needs the root set
  *  and the module graph dropped before it loads the store. */
 async function fresh() {
-  process.env.SLOP_ROOT = root
+  process.env.TRANSOM_ROOT = root
   vi.resetModules()
   const zones = await import('./zones.ts')
   await zones.load()
@@ -17,12 +17,12 @@ async function fresh() {
 }
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'slop-zones-'))
+  root = await mkdtemp(join(tmpdir(), 'transom-zones-'))
 })
 
 afterEach(async () => {
   await rm(root, { recursive: true, force: true })
-  delete process.env.SLOP_ROOT
+  delete process.env.TRANSOM_ROOT
 })
 
 test('no file means every zone inherits', async () => {
@@ -104,7 +104,7 @@ test('the lifetime a zone sets is what the sweeper asks for', async () => {
   const { set, lifetimeFor } = await fresh()
   await set('weasel', { lifetime: 900_000 })
   expect(lifetimeFor('weasel')).toBe(900_000)
-  expect(lifetimeFor('slopboard')).toBeUndefined()
+  expect(lifetimeFor('transom')).toBeUndefined()
 })
 
 test('a hold is stored as its own word, so the file stays readable by hand', async () => {

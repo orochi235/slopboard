@@ -1,25 +1,23 @@
 #!/bin/sh
 # Run the wall as a pair of launchd agents, so it outlives the terminal.
+# Reached as `transom install`, `up`, `down`, `cycle` and `stat`.
 #
-#   wall install    write both agents and load them
-#   wall up         start them
-#   wall down       stop them
-#   wall cycle      restart them, which is also how server edits take
-#   wall stat       what launchd thinks, and whether the daemon answers
-#
-# Two agents, not one: the daemon holds the artifacts on 8787 and the client
-# serves the page on 5183, and either can be restarted without the other.
+# Two agents, not one: the daemon holds the artifacts and the client serves the
+# page, and either can be restarted without the other.
 #
 # The launchd daemon runs `tsx` without `watch` — a wall is not a dev server,
-# and a file save should not drop what is on screen. `wall cycle` is how a
+# and a file save should not drop what is on screen. `transom cycle` is how a
 # server edit reaches it, which is the same button the menu bar offers.
 set -eu
 
-repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-state="$HOME/.local/state/slopboard"
+repo=${TRANSOM_HOME:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}
+state="$HOME/.local/state/transom"
 agents="$HOME/Library/LaunchAgents"
 domain="gui/$(id -u)"
-base=tech.michaelbaker.slopboard
+base=tech.michaelbaker.transom
+# The defaults server/ports.ts holds, which a shell script cannot import.
+daemon_port=${TRANSOM_PORT:-8787}
+client_port=${TRANSOM_CLIENT_PORT:-7750}
 
 # launchd starts with almost no PATH, and `.bin/tsx` and `.bin/vite` are both
 # node shebangs. Whichever node runs this is the one they get.
@@ -65,15 +63,16 @@ kick()   { launchctl kickstart -k "$domain/$1" >/dev/null 2>&1 || true; }
 case "${1:-stat}" in
   install)
     mkdir -p "$state" "$agents"
-    # A stray dev server holding 8787 makes the daemon attach and exit, and
-    # KeepAlive turns that into a restart loop rather than an error.
+    # A stray dev server holding the daemon's port makes the daemon attach and
+    # exit, and KeepAlive turns that into a restart loop rather than an error.
     pkill -f "$repo/node_modules/.bin/tsx" 2>/dev/null || true
     pkill -f "$repo/node_modules/.bin/vite" 2>/dev/null || true
     plist "$base.daemon" "		<string>$repo/node_modules/.bin/tsx</string>
 		<string>server/index.ts</string>" daemon
     plist "$base.client" "		<string>$repo/node_modules/.bin/vite</string>" client
+    # The menu bar's items run `transom`, under a PATH that has this in it.
     mkdir -p "$HOME/.local/bin"
-    ln -sf "$repo/bin/wall" "$HOME/.local/bin/wall"
+    ln -sf "$repo/bin/transom" "$HOME/.local/bin/transom"
     each unboot
     each boot
     echo "installed: $base.daemon, $base.client"
@@ -87,9 +86,9 @@ case "${1:-stat}" in
         "$(launchctl print "$domain/$label" 2>/dev/null | awk '/^\tstate = /{print $3; exit}' || echo 'not loaded')"
     done
     printf '%-40s %s\n' 'daemon answers' \
-      "$(curl -s -m 2 -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/api/health || echo no)"
+      "$(curl -s -m 2 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$daemon_port/api/health" || echo no)"
     printf '%-40s %s\n' 'client answers' \
-      "$(curl -s -m 2 -o /dev/null -w '%{http_code}' http://127.0.0.1:5183/ || echo no)"
+      "$(curl -s -m 2 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$client_port/" || echo no)"
     ;;
-  *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *) echo "transom: no such command: $1" >&2; exit 1 ;;
 esac

@@ -21,7 +21,7 @@ export const TTL_CHOICES = [
 ] as const
 
 /** The choices, with whatever the wall is set to now if that is not among them
- *  — a daemon started with `SLOP_TTL=5h` must not read as 15 minutes. */
+ *  — a daemon started with `TRANSOM_TTL=5h` must not read as 15 minutes. */
 export function ttlOptions(current: number): { value: string; label: string }[] {
   const all = TTL_CHOICES.includes(current as (typeof TTL_CHOICES)[number])
     ? [...TTL_CHOICES]

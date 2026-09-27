@@ -4,13 +4,13 @@ import { meshViewUrl } from './meshview.ts'
 
 describe('meshViewUrl', () => {
   it('points the shot at this daemon, by address rather than by name', () => {
-    expect(meshViewUrl('/slop/inbox/z/head.glb')).toBe(
-      `http://127.0.0.1:${config.port}/view/mesh?src=%2Fslop%2Finbox%2Fz%2Fhead.glb`,
+    expect(meshViewUrl('/transom/inbox/z/head.glb')).toBe(
+      `http://127.0.0.1:${config.port}/view/mesh?src=%2Ftransom%2Finbox%2Fz%2Fhead.glb`,
     )
   })
 
   it('escapes a path that would otherwise end the query', () => {
-    expect(meshViewUrl('/slop/inbox/my zone/a&b.glb')).toContain('my%20zone%2Fa%26b.glb')
+    expect(meshViewUrl('/transom/inbox/my zone/a&b.glb')).toContain('my%20zone%2Fa%26b.glb')
   })
 })
 

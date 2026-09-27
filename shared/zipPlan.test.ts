@@ -6,9 +6,9 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
   id: 'a',
   url: '/img/a',
   origUrl: '/orig/a',
-  zone: 'slopboard',
+  zone: 'transom',
   name: 'plot',
-  path: '/slop/inbox/slopboard/plot.png',
+  path: '/transom/inbox/transom/plot.png',
   bornAt: 1000,
   w: 200,
   h: 100,
@@ -20,7 +20,7 @@ const take = (over: Partial<Take> = {}): Take => ({
   url: '/img/t1',
   origUrl: '/orig/t1',
   name: 'take',
-  path: '/slop/inbox/slopboard/take.png',
+  path: '/transom/inbox/transom/take.png',
   at: 1000,
   w: 10,
   h: 10,
@@ -35,7 +35,7 @@ describe('zipPlanForZone', () => {
         item({ id: 'c', zone: 'elsewhere', name: 'other' }),
         item({ id: 'a', name: 'early', bornAt: 1000 }),
       ],
-      'slopboard',
+      'transom',
     )
     expect(plan).toEqual([
       { id: 'a', name: 'early.png' },
@@ -45,14 +45,14 @@ describe('zipPlanForZone', () => {
 
   it('keeps the source extension, which the name has had taken off it', () => {
     const plan = zipPlanForZone(
-      [item({ path: '/slop/inbox/slopboard/plot.slop-2h.webp' })],
-      'slopboard',
+      [item({ path: '/transom/inbox/transom/plot.ttl2h.webp' })],
+      'transom',
     )
     expect(plan).toEqual([{ id: 'a', name: 'plot.webp' }])
   })
 
   it('separates two artifacts that carry one name', () => {
-    const plan = zipPlanForZone([item({ id: 'a' }), item({ id: 'b', bornAt: 2000 })], 'slopboard')
+    const plan = zipPlanForZone([item({ id: 'a' }), item({ id: 'b', bornAt: 2000 })], 'transom')
     expect(plan.map((e) => e.name)).toEqual(['plot.png', 'plot-2.png'])
   })
 
@@ -63,14 +63,14 @@ describe('zipPlanForZone', () => {
       kind: 'run',
       takes: [take({ id: 't1', name: 'one' }), take({ id: 't2', name: 'two' })],
     })
-    expect(zipPlanForZone([run], 'slopboard')).toEqual([
+    expect(zipPlanForZone([run], 'transom')).toEqual([
       { id: 't1', name: 'sweep/one.png' },
       { id: 't2', name: 'sweep/two.png' },
     ])
   })
 
   it('will not let a name climb out of the archive', () => {
-    const plan = zipPlanForZone([item({ name: '../../etc/passwd' })], 'slopboard')
+    const plan = zipPlanForZone([item({ name: '../../etc/passwd' })], 'transom')
     expect(plan).toEqual([{ id: 'a', name: '-..-etc-passwd.png' }])
   })
 })
@@ -96,8 +96,8 @@ describe('zipPlanForRun', () => {
 
 describe('zipName', () => {
   it('stamps the archive so a second one sits beside the first', () => {
-    expect(zipName('slop board', new Date(2026, 8, 27, 14, 5))).toBe(
-      'slop-slop-board-20260927-1405.zip',
+    expect(zipName('side board', new Date(2026, 8, 27, 14, 5))).toBe(
+      'transom-side-board-20260927-1405.zip',
     )
   })
 })

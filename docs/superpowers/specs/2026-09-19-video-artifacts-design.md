@@ -8,7 +8,7 @@ renderer that only draws stills — and where does the motion go instead.
 
 ## What changes about the product
 
-`slop capture.mp4` works. The card is a poster frame and never moves, wearing
+`transom post capture.mp4` works. The card is a poster frame and never moves, wearing
 `▶ 0:12` where the age chip's sibling badge already sits. Opening it plays the
 video in the lightbox, muted, with an unmute and a way out to whatever app the
 OS would have used.
@@ -60,10 +60,10 @@ absent and the badge reads a bare `▶`.
 
 **Held containers are the ones Chrome plays:** `.mp4 .m4v .mov .webm`. ffmpeg
 would poster a `.mkv` happily and the lightbox would then show a dead player, so
-the wall does not hold one. `slop` refuses it at the send naming what is held,
+the wall does not hold one. `transom` refuses it at the send naming what is held,
 which is the rule the extension check already follows.
 
-**`slop` also refuses a video when ffmpeg is not on `PATH`.** Same rule, same
+**`transom` also refuses a video when ffmpeg is not on `PATH`.** Same rule, same
 reason: a file the daemon declines is silently invisible *and* never expires,
 because only an adopted artifact is ever trashed. An argument fails in front of
 whoever typed it; a missing decoder must too.
@@ -99,14 +99,14 @@ cache derivative still carry provenance.
 `frameOf` spawns `ffmpeg -ss <at> -i <src> -frames:v 1 -y <out>`, awaits exit,
 and confirms the file is non-empty; it retries once at `-ss 0` when the first
 pass writes nothing. Unlike `shootPage` this can await its child — ffmpeg exits
-when it is done, which Chrome does not. Bounded by `SLOP_POSTER_TIMEOUT_MS`.
+when it is done, which Chrome does not. Bounded by `TRANSOM_POSTER_TIMEOUT_MS`.
 
 **`server/probe.ts`** — `durationOf(path): Promise<number | null>`, parsing
 `ffprobe -v error -show_format -of json`'s `format.duration` seconds into ms.
 Null for anything it cannot read, which is a normal outcome and not a warning.
 
 **`server/kind.ts`** — `VIDEO_EXT`, `Kind` gains `'video'`, `HELD_EXT` picks
-them up. `kind.test.ts` already holds `bin/slop` to `HELD_EXT` and keeps doing
+them up. `kind.test.ts` already holds `bin/transom` to `HELD_EXT` and keeps doing
 so.
 
 **`shared/duration.ts`** — `formatClock(ms)`: `0:12`, `4:03`, `1:02:33`. The
@@ -129,7 +129,7 @@ case.
 
 **`src/lightbox-meta.ts`** — the runtime joins the meta line.
 
-**`bin/slop`** — `held_ext` gains the four; a video with no ffmpeg is refused.
+**`bin/transom`** — `held_ext` gains the four; a video with no ffmpeg is refused.
 
 **`DESIGN.md`** — the ingest contract's "an artifact is a picture or a page"
 paragraph becomes three kinds, and states the unstamped original.

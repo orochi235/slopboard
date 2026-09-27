@@ -19,4 +19,4 @@ export const FORWARDED_KEYS = [
 ] as const
 
 /** Named, so a message from any other frame cannot be mistaken for one. */
-export const KEY_MESSAGE = 'slopboard:key'
+export const KEY_MESSAGE = 'transom:key'

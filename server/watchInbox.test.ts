@@ -13,8 +13,8 @@ const png = () =>
  *  root and its own module graph. */
 async function bootDaemon(root: string) {
   vi.resetModules()
-  vi.stubEnv('SLOP_ROOT', root)
-  vi.stubEnv('SLOP_SWEEP_MS', '40')
+  vi.stubEnv('TRANSOM_ROOT', root)
+  vi.stubEnv('TRANSOM_SWEEP_MS', '40')
   await mkdir(join(root, 'inbox'), { recursive: true })
   return await import('./ingest.ts')
 }
@@ -24,7 +24,7 @@ describe('watchInbox', () => {
   let stop: (() => Promise<void>) | null = null
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), 'slop-watch-'))
+    root = await mkdtemp(join(tmpdir(), 'transom-watch-'))
   })
 
   afterEach(async () => {
@@ -118,7 +118,7 @@ describe('watchInbox', () => {
     await mkdir(dir, { recursive: true })
     for (const name of ['a', 'b', 'c']) {
       await writeFile(
-        join(dir, `${name}.png.slop.json`),
+        join(dir, `${name}.png.transom.json`),
         JSON.stringify({ run: 'sweep', runLabel: 'outline sweep', of: 3, question: 'reads?' }),
       )
       await writeFile(join(dir, `${name}.png`), await png())
@@ -146,7 +146,7 @@ describe('watchInbox', () => {
 
     const dir = join(root, 'inbox', 'z')
     await mkdir(dir, { recursive: true })
-    await writeFile(join(dir, 'a.png.slop.json'), '{"caption":"c"}')
+    await writeFile(join(dir, 'a.png.transom.json'), '{"caption":"c"}')
     await writeFile(join(dir, 'a.png'), await png())
 
     await vi.waitFor(() => expect(arrived).toHaveLength(1), { timeout: 8000 })

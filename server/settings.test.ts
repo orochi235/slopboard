@@ -6,9 +6,9 @@ import { join } from 'node:path'
 /** `config` reads the environment at import, so each test needs the root set
  *  and the module graph dropped before it loads either. */
 async function freshSettings(root: string, ttlEnv?: string) {
-  process.env.SLOP_ROOT = root
-  if (ttlEnv === undefined) delete process.env.SLOP_TTL
-  else process.env.SLOP_TTL = ttlEnv
+  process.env.TRANSOM_ROOT = root
+  if (ttlEnv === undefined) delete process.env.TRANSOM_TTL
+  else process.env.TRANSOM_TTL = ttlEnv
   vi.resetModules()
   return await import('./settings.ts')
 }
@@ -17,12 +17,12 @@ let root: string
 const file = () => join(root, 'settings.json')
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'slop-settings-'))
+  root = await mkdtemp(join(tmpdir(), 'transom-settings-'))
 })
 
 afterEach(async () => {
   await rm(root, { recursive: true, force: true })
-  delete process.env.SLOP_TTL
+  delete process.env.TRANSOM_TTL
 })
 
 describe('the wall lifetime', () => {

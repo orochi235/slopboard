@@ -81,7 +81,7 @@ export type WallItem = {
   question?: string
   choices?: string[]
   reply?: Reply
-  /** What `bin/slop` saw when it ran: the repository and the short commit.
+  /** What `bin/transom` saw when it ran: the repository and the short commit.
    *  Absent for anything dropped in by hand. */
   repo?: string
   sha?: string

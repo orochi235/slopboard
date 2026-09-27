@@ -1,5 +1,5 @@
 {
-  "name": "slopboard",
+  "name": "transom",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,7 +15,7 @@
     "demo:pack": "tsx tools/demo-set.ts pack",
     "site": "tsx tools/site.ts",
     "doctor": "tsx tools/doctor.ts",
-    "daemon:restart": "launchctl kickstart -k gui/$(id -u)/tech.michaelbaker.slopboard.daemon && echo \"daemon restarted\" && sleep 1 && npm run --silent doctor"
+    "daemon:restart": "launchctl kickstart -k gui/$(id -u)/tech.michaelbaker.transom.daemon && echo \"daemon restarted\" && sleep 1 && npm run --silent doctor"
   },
   "dependencies": {
     "@react-three/fiber": "^9.8.1",

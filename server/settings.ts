@@ -12,7 +12,7 @@ const file = join(config.root, 'settings.json')
  * lifetime decides when files move to the trash rather than how they look.
  *
  * A file of its own, holding durations the way a person writes them — the same
- * `8h` `SLOP_TTL` takes. The environment is the fallback, so a machine that has
+ * `8h` `TRANSOM_TTL` takes. The environment is the fallback, so a machine that has
  * never been set keeps behaving the way its launcher says.
  */
 const bounds = { min: 60_000, max: 90 * 86_400_000 }

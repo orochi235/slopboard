@@ -1,11 +1,11 @@
-# slopboard
+# transom
 
 `DESIGN.md` is the design doc — what the wall is, what is decided, what is open.
 `README.md` is the stranger's entry point.
 
 ## The daemon does not reload. Check it before you debug it.
 
-The daemon and the client run as **LaunchAgents** — `tech.michaelbaker.slopboard.daemon`
+The daemon and the client run as **LaunchAgents** — `tech.michaelbaker.transom.daemon`
 and `.client` — detached, with `KeepAlive`, started with no `watch`. So the
 daemon goes on serving whatever build it was launched from however many times
 `server/` or `shared/` changes, and every symptom of that reads as a broken

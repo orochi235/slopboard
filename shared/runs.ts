@@ -9,7 +9,7 @@ import type { Poster, Take, WallItem } from './protocol.ts'
 /**
  * How many takes one run may hold. Without a cap the only bound on a card's
  * size is how long the agent runs, and the carousel is the wrong instrument
- * for a corpus. `bin/slop` refuses the send past this too, so the wall says no
+ * for a corpus. `bin/transom` refuses the send past this too, so the wall says no
  * in front of whoever typed it as well as behind them.
  */
 export const MAX_TAKES = 60

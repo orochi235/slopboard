@@ -59,7 +59,7 @@ function Transfer({
     const url = URL.createObjectURL(new Blob([toText(params)], { type: 'application/json' }))
     const a = document.createElement('a')
     a.href = url
-    a.download = 'slopboard-params.json'
+    a.download = 'transom-params.json'
     a.click()
     URL.revokeObjectURL(url)
   }

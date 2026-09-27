@@ -89,7 +89,7 @@ export function alert(item: WallItem, wallOpen: boolean): Plan {
     fire([
       'osascript',
       '-e',
-      `display notification "${quote(body)}" with title "${quote(item.zone)}" subtitle "slopboard"`,
+      `display notification "${quote(body)}" with title "${quote(item.zone)}" subtitle "transom"`,
     ])
   }
   // Starting it is the same command a person would type, which is why the URL

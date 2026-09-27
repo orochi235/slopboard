@@ -1,6 +1,6 @@
 # Paging the wall as one list, and deleting from the lightbox
 
-For whoever works on slopboard's navigation or its expiry. It says what the
+For whoever works on transom's navigation or its expiry. It says what the
 lightbox's keys do across piles, what Delete does, and how deep undo goes.
 Decided 2026-09-13.
 

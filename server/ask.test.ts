@@ -7,13 +7,13 @@ import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseStamp } from './sidecar.ts'
 
-const SLOP = fileURLToPath(new URL('../bin/slop', import.meta.url))
+const TRANSOM = fileURLToPath(new URL('../bin/transom', import.meta.url))
 
 let root: string
 let png: string
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'slop-ask-'))
+  root = await mkdtemp(join(tmpdir(), 'transom-ask-'))
   png = join(root, 'shot.png')
   await writeFile(png, 'png')
 })
@@ -22,35 +22,53 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true })
 })
 
-/** Runs `slop`, and plays the daemon once the sidecar lands: answers with
- *  `reply`, as the store would write it. */
-function ask(args: string[], reply: string) {
-  const child = spawn('sh', [SLOP, '--zone', 'z', ...args, png], { env: { ...process.env, SLOP_ROOT: root } })
+/** Runs `transom`, with nothing on stdin so that a send with no file ends. */
+function transom(args: string[]) {
+  return spawn('sh', [TRANSOM, ...args], {
+    env: { ...process.env, TRANSOM_ROOT: root, TRANSOM_ZONE: 'z' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+}
+
+/** Runs it to the end, for a command that does not wait on the wall. */
+async function run(args: string[]) {
+  const child = transom(args)
   let out = ''
   let err = ''
   child.stdout.on('data', (d) => (out += d))
   child.stderr.on('data', (d) => (err += d))
-  const inbox = join(root, 'inbox', 'z')
-  const answered = (async () => {
-    for (;;) {
-      const sent = existsSync(inbox) ? readdirSync(inbox).find((f) => f.endsWith('.png')) : undefined
-      if (sent) {
-        await mkdir(join(root, 'answers'), { recursive: true })
-        await writeFile(join(root, 'answers', sent), reply)
-        return join(inbox, sent)
-      }
-      await new Promise((r) => setTimeout(r, 50))
-    }
-  })()
-  return new Promise<{ code: number | null; out: string; err: string; sent: string }>((resolve) =>
-    child.on('exit', async (code) => resolve({ code, out, err, sent: await answered })),
-  )
+  const code = await new Promise<number | null>((r) => child.on('exit', r))
+  return { code, out, err, sent: out.trim().split('\n').filter(Boolean) }
 }
 
-describe('slop --ask', () => {
+const stampOf = async (path: string) => parseStamp(JSON.parse(await readFile(`${path}.transom.json`, 'utf8')))
+
+/** Plays the daemon once the image lands: answers with `reply`, as the store
+ *  would write it. */
+async function answer(reply: string) {
+  const inbox = join(root, 'inbox', 'z')
+  for (;;) {
+    const sent = existsSync(inbox) ? readdirSync(inbox).find((f) => f.endsWith('.png')) : undefined
+    if (sent) {
+      await mkdir(join(root, 'answers'), { recursive: true })
+      await writeFile(join(root, 'answers', sent), reply)
+      return join(inbox, sent)
+    }
+    await new Promise((r) => setTimeout(r, 50))
+  }
+}
+
+/** Asks, and answers it. */
+async function ask(question: string, args: string[], reply: string) {
+  const asked = run(['ask', question, ...args, png])
+  const sent = await answer(reply)
+  return { ...(await asked), sent }
+}
+
+describe('transom ask', () => {
   it('writes the question and its choices where ingest reads them, even with quotes and newlines', async () => {
-    const { sent } = await ask(['--ask', 'which "crop"?\nsecond line', '--choice', 'left', '--choice', 'a\\b'], 'answered\nleft')
-    const stamp = parseStamp(JSON.parse(await readFile(`${sent}.slop.json`, 'utf8')))
+    const { sent } = await ask('which "crop"?\nsecond line', ['--choice', 'left', '--choice', 'a\\b'], 'answered\nleft')
+    const stamp = await stampOf(sent)
     expect(stamp.question).toBe('which "crop"?\nsecond line')
     expect(stamp.choices).toEqual(['left', 'a\\b'])
   })
@@ -58,139 +76,167 @@ describe('slop --ask', () => {
   it('prints a free-text answer after the path, and exits cleanly', async () => {
     // A blank second line is what keeps the first line of the text from being
     // read as a choice.
-    const { code, out, sent } = await ask(['--ask', 'q'], 'answered\n\ntwo\nlines')
+    const { code, out, sent } = await ask('q', [], 'answered\n\ntwo\nlines')
     expect(code).toBe(0)
     expect(out).toBe(`${sent}\ntwo\nlines\n`)
     expect(existsSync(join(root, 'answers', basename(sent)))).toBe(false)
   })
 
   it('prints the chip where the answer was one', async () => {
-    const { out, sent } = await ask(['--ask', 'q', '--choice', 'better'], 'answered\nbetter\n')
+    const { out, sent } = await ask('q', ['--choice', 'better'], 'answered\nbetter\n')
     expect(out).toBe(`${sent}\nbetter\n`)
   })
 
   it('prints the whole reply with --json, for a caller that wants both parts', async () => {
-    const { out, sent } = await ask(['--json', '--ask', 'q', '--choice', 'worse', '--why'], 'answered\nworse\ntoo "dark"')
+    const { out, sent } = await ask('q', ['--json', '--choice', 'worse', '--why'], 'answered\nworse\ntoo "dark"')
     expect(out.slice(sent.length + 1)).toBe(
       `${JSON.stringify({ status: 'answered', choice: 'worse', text: 'too "dark"' })}\n`,
     )
   })
 
   it('exits 3 when the question is dismissed, and 4 when the card expires first', async () => {
-    expect((await ask(['--ask', 'q'], 'dismissed\n\n')).code).toBe(3)
+    expect((await ask('q', [], 'dismissed\n\n')).code).toBe(3)
     await rm(join(root, 'inbox'), { recursive: true, force: true })
-    expect((await ask(['--ask', 'q'], 'expired\n\n')).code).toBe(4)
+    expect((await ask('q', [], 'expired\n\n')).code).toBe(4)
   })
 
   it('offers a free-text box only where something asked', async () => {
-    const { sent } = await ask(['--ask', 'q', '--why', 'what is off about it?'], 'answered\n\nnothing')
-    expect(parseStamp(JSON.parse(await readFile(`${sent}.slop.json`, 'utf8'))).why).toBe('what is off about it?')
+    const { sent } = await ask('q', ['--why', 'what is off about it?'], 'answered\n\nnothing')
+    expect((await stampOf(sent)).why).toBe('what is off about it?')
   })
 
   it('takes --why bare, and does not eat the file it is sending', async () => {
-    const { sent } = await ask(['--ask', 'q', '--why'], 'answered\n\nnothing')
-    expect(parseStamp(JSON.parse(await readFile(`${sent}.slop.json`, 'utf8'))).why).toBe('anything to add?')
+    const { sent } = await ask('q', ['--why'], 'answered\n\nnothing')
+    expect((await stampOf(sent)).why).toBe('anything to add?')
     expect(sent.endsWith('.png')).toBe(true)
+  })
+
+  it('wants the question first, since a flag there would be read as one', async () => {
+    const { code, err } = await run(['ask', '--choice', 'left', png])
+    expect(code).toBe(1)
+    expect(err).toContain('the question comes first')
+  })
+
+  it('refuses several files outside a run', async () => {
+    const second = join(root, 'two.png')
+    await writeFile(second, 'png')
+    const { code, err } = await run(['ask', 'q', png, second])
+    expect(code).toBe(1)
+    expect(err).toContain('one answer comes back')
   })
 })
 
-describe('slop --run', () => {
-  /** Sends without waiting, which is what a run does: the caller holds the
-   *  paths and collects the answers itself. */
-  async function send(args: string[], files = [png]) {
-    const child = spawn('sh', [SLOP, '--zone', 'z', ...args, ...files], {
-      env: { ...process.env, SLOP_ROOT: root },
-    })
-    let out = ''
-    let err = ''
-    child.stdout.on('data', (d) => (out += d))
-    child.stderr.on('data', (d) => (err += d))
-    const code = await new Promise<number | null>((r) => child.on('exit', r))
-    return { code, out, err, sent: out.trim().split('\n').filter(Boolean) }
-  }
+describe('transom wait', () => {
+  it('collects the answer to a question sent with --no-wait', async () => {
+    const { code, sent } = await run(['ask', 'q', '--no-wait', png])
+    expect(code).toBe(0)
+    await answer('answered\nleft\n')
+    const waited = await run(['wait', sent[0]!])
+    expect(waited.code).toBe(0)
+    expect(waited.out).toBe('left\n')
+  })
 
-  const stampOf = async (path: string) => parseStamp(JSON.parse(await readFile(`${path}.slop.json`, 'utf8')))
+  it('prints the whole reply with --json', async () => {
+    const { sent } = await run(['ask', 'q', '--no-wait', png])
+    await answer('dismissed\n\n')
+    const waited = await run(['wait', '--json', sent[0]!])
+    expect(waited.code).toBe(3)
+    expect(waited.out).toBe(`${JSON.stringify({ status: 'dismissed', choice: '', text: '' })}\n`)
+  })
+})
+
+describe('transom post', () => {
+  it('sends and returns, with no question on the card', async () => {
+    const { code, sent } = await run(['post', png])
+    expect(code).toBe(0)
+    expect(sent).toHaveLength(1)
+    expect((await stampOf(sent[0]!)).question).toBeUndefined()
+  })
+
+  it('refuses what only means something beside a question', async () => {
+    for (const flag of [['--choice', 'left'], ['--why'], ['--json'], ['--no-wait']]) {
+      const { code, err } = await run(['post', ...flag, png])
+      expect(code).toBe(1)
+      expect(err).toContain('belongs to `transom ask`')
+    }
+  })
+
+  it('names a flag it does not have, rather than looking for a file called that', async () => {
+    const { code, err } = await run(['post', '--ask', 'q', png])
+    expect(code).toBe(1)
+    expect(err).toContain('no such flag: --ask')
+  })
 
   it('names the run, its label and how many takes are coming', async () => {
-    const { sent } = await send(['--run', 'sweep-3', '--run-label', 'outline sweep', '--of', '12'])
+    const { sent } = await run(['post', '--run', 'sweep-3', '--run-label', 'outline sweep', '--of', '12', png])
     const stamp = await stampOf(sent[0]!)
     expect(stamp.run).toBe('sweep-3')
     expect(stamp.runLabel).toBe('outline sweep')
     expect(stamp.of).toBe(12)
   })
 
-  it('takes several files in one send, since a run answers per take', async () => {
+  it('takes several files for a question in a run, since a run answers per take', async () => {
     const second = join(root, 'two.png')
     await writeFile(second, 'png')
-    const { code, sent } = await send(['--run', 'r', '--ask', 'how does this read?', '--no-wait'], [png, second])
+    const { code, sent } = await run(['ask', 'how does this read?', '--run', 'r', '--no-wait', png, second])
     expect(code).toBe(0)
     expect(sent).toHaveLength(2)
     expect((await stampOf(sent[1]!)).question).toBe('how does this read?')
   })
 
-  it('refuses several files for a question outside a run', async () => {
-    const second = join(root, 'two.png')
-    await writeFile(second, 'png')
-    const { code, err } = await send(['--ask', 'q'], [png, second])
-    expect(code).toBe(1)
-    expect(err).toContain('one answer comes back')
-  })
-
   it('refuses a run count that is not one', async () => {
-    expect((await send(['--run', 'r', '--of', 'lots'])).code).toBe(1)
-    expect((await send(['--run', 'r', '--of', '0'])).code).toBe(1)
+    expect((await run(['post', '--run', 'r', '--of', 'lots', png])).code).toBe(1)
+    expect((await run(['post', '--run', 'r', '--of', '0', png])).code).toBe(1)
   })
 
   it('refuses --run-label and --of without a run to hang them on', async () => {
-    expect((await send(['--run-label', 'x'])).code).toBe(1)
-    expect((await send(['--of', '3'])).code).toBe(1)
+    expect((await run(['post', '--run-label', 'x', png])).code).toBe(1)
+    expect((await run(['post', '--of', '3', png])).code).toBe(1)
   })
-})
-
-describe('slop --app and --link', () => {
-  async function send(args: string[]) {
-    const child = spawn('sh', [SLOP, '--zone', 'z', ...args, png], {
-      env: { ...process.env, SLOP_ROOT: root },
-    })
-    let out = ''
-    let err = ''
-    child.stdout.on('data', (d) => (out += d))
-    child.stderr.on('data', (d) => (err += d))
-    const code = await new Promise<number | null>((r) => child.on('exit', r))
-    return { code, err, sent: out.trim() }
-  }
-
-  const stampOf = async (path: string) => parseStamp(JSON.parse(await readFile(`${path}.slop.json`, 'utf8')))
 
   it('hands a bare --app the artifact itself, which is the copy in the inbox', async () => {
-    const { sent } = await send(['--app', 'LDView'])
-    expect((await stampOf(sent)).apps).toEqual([{ name: 'LDView', path: sent }])
+    const { sent } = await run(['post', '--app', 'LDView', png])
+    expect((await stampOf(sent[0]!)).apps).toEqual([{ name: 'LDView', path: sent[0] }])
   })
 
   it('makes a named file absolute, since the daemon does not share this directory', async () => {
-    const { sent } = await send(['--app', `LDView=${png}`, '--app', 'Finder'])
-    expect((await stampOf(sent)).apps).toEqual([
+    const { sent } = await run(['post', '--app', `LDView=${png}`, '--app', 'Finder', png])
+    expect((await stampOf(sent[0]!)).apps).toEqual([
       { name: 'LDView', path: png },
-      { name: 'Finder', path: sent },
+      { name: 'Finder', path: sent[0] },
     ])
   })
 
   it('labels a bare link with its host, and takes label=url', async () => {
-    const { sent } = await send([
+    const { sent } = await run([
+      'post',
       '--link',
       'https://rebrickable.com/parts/3001/',
       '--link',
       'part 3001=https://example.com/a?b=c',
+      png,
     ])
-    expect((await stampOf(sent)).links).toEqual([
+    expect((await stampOf(sent[0]!)).links).toEqual([
       { label: 'rebrickable.com', url: 'https://rebrickable.com/parts/3001/' },
       { label: 'part 3001', url: 'https://example.com/a?b=c' },
     ])
   })
 
   it('refuses a link a browser would not open', async () => {
-    const { code, err } = await send(['--link', 'file:///etc/passwd'])
+    const { code, err } = await run(['post', '--link', 'file:///etc/passwd', png])
     expect(code).toBe(1)
     expect(err).toContain('http(s)')
+  })
+})
+
+describe('transom', () => {
+  it('prints the zone a send would land in', async () => {
+    expect((await run(['zone'])).out).toBe('z\n')
+  })
+
+  it('refuses a command it does not have', async () => {
+    const { code, err } = await run(['nope', png])
+    expect(code).toBe(1)
+    expect(err).toContain('no such command: nope')
   })
 })

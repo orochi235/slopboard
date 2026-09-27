@@ -13,7 +13,7 @@ import { spawnSync } from 'node:child_process'
 const OUT = process.argv[3] ?? '_site'
 /** Where GitHub Pages serves the wall from, which the bundle's asset URLs are
  *  written against. Overridable so a local check can serve it from `/`. */
-const BASE = process.env.SLOP_SITE_BASE ?? '/slopboard/wall/'
+const BASE = process.env.TRANSOM_SITE_BASE ?? '/transom/wall/'
 
 const run = (cmd: string, args: string[], env: NodeJS.ProcessEnv = {}) => {
   console.log(`  ${cmd} ${args.join(' ')}`)
@@ -32,7 +32,7 @@ await cp('src/fonts', `${OUT}/fonts`, { recursive: true })
 
 console.log('2/3  the wall, as the demo')
 run('npx', ['vite', 'build', '--base', BASE, '--outDir', `${OUT}/wall`, '--emptyOutDir'], {
-  VITE_SLOP_DEMO: '1',
+  VITE_TRANSOM_DEMO: '1',
 })
 
 console.log(`3/3  ${OUT}/ is ready`)

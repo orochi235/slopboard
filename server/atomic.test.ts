@@ -8,7 +8,7 @@ let dir = ''
 const file = () => join(dir, 'state.json')
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'slop-atomic-'))
+  dir = await mkdtemp(join(tmpdir(), 'transom-atomic-'))
 })
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true })

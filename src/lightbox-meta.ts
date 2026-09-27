@@ -34,7 +34,7 @@ export function formatBytes(bytes: number): string {
 
 /**
  * The line above the image: where it came from, how old it is, what it is,
- * how big it is, and the commit it was made at where `bin/slop` could see one.
+ * how big it is, and the commit it was made at where `bin/transom` could see one.
  *
  * Parts rather than a string, so the caller can space them and give the zone
  * its color without parsing text back apart.

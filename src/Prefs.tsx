@@ -16,7 +16,7 @@ import { closesDialog } from '@/scrim.ts'
 import { WallBody } from '@/WallBody.tsx'
 import './prefs.css'
 
-const TAB_KEY = 'slopboard.prefs.tab.v1'
+const TAB_KEY = 'transom.prefs.tab.v1'
 
 const readTab = (): string | null => {
   try {

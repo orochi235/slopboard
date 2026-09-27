@@ -10,9 +10,7 @@
 import { execFileSync } from 'node:child_process'
 import { agree, DAEMON_PATHS, describe, type Build } from '@shared/build.ts'
 import { stamp } from '../server/build.ts'
-
-const DAEMON = 8787
-const CLIENT = 5183
+import { CLIENT_PORT as CLIENT, DAEMON_PORT as DAEMON } from '../server/ports.ts'
 
 const run = (cmd: string, ...args: string[]): string => {
   try {
@@ -40,7 +38,7 @@ const daemonBuild = async (): Promise<Build | null> => {
 const agents = (): string[] =>
   run('launchctl', 'list')
     .split('\n')
-    .filter((line) => line.includes('slopboard'))
+    .filter((line) => line.includes('transom'))
     .map((line) => {
       const [pid, , label] = line.split('\t')
       return `  ${(label ?? '').padEnd(42)} pid ${pid === '-' ? '(not running)' : pid}`

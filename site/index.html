@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>slopboard</title>
+    <title>transom</title>
     <meta
       name="description"
       content="A wall for AI-generated renders. Images arrive from agents, live for a while, then disappear unless rescued."
@@ -13,7 +13,7 @@
   <body>
     <main>
       <header>
-        <h1>slopboard</h1>
+        <h1>transom</h1>
         <p class="lede">
           A wall for AI-generated renders, filling a side monitor. Images arrive from agents, live
           for a while, then disappear unless rescued.
@@ -21,7 +21,7 @@
         <p class="actions">
           <a class="button" href="./wall/">Open the demo wall</a>
           <a class="button button--quiet" href="./integrate/">Put your repos on it</a>
-          <a class="button button--quiet" href="https://github.com/orochi235/slopboard"
+          <a class="button button--quiet" href="https://github.com/orochi235/transom"
             >Source on GitHub</a
           >
         </p>
@@ -35,8 +35,10 @@
         <h2>Why it forgets</h2>
         <p>
           Most software defaults to hoarding: every generated image lands in a folder that becomes
-          archaeological sediment. Roughly nine in ten of these are slop, and the name is there to
-          stop it drifting into an asset manager. So the wall is
+          archaeological sediment. Roughly nine in ten of these are not worth a second look.
+          The name is the publishing one: a manuscript nobody asked for came in over the transom,
+          the window above the editor's door, and most of that pile was never read twice. So the
+          wall is
           <strong>ephemeral by default, and permanence is earned by an act of attention</strong> —
           right-click a card and pin it, and it stops decaying.
         </p>
@@ -49,7 +51,7 @@
       <section>
         <h2>Putting something on it</h2>
         <p>Writing the file is the whole protocol. There is nothing to start or connect to.</p>
-        <pre><code>slop render.png</code></pre>
+        <pre><code>transom post render.png</code></pre>
         <p>
           The zone is the directory name of the repository you ran in, so a project is on the wall
           the first time it renders and nothing has to be bound.
@@ -63,7 +65,7 @@
       <section>
         <h2>How it is put together</h2>
         <p>
-          A Node daemon watches <code>~/slop/inbox/</code>, downscales what lands, and pushes it
+          A Node daemon watches <code>~/transom/inbox/</code>, downscales what lands, and pushes it
           over a WebSocket. The client is React and three.js: one diagonal pile per zone, drawn in
           WebGL, read head-on at wall distance and zoomed into for the detail.
         </p>

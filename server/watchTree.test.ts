@@ -94,7 +94,7 @@ describe.each(backends)('watchTree (%s)', (backend) => {
   })
 
   it('emits the first file in a zone created moments earlier', async () => {
-    // `bin/slop` does `mkdir -p` then writes: the zone and its first artifact
+    // `bin/transom` does `mkdir -p` then writes: the zone and its first artifact
     // arrive together, which is the window a per-directory watcher loses.
     root = mkdtempSync(join(tmpdir(), 'wt-'))
     const hits = await start()
@@ -133,18 +133,18 @@ describe.each(backends)('watchTree (%s)', (backend) => {
   it('ignores what the caller says to ignore', async () => {
     root = mkdtempSync(join(tmpdir(), 'wt-'))
     await mkdir(join(root, 'z'))
-    const hits = await start({ ignore: (p) => p.endsWith('.slop.json') })
+    const hits = await start({ ignore: (p) => p.endsWith('.transom.json') })
 
-    await writeFile(join(root, 'z', 'a.png.slop.json'), '{}')
+    await writeFile(join(root, 'z', 'a.png.transom.json'), '{}')
     const keep = join(root, 'z', 'a.png')
     await writeFile(keep, 'x'.repeat(2048))
 
     await waitFor(() => hits.some(([p]) => p === keep))
-    expect(hits.some(([p]) => p.endsWith('.slop.json'))).toBe(false)
+    expect(hits.some(([p]) => p.endsWith('.transom.json'))).toBe(false)
   })
 
   it('waits for a streamed write to stop growing before emitting', async () => {
-    // `gen | slop renders` writes over several ticks; handing sharp a
+    // `gen | transom post` writes over several ticks; handing sharp a
     // truncated file is what `awaitWriteFinish` bought under chokidar.
     root = mkdtempSync(join(tmpdir(), 'wt-'))
     await mkdir(join(root, 'z'))

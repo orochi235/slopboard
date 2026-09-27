@@ -1,6 +1,6 @@
 import type { StackParams } from '@/params.ts'
 
-const KEY = 'slopboard.params.v3'
+const KEY = 'transom.params.v3'
 
 /**
  * The keys this one replaced, newest first, each with the subtrees a panel
@@ -21,8 +21,8 @@ const KEY = 'slopboard.params.v3'
  * tenth of the travel it is asking for.
  */
 const LEGACY = [
-  { key: 'slopboard.params.v2', reset: ['prefs'] },
-  { key: 'slopboard.params.v1', reset: ['prefs', 'attention'] },
+  { key: 'transom.params.v2', reset: ['prefs'] },
+  { key: 'transom.params.v1', reset: ['prefs', 'attention'] },
 ] as const
 
 /**

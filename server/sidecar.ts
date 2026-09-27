@@ -3,15 +3,15 @@ import type { Stamp } from './xmp.ts'
 import type { Reply } from '@shared/protocol.ts'
 
 /**
- * `<image>.slop.json`, written by `bin/slop` beside the image it describes.
+ * `<image>.transom.json`, written by `bin/transom` beside the image it describes.
  *
  * A sidecar rather than the filename, which is where the TTL rides: a caption
  * holds spaces and slashes, and the name is not durable anyway — expiry
- * renames a file to `<id>-<zone>`, dropping even its extension. `bin/slop`
+ * renames a file to `<id>-<zone>`, dropping even its extension. `bin/transom`
  * writes the sidecar *before* the image, so the image's arrival — which is
  * what the watcher triggers on — proves the sidecar is already complete.
  */
-export const sidecarFor = (imagePath: string) => `${imagePath}.slop.json`
+export const sidecarFor = (imagePath: string) => `${imagePath}.transom.json`
 
 /** Only the fields the wall knows, only where they are strings. A blob from
  *  an older or hand-edited sidecar loses what does not fit rather than

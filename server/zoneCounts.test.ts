@@ -8,7 +8,7 @@ const at = (zone: string, id: string): WallItem => ({
   origUrl: `/orig/${id}`,
   zone,
   name: id,
-  path: `/slop/inbox/${zone}/${id}.png`,
+  path: `/transom/inbox/${zone}/${id}.png`,
   bornAt: 0,
   w: 1,
   h: 1,

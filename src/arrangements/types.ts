@@ -6,8 +6,8 @@ export type Size = { w: number; h: number }
 /** Where the scene's camera starts, and under which projection. */
 export type Camera = { projection: Projection; fovDeg: number; z: number }
 
-/** slopboard's own channel vocabulary. windease carries these and never reads them. */
-export type SlopChannels = {
+/** transom's own channel vocabulary. windease carries these and never reads them. */
+export type TransomChannels = {
   z: number
   opacity: number
   rotX: number
@@ -20,7 +20,7 @@ export type SlopChannels = {
   emphasis?: number
 }
 
-export type SlopStrategy = {
+export type TransomStrategy = {
   name: string
   layout(input: {
     items: LayoutItem[]
@@ -36,5 +36,5 @@ export type Arrangement = {
    *  labels or counts, and a card opens straight from the wall. */
   flat?: boolean
   camera?: Camera
-  strategy: SlopStrategy
+  strategy: TransomStrategy
 }

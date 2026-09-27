@@ -35,7 +35,7 @@ export const lifetimeMs = (lifetime: Lifetime): number =>
 export const isEternal = (lifetime: Lifetime | undefined): boolean => lifetime === 'eternal'
 
 /** How it is written in `zones.json`, which is a file someone may open. A
- *  duration goes the way `SLOP_TTL` takes it; a hold goes as its own word. */
+ *  duration goes the way `TRANSOM_TTL` takes it; a hold goes as its own word. */
 export const formatLifetime = (lifetime: Lifetime): string =>
   typeof lifetime === 'number' ? formatDuration(lifetime) : lifetime
 

@@ -1,17 +1,19 @@
-# slopboard
+# transom
 
 A wall for AI-generated renders, filling a side monitor. Images arrive from
 agents, live for a while, then disappear unless rescued.
 
-**[Live demo](https://michaelbaker.tech/slopboard/)** — a fixed set of real
+**[Live demo](https://michaelbaker.tech/transom/)** — a fixed set of real
 renders played by a fake daemon, so nothing arrives from anywhere, but pictures
 still age out and the controls still work.
 
 ## Why it forgets
 
 Most software defaults to hoarding: every generated image lands in a folder
-that becomes archaeological sediment. Roughly nine in ten of these are slop, and
-the name is there to stop it drifting into an asset manager. So the wall is
+that becomes archaeological sediment. Roughly nine in ten of these are not worth a
+second look. The name is the publishing one: a manuscript nobody asked for came
+in over the transom, the window above the editor's door, and most of that pile
+was never read twice. So the wall is
 **ephemeral by default, and permanence is earned by an act of attention** —
 right-click a card and pin it, and it stops decaying.
 
@@ -23,47 +25,47 @@ time for a picture that usually was not worth turning to look at.
 Writing the file is the whole protocol. There is nothing to start or connect to.
 
 ```
-slop render.png
-some-generator | slop
-slop --ttl 30m --caption "the third crop" render.png
-slop --ask "which reads better?" --choice left --choice right pair.png
+transom post render.png
+some-generator | transom post
+transom post --ttl 30m --caption "the third crop" render.png
+transom ask "which reads better?" --choice left --choice right pair.png
 ```
 
 The zone is the directory name of the repository you ran in, so a project is on
 the wall the first time it renders and nothing has to be bound. One zone is one
 pile, which is what makes "which projects are producing" answerable from across
-the room. `slop --ask` blocks until someone answers on the card and prints what
-they said.
+the room. `transom post` returns at once; `transom ask` blocks until someone
+answers on the card, and prints what they said.
 
-Provenance rides in a `<image>.slop.json` sidecar the daemon folds into the
+Provenance rides in a `<image>.transom.json` sidecar the daemon folds into the
 image's own metadata: the caption, plus the repo and commit the render ran in.
 
 ## Running it
 
 ```
-brew install orochi235/tap/slopboard
-wall install                                  # daemon :8787 + page :5183, as LaunchAgents
-wire                                          # skill, hook and `slop` for Claude Code
+brew install orochi235/tap/transom
+transom install                               # daemon :8787 + page :7750, as LaunchAgents
+transom wire                                  # skill, hook and rule check for Claude Code
 ```
 
 From a checkout:
 
 ```
 npm install
-npm run dev                                   # daemon :8787 + client :5183
+npm run dev                                   # daemon :8787 + client :7750
 npm run sim -- --rate=600 --count=40          # arrivals/hour; count 0 = forever
 ```
 
-`sim` writes real files into `~/slop/inbox/<zone>/`, so it exercises the whole
-path an agent would, including the partial-write guard. `bin/slop` is on no
-path by default; call it as `~/src/slopboard/bin/slop` or link it.
+`sim` writes real files into `~/transom/inbox/<zone>/`, so it exercises the whole
+path an agent would, including the partial-write guard. `bin/transom` is on no
+path by default; call it as `~/src/transom/bin/transom` or link it.
 
-Run the public demo locally with `VITE_SLOP_DEMO=1 npm run dev:client`, and
+Run the public demo locally with `VITE_TRANSOM_DEMO=1 npm run dev:client`, and
 build the whole site with `npm run site`.
 
 ## How it is put together
 
-A Node daemon watches `~/slop/inbox/` with the OS's own recursive watcher,
+A Node daemon watches `~/transom/inbox/` with the OS's own recursive watcher,
 downscales what lands, and pushes it over a WebSocket. The client is React and
 three.js: one diagonal pile per zone drawn in WebGL, read head-on at wall
 distance and zoomed into for the detail. An artifact may be a picture, an HTML

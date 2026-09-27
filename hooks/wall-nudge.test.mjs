@@ -8,7 +8,7 @@ import {
 
 let dir
 beforeEach(() => { dir = mkdtempSync(path.join(tmpdir(), 'wall-nudge-')) })
-afterEach(() => { delete process.env.SLOP_ROOT })
+afterEach(() => { delete process.env.TRANSOM_ROOT })
 
 const touch = (name, ageMs = 0) => {
   const p = path.join(dir, name)
@@ -61,9 +61,9 @@ describe('candidates', () => {
       .toEqual(['/t/a.svg'])
   })
   it('stays quiet when the command already sends to the wall', () => {
-    expect(candidates({ tool_name: 'Bash', tool_input: { command: 'slop /tmp/a.png' } }))
+    expect(candidates({ tool_name: 'Bash', tool_input: { command: 'transom post /tmp/a.png' } }))
       .toEqual([])
-    expect(candidates({ tool_name: 'Bash', tool_input: { command: 'gen | slop' } })).toEqual([])
+    expect(candidates({ tool_name: 'Bash', tool_input: { command: 'gen | transom post' } })).toEqual([])
   })
   it('ignores tools that cannot produce an image', () => {
     expect(candidates({ tool_name: 'Grep', tool_input: { pattern: 'a.png' } })).toEqual([])
@@ -76,12 +76,12 @@ describe('excepted', () => {
   })
   it('is true for the Preview marker block', () => {
     writeFileSync(path.join(dir, 'CLAUDE.local.md'),
-      '<!-- slopboard:begin -->\nRenders open in Preview here.\n<!-- slopboard:end -->\n')
+      '<!-- transom:begin -->\nRenders open in Preview here.\n<!-- transom:end -->\n')
     expect(excepted(dir)).toBe(true)
   })
   it('is false for a zone-rename block, which still uses the wall', () => {
     writeFileSync(path.join(dir, 'CLAUDE.local.md'),
-      '<!-- slopboard:begin -->\nRenders go to the `alt` zone.\n<!-- slopboard:end -->\n')
+      '<!-- transom:begin -->\nRenders go to the `alt` zone.\n<!-- transom:end -->\n')
     expect(excepted(dir)).toBe(false)
   })
   it('is false when the word appears outside the block', () => {
@@ -94,7 +94,7 @@ describe('onWall', () => {
   it('is true inside the inbox', () => {
     expect(onWall('/s/inbox/zone/a.png', '/s')).toBe(true)
   })
-  it('is false elsewhere under the slop root', () => {
+  it('is false elsewhere under the wall root', () => {
     expect(onWall('/s/zones/a.png', '/s')).toBe(false)
   })
 })
@@ -116,8 +116,8 @@ describe('toNudge', () => {
     expect(toNudge([p], { root: '/s', seen: { [path.resolve(p)]: Date.now() } })).toEqual([])
   })
   it('skips one already on the wall', () => {
-    const root = path.join(dir, 'slop')
-    const p = touch('slop/inbox/z/a.png')
+    const root = path.join(dir, 'transom')
+    const p = touch('transom/inbox/z/a.png')
     expect(toNudge([p], { root })).toEqual([])
   })
 })
@@ -126,7 +126,7 @@ describe('message', () => {
   it('reads as one image in the singular', () => {
     const m = message(['/repo/chart.png'], '/repo')
     expect(m).toContain('chart.png is only visible to you')
-    expect(m).toContain('slop chart.png')
+    expect(m).toContain('transom post chart.png')
   })
   it('pluralizes for several', () => {
     const m = message(['/repo/a.png', '/repo/b.png'], '/repo')

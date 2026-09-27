@@ -79,7 +79,7 @@ export function ParallaxModal({ allowParallax }: { allowParallax: boolean }) {
   if (!open) return null
 
   return (
-    <div className="pxm" role="dialog" aria-modal="true" aria-label="About slopboard" onClick={close}>
+    <div className="pxm" role="dialog" aria-modal="true" aria-label="About transom" onClick={close}>
       {/* Every class in here is static: delamin8r writes `dl-plane` onto these
           same elements, and React setting `className` would strip it. */}
       {/* Detached rather than tuned flat when the gate is off: a null ref tears
@@ -90,7 +90,7 @@ export function ParallaxModal({ allowParallax }: { allowParallax: boolean }) {
           <div className="pxm__layer pxm__starfield" data-layer="starfield" data-dl-lift="0" aria-hidden="true" />
           <div className="pxm__layer pxm__glow" data-layer="glow" data-dl-lift="1" aria-hidden="true" />
           <div className="pxm__layer pxm__wordmark" data-layer="wordmark" data-dl-lift="2" aria-hidden="true">
-            SLOP
+            TRANSOM
           </div>
           <div className="pxm__layer pxm__plate" data-layer="plate" data-dl-lift="3" aria-hidden="true" />
           <div className="pxm__layer pxm__body" data-layer="body" data-dl-lift="4">
@@ -112,7 +112,7 @@ export function ParallaxModal({ allowParallax }: { allowParallax: boolean }) {
             </p>
           </div>
           <div className="pxm__layer pxm__crest" data-layer="crest" data-dl-lift="5">
-            <h2 className="pxm__title">SLOPBOARD</h2>
+            <h2 className="pxm__title">TRANSOM</h2>
             <p className="pxm__sub">ephemeral render wall</p>
           </div>
           <div className="pxm__layer pxm__chip" data-layer="chip" data-dl-lift="6">

@@ -34,7 +34,7 @@ describe('parseLifetime and formatLifetime', () => {
     expect(parseLifetime(' eternal ')).toBe('eternal')
   })
 
-  it('reads a duration the way SLOP_TTL takes it', () => {
+  it('reads a duration the way TRANSOM_TTL takes it', () => {
     expect(parseLifetime('8h')).toBe(28_800_000)
     expect(parseLifetime('90')).toBe(90_000)
   })

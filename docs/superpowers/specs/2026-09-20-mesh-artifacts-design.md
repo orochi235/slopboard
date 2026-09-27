@@ -9,7 +9,7 @@ everywhere but the lightbox.
 
 ## What changes about the product
 
-`slop head.glb` works. The card is a rendered three-quarter view of the model
+`transom post head.glb` works. The card is a rendered three-quarter view of the model
 on a transparent background, wearing `⬡` where a video's `▶ 0:12` sits.
 Opening it loads the real mesh and orbits it under the pointer.
 
@@ -30,8 +30,8 @@ with no GPU, so this costs a route and an HTML file against a native module
 that has to be built per platform.
 
 **Held formats are `.glb` and `.stl`. `.gltf` is refused.** A `.gltf` is a
-manifest that points at sibling `.bin` and texture files; `slop` copies one
-file into the inbox, so it would arrive complete only by accident. `slop`
+manifest that points at sibling `.bin` and texture files; `transom` copies one
+file into the inbox, so it would arrive complete only by accident. `transom`
 refuses it at the send and says to export a `.glb`, which is the same rule and
 the same reason as the `.mkv` refusal.
 
@@ -83,7 +83,7 @@ six lines; the price is that the two must be changed together, and
 ## The pieces
 
 **`server/kind.ts`** — `MESH_EXT = { .glb, .stl }`, `Kind` gains `'mesh'`,
-`HELD_EXT` picks them up. `kind.test.ts` already holds `bin/slop` to `HELD_EXT`.
+`HELD_EXT` picks them up. `kind.test.ts` already holds `bin/transom` to `HELD_EXT`.
 
 **`server/shoot.ts`** — `shootUrl(url, out, opts)` is the general case;
 `shootPage` becomes a wrapper that converts a path to a `file://` URL and

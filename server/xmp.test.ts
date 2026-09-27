@@ -5,10 +5,10 @@ describe('buildXmp', () => {
   it('writes the caption where other tools look, as well as where we look', () => {
     const packet = buildXmp({ caption: 'the sky, turned' })
     // Preview, Finder and Lightroom read dc:description; nothing but the wall
-    // reads slop:caption.
+    // reads transom:caption.
     expect(packet).toContain('<dc:description>')
     expect(packet).toContain('the sky, turned')
-    expect(packet).toContain('slop:caption="the sky, turned"')
+    expect(packet).toContain('transom:caption="the sky, turned"')
   })
 
   it('escapes a caption that would otherwise close a tag or an attribute', () => {
@@ -18,9 +18,9 @@ describe('buildXmp', () => {
   })
 
   it('leaves out what it was not given, rather than writing empty fields', () => {
-    const packet = buildXmp({ zone: 'slopboard' })
-    expect(packet).toContain('slop:zone="slopboard"')
-    expect(packet).not.toContain('slop:repo')
+    const packet = buildXmp({ zone: 'transom' })
+    expect(packet).toContain('transom:zone="transom"')
+    expect(packet).not.toContain('transom:repo')
     expect(packet).not.toContain('dc:description')
   })
 
@@ -33,12 +33,12 @@ describe('buildXmp', () => {
 
 describe('readXmp', () => {
   it('round-trips every field', () => {
-    const stamp = { caption: 'a caption', zone: 'slopboard', repo: 'slopboard', sha: '6fc3f8e' }
+    const stamp = { caption: 'a caption', zone: 'transom', repo: 'transom', sha: '6fc3f8e' }
     expect(readXmp(buildXmp(stamp))).toEqual(stamp)
   })
 
   it('falls back to dc:description when the private field is absent', () => {
-    const packet = buildXmp({ caption: 'from dc' }).replace(/slop:caption="[^"]*"/, '')
+    const packet = buildXmp({ caption: 'from dc' }).replace(/transom:caption="[^"]*"/, '')
     expect(readXmp(packet).caption).toBe('from dc')
   })
 

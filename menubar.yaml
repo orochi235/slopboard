@@ -4,26 +4,26 @@
 # hands it to launchd; `perch run` puts it in the foreground to look at.
 #
 # It reports, it opens things, and it runs the wall. An action is a subprocess
-# perch waits on, so it cannot hold a server open — `wall` hands the lifetime to
+# perch waits on, so it cannot hold a server open — `transom` hands the lifetime to
 # launchd and returns, which is why these items are `run` and not a dev script.
-# `wall` is on PATH because `wall install` links it into ~/.local/bin, which is
+# `transom` is on PATH because `transom install` links it into ~/.local/bin, which is
 # already in the PATH this agent runs with.
 
 app:
-  name: slopboard
-  id: tech.michaelbaker.slopboard.menubar
+  name: transom
+  id: tech.michaelbaker.transom.menubar
   icon: rectangle.stack
   interval: 5s
   sign: perch local signing
 
 watch:
-  # launchd's side of `wall stat`: whether the two agents are installed, loaded
+  # launchd's side of `transom stat`: whether the two agents are installed, loaded
   # and up. The daemon answering HTTP is a different question, and the gap
   # between the two is the state worth naming.
   daemon:
-    launchagent: tech.michaelbaker.slopboard.daemon
+    launchagent: tech.michaelbaker.transom.daemon
   client:
-    launchagent: tech.michaelbaker.slopboard.client
+    launchagent: tech.michaelbaker.transom.client
   # The paths come from the daemon rather than this file, which is what keeps
   # a home directory out of a committed config.
   wall:
@@ -67,7 +67,7 @@ menu:
   - text: "daemon not loaded"
     icon: pause.circle
     when: stopped
-  - text: "not installed — run wall install"
+  - text: "not installed — run transom install"
     icon: shippingbox
     when: uninstalled
   - text: "client not loaded"
@@ -76,7 +76,7 @@ menu:
   - separator
   - text: Man the wall
     icon: macwindow
-    open: http://localhost:5183
+    open: http://localhost:7750
   - separator
   - each: zones.data.zones
     when: "zones.ok"
@@ -101,7 +101,7 @@ menu:
   - separator
   # up, down and cycle each act on both agents, so they stay wall's job. The
   # daemon on its own gets the verb that boots out, waits and bootstraps —
-  # which `wall cycle` cannot do, since kickstart needs the job already loaded.
+  # which `transom cycle` cannot do, since kickstart needs the job already loaded.
   - text: Restart the daemon
     icon: arrow.clockwise
     when: "!uninstalled"
@@ -109,14 +109,14 @@ menu:
   - text: Cycle the wall
     icon: arrow.triangle.2.circlepath
     when: "up || wedged"
-    run: [wall, cycle]
+    run: [transom, cycle]
   - text: Start the wall
     icon: play
     when: stopped
-    run: [wall, up]
+    run: [transom, up]
   - text: Stop the wall
     icon: stop
     when: "up || wedged"
-    run: [wall, down]
+    run: [transom, down]
   - separator
   - {text: Quit, icon: power, quit: true}

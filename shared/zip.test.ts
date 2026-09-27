@@ -11,7 +11,7 @@ const bytes = (text: string) => new TextEncoder().encode(text)
 
 const scratch: string[] = []
 const dir = async () => {
-  const made = await mkdtemp(join(tmpdir(), 'slop-zip-'))
+  const made = await mkdtemp(join(tmpdir(), 'transom-zip-'))
   scratch.push(made)
   return made
 }

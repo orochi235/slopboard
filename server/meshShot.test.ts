@@ -9,7 +9,7 @@ let dir = ''
 const png = (name: string) => join(dir, name)
 
 beforeAll(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'slop-mesh-test-'))
+  dir = await mkdtemp(join(tmpdir(), 'transom-mesh-test-'))
   const blank = { width: 8, height: 8, channels: 4 as const, background: { r: 0, g: 0, b: 0, alpha: 0 } }
   await sharp({ create: blank }).png().toFile(png('blank.png'))
   await sharp({ create: { ...blank, background: { r: 200, g: 200, b: 200, alpha: 1 } } })

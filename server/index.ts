@@ -81,7 +81,7 @@ app.get('/img/:id', (req, res) => {
   const path = store.resolveCache(req.params.id)
   if (!path) return void res.sendStatus(404)
   res.set('Cache-Control', 'public, max-age=31536000, immutable')
-  // dotfiles defaults to 'ignore', which 404s every path under ~/slop/.cache.
+  // dotfiles defaults to 'ignore', which 404s every path under ~/transom/.cache.
   res.sendFile(path, { dotfiles: 'allow' })
 })
 
@@ -394,12 +394,12 @@ const onListenError = (err: NodeJS.ErrnoException) => {
   if (reportedListenError) return
   reportedListenError = true
   void classifyPortHolder(config.port).then((holder) => {
-    if (holder === 'slopboard') {
-      console.log(`[slopboard] :${config.port} already serving, leaving it to run`)
+    if (holder === 'transom') {
+      console.log(`[transom] :${config.port} already serving, leaving it to run`)
       process.exit(0)
     }
     console.error(
-      `[slopboard] port ${config.port} is held by something else. Set SLOP_PORT to use another.`,
+      `[transom] port ${config.port} is held by something else. Set TRANSOM_PORT to use another.`,
     )
     process.exit(1)
   })
@@ -408,4 +408,4 @@ const onListenError = (err: NodeJS.ErrnoException) => {
 http.on('error', onListenError)
 wss.on('error', onListenError)
 
-http.listen(config.port, () => console.log(`[slopboard] :${config.port}`))
+http.listen(config.port, () => console.log(`[transom] :${config.port}`))

@@ -8,14 +8,14 @@ import sharp from 'sharp'
  *  root and its own module graph. */
 async function fresh(root: string) {
   vi.resetModules()
-  vi.stubEnv('SLOP_ROOT', root)
+  vi.stubEnv('TRANSOM_ROOT', root)
   return await import('./synth.ts')
 }
 
 let root = ''
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'slop-synth-'))
+  root = await mkdtemp(join(tmpdir(), 'transom-synth-'))
 })
 
 afterEach(async () => {
@@ -26,7 +26,7 @@ afterEach(async () => {
 const inbox = () => join(root, 'inbox', 'debug')
 
 async function sidecars() {
-  const names = (await readdir(inbox())).filter((f) => f.endsWith('.slop.json'))
+  const names = (await readdir(inbox())).filter((f) => f.endsWith('.transom.json'))
   return Promise.all(
     names.sort().map(async (f) => JSON.parse(await readFile(join(inbox(), f), 'utf8'))),
   )
@@ -69,7 +69,7 @@ describe('a synthetic run', () => {
     const names = await readdir(inbox())
     const image = names.find((f) => f.endsWith('.png'))!
     const { mtimeMs: sidecarAt } = await import('node:fs/promises').then((fs) =>
-      fs.stat(join(inbox(), `${image}.slop.json`)),
+      fs.stat(join(inbox(), `${image}.transom.json`)),
     )
     const { mtimeMs: imageAt } = await import('node:fs/promises').then((fs) =>
       fs.stat(join(inbox(), image)),

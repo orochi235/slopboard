@@ -5,9 +5,9 @@ const responding = (body: unknown, ok = true) =>
   (async () => ({ ok, json: async () => body })) as unknown as typeof fetch
 
 describe('classifyPortHolder', () => {
-  it('recognizes a slopboard daemon by its health body', async () => {
+  it('recognizes a transom daemon by its health body', async () => {
     const who = await classifyPortHolder(8787, responding({ ok: true, items: 3, ttlMs: 300000 }))
-    expect(who).toBe('slopboard')
+    expect(who).toBe('transom')
   })
 
   it('calls anything else on the port foreign, even when it answers 200 JSON', async () => {

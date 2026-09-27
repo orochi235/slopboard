@@ -45,7 +45,7 @@ describe('reduceView', () => {
 
   it('keeps its place when the zone it is showing is still live', () => {
     const held = at('weasel', 'img-1')
-    expect(reduceView(held, { type: 'prune', live: ['weasel', 'slopboard'] })).toBe(held)
+    expect(reduceView(held, { type: 'prune', live: ['weasel', 'transom'] })).toBe(held)
   })
 
   it('leaves the wall alone when zones come and go', () => {

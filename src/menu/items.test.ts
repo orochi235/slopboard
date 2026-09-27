@@ -6,9 +6,9 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
   id: 'a',
   url: '/img/a',
   origUrl: '/orig/a',
-  zone: 'slopboard',
+  zone: 'transom',
   name: 'a',
-  path: '/slop/inbox/slopboard/a.png',
+  path: '/transom/inbox/transom/a.png',
   bornAt: 1000,
   w: 200,
   h: 100,
@@ -17,8 +17,8 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
 
 describe('targetOf', () => {
   it('reads the chain the pick already returns', () => {
-    expect(targetOf(['slopboard', 'a'])).toEqual({ kind: 'card', zone: 'slopboard', id: 'a' })
-    expect(targetOf(['slopboard'])).toEqual({ kind: 'zone', zone: 'slopboard' })
+    expect(targetOf(['transom', 'a'])).toEqual({ kind: 'card', zone: 'transom', id: 'a' })
+    expect(targetOf(['transom'])).toEqual({ kind: 'zone', zone: 'transom' })
     expect(targetOf([])).toEqual({ kind: 'sky' })
   })
 })
@@ -27,14 +27,14 @@ describe('menuFor', () => {
   const actions = (...args: Parameters<typeof menuFor>) => menuFor(...args).map((i) => i.action)
 
   it('offers to pin a card that is not pinned, and to unpin one that is', () => {
-    const target = targetOf(['slopboard', 'a'])
+    const target = targetOf(['transom', 'a'])
     expect(actions(target, { item: item(), canUndo: false })).toContain('pin')
     expect(actions(target, { item: item({ keptAt: 2000 }), canUndo: false })).toContain('unpin')
     expect(actions(target, { item: item({ keptAt: 2000 }), canUndo: false })).not.toContain('pin')
   })
 
   it('offers to dismiss only a card that is asking', () => {
-    const target = targetOf(['slopboard', 'a'])
+    const target = targetOf(['transom', 'a'])
     expect(actions(target, { item: item(), canUndo: false })).not.toContain('dismiss')
     expect(
       actions(target, {
@@ -45,12 +45,12 @@ describe('menuFor', () => {
   })
 
   it('offers the artifact itself above its path', () => {
-    const menu = actions(targetOf(['slopboard', 'a']), { item: item(), canUndo: false })
+    const menu = actions(targetOf(['transom', 'a']), { item: item(), canUndo: false })
     expect(menu.indexOf('copyArtifact')).toBe(menu.indexOf('copyPath') - 1)
   })
 
   it('puts the one destructive action last and marks it', () => {
-    const menu = menuFor(targetOf(['slopboard', 'a']), { item: item(), canUndo: false })
+    const menu = menuFor(targetOf(['transom', 'a']), { item: item(), canUndo: false })
     expect(menu.at(-1)?.action).toBe('expire')
     expect(menu.filter((i) => i.grave).map((i) => i.action)).toEqual(['expire'])
   })
@@ -61,12 +61,12 @@ describe('menuFor', () => {
   })
 
   it('says nothing about a card the wall has already forgotten', () => {
-    expect(menuFor(targetOf(['slopboard', 'gone']), { canUndo: false })).toEqual([])
+    expect(menuFor(targetOf(['transom', 'gone']), { canUndo: false })).toEqual([])
   })
 })
 
 describe('menuFor on a zone', () => {
-  const zone = targetOf(['slopboard'])
+  const zone = targetOf(['transom'])
 
   const rowFor = (action: string, ctx: Parameters<typeof menuFor>[1]) =>
     menuFor(zone, ctx).find((i) => i.action === action)
@@ -118,12 +118,12 @@ describe('menuFor on a zone', () => {
       url: `/img/${id}`,
       origUrl: `/orig/${id}`,
       name: id,
-      path: `/slop/inbox/z/${id}.png`,
+      path: `/transom/inbox/z/${id}.png`,
       at: 1,
       w: 10,
       h: 10,
     }))
-    const card = targetOf(['slopboard', 'a'])
+    const card = targetOf(['transom', 'a'])
     const run = menuFor(card, { item: item({ kind: 'run', takes }), canUndo: false })
     expect(run.find((i) => i.action === 'zipRun')?.label).toBe('Download zip of the run (3)')
     // A picture is one file, which Copy artifact and the lightbox's save both
@@ -144,7 +144,7 @@ describe('menuFor on a zone', () => {
   })
 
   it('offers each app the sender named, beside the OS default', () => {
-    const menu = menuFor(targetOf(['slopboard', 'a']), {
+    const menu = menuFor(targetOf(['transom', 'a']), {
       item: item({ apps: [{ name: 'LDView', path: '/p/3001.dat' }, { name: 'Finder', path: '/p' }] }),
       canUndo: false,
     })
@@ -158,7 +158,7 @@ describe('menuFor on a zone', () => {
       url: `/img/${id}`,
       origUrl: `/orig/${id}`,
       name: id,
-      path: `/slop/inbox/z/${id}.png`,
+      path: `/transom/inbox/z/${id}.png`,
       at: 1,
       w: 10,
       h: 10,
@@ -166,7 +166,7 @@ describe('menuFor on a zone', () => {
       ...(apps ? { apps } : {}),
     })
     const answered = { ...take('t1', [{ name: 'Wrong', path: '/a' }]), reply: { status: 'answered' as const, text: '', at: 2 } }
-    const menu = menuFor(targetOf(['slopboard', 'a']), {
+    const menu = menuFor(targetOf(['transom', 'a']), {
       item: item({ kind: 'run', takes: [answered, take('t2', [{ name: 'LDView', path: '/b' }])] }),
       canUndo: false,
     })
@@ -174,13 +174,13 @@ describe('menuFor on a zone', () => {
   })
 
   it('leaves a card menu alone', () => {
-    const card = menuFor(targetOf(['slopboard', 'a']), { item: item(), canUndo: false, zoneCount: 30 })
+    const card = menuFor(targetOf(['transom', 'a']), { item: item(), canUndo: false, zoneCount: 30 })
     expect(card.map((i) => i.action)).not.toContain('expireZone')
     expect(card.map((i) => i.action)).not.toContain('pinZone')
   })
 
   it('offers the pile from a card too, since a card is what the pointer lands on', () => {
-    const card = menuFor(targetOf(['slopboard', 'a']), { item: item(), canUndo: false, zoneCount: 30 })
+    const card = menuFor(targetOf(['transom', 'a']), { item: item(), canUndo: false, zoneCount: 30 })
     expect(card.find((i) => i.action === 'zipZone')?.label).toBe('Download zip (30)')
     // Last before the row that takes the card away: the widest thing the menu
     // offers, and the only one that is not about the card itself.

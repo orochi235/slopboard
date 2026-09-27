@@ -11,7 +11,7 @@ const run = promisify(execFile)
 
 const scratch: string[] = []
 const dir = async () => {
-  const made = await mkdtemp(join(tmpdir(), 'slop-serve-zip-'))
+  const made = await mkdtemp(join(tmpdir(), 'transom-serve-zip-'))
   scratch.push(made)
   return made
 }
@@ -61,13 +61,13 @@ describe('serveZip', () => {
         { id: 'a', name: 'one.png' },
         { id: 'b', name: 'runs/two.png' },
       ],
-      'slop-zone-20260927-1405.zip',
+      'transom-zone-20260927-1405.zip',
       readOriginal((id) => join(made, id === 'a' ? 'one.png' : 'two.png')),
     )
 
     expect(headers['Content-Type']).toBe('application/zip')
     expect(headers['Content-Disposition']).toBe(
-      'attachment; filename="slop-zone-20260927-1405.zip"',
+      'attachment; filename="transom-zone-20260927-1405.zip"',
     )
     expect(res.writableEnded).toBe(true)
     expect(await namesIn(chunks, made)).toEqual(['one.png', 'runs/two.png'])

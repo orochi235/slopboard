@@ -8,7 +8,7 @@ const zonesDir = join(config.root, 'zones')
 
 /**
  * A color per zone, taken from the `.hued` file of the project the zone's
- * renders come from. `bin/slop` records that project on every send, so a repo
+ * renders come from. `bin/transom` records that project on every send, so a repo
  * appears here by rendering once and never by being registered. The browser
  * cannot read either file, so the daemon owns this and publishes it; a zone
  * with no record or no `.hued` simply has no entry, and the wall falls back to

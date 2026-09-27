@@ -46,7 +46,7 @@ export type Stamp = {
   kept?: string
 }
 
-const NS_SLOP = 'https://slopboard.local/ns/1.0/'
+const NS_TRANSOM = 'https://transom.local/ns/1.0/'
 const PACKET_ID = 'W5M0MpCehiHzreSzNTczkc9d'
 
 const escape = (value: string) =>
@@ -69,14 +69,14 @@ const unescape = (value: string) =>
  *
  * The caption goes in `dc:description` as well as the private namespace, and
  * that is the whole point of using XMP rather than a PNG text chunk: Preview,
- * Finder and Lightroom read the standard field, and nothing but slopboard
- * reads `slop:`. `dc:description` is a language alternative rather than a
+ * Finder and Lightroom read the standard field, and nothing but transom
+ * reads `transom:`. `dc:description` is a language alternative rather than a
  * plain string — the spec's shape, and what those readers expect.
  */
 export function buildXmp(stamp: Stamp): string {
   const attrs = (['zone', 'repo', 'sha'] as const)
     .filter((key) => stamp[key])
-    .map((key) => `\n    slop:${key}="${escape(stamp[key]!)}"`)
+    .map((key) => `\n    transom:${key}="${escape(stamp[key]!)}"`)
     .join('')
 
   const caption = stamp.caption
@@ -91,9 +91,9 @@ export function buildXmp(stamp: Stamp): string {
   <rdf:Description rdf:about=""
     xmlns:dc="http://purl.org/dc/elements/1.1/"
     xmlns:xmp="http://ns.adobe.com/xap/1.0/"
-    xmlns:slop="${NS_SLOP}"
-    xmp:CreatorTool="slopboard"${attrs}${
-      stamp.caption ? `\n    slop:caption="${escape(stamp.caption)}"` : ''
+    xmlns:transom="${NS_TRANSOM}"
+    xmp:CreatorTool="transom"${attrs}${
+      stamp.caption ? `\n    transom:caption="${escape(stamp.caption)}"` : ''
     }>${caption}
   </rdf:Description>
  </rdf:RDF>
@@ -109,7 +109,7 @@ export function buildXmp(stamp: Stamp): string {
 export function readXmp(packet: string): Stamp {
   const out: Stamp = {}
   for (const key of ['caption', 'zone', 'repo', 'sha'] as const) {
-    const attr = new RegExp(`slop:${key}="([^"]*)"`).exec(packet)
+    const attr = new RegExp(`transom:${key}="([^"]*)"`).exec(packet)
     if (attr?.[1]) out[key] = unescape(attr[1])
   }
   if (!out.caption) {

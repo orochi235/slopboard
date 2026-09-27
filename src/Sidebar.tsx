@@ -301,7 +301,7 @@ export function Sidebar({
     // overlay hosted here is never under a plane's transform.
     <aside className="sidebar wzl-skin" data-wzl-portal-host aria-label="Wall sidebar">
       <header className="sidebar__head">
-        <span className="sidebar__title">slopboard</span>
+        <span className="sidebar__title">transom</span>
         <button
           type="button"
           className="sidebar__close"
@@ -312,7 +312,7 @@ export function Sidebar({
         </button>
       </header>
 
-      <Section name="flags" storageKey="slopboard.sidebar.flags.v1">
+      <Section name="flags" storageKey="transom.sidebar.flags.v1">
         <Flags
           items={items}
           now={now}
@@ -323,7 +323,7 @@ export function Sidebar({
         />
       </Section>
 
-      <Section name="debug" storageKey="slopboard.sidebar.debug.v1">
+      <Section name="debug" storageKey="transom.sidebar.debug.v1">
         <div className="sidebar__buttons">
           <button type="button" className="params__button" onClick={onGenerate}>
             flag 8 random
@@ -348,7 +348,7 @@ export function Sidebar({
         </label>
       </Section>
 
-      <Section name="params" storageKey="slopboard.sidebar.params.v1">
+      <Section name="params" storageKey="transom.sidebar.params.v1">
         <ParamsBody params={params} onChange={onParams} />
       </Section>
     </aside>

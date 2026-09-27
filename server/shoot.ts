@@ -79,7 +79,7 @@ export async function shootUrl(
   // the path appear and settle, so one left behind is read as this shot's and
   // comes back instantly with the last run's pixels.
   await rm(outPath, { force: true }).catch(() => {})
-  const profileDir = await mkdtemp(join(tmpdir(), 'slop-shot-'))
+  const profileDir = await mkdtemp(join(tmpdir(), 'transom-shot-'))
   const [cmd, ...args] = shotArgv({
     browser: config.shotBrowser,
     url,

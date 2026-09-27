@@ -1,6 +1,6 @@
 # The right-click menu, and the rescue behind it
 
-For whoever picks up slopboard next. It says what right-click does, what
+For whoever picks up transom next. It says what right-click does, what
 "keeping" an image means, and which parts of `DESIGN.md`'s rescue section are
 deliberately still unbuilt.
 
@@ -43,7 +43,7 @@ re-reads sidecars off disk at startup, so a keep held only in memory would let
 the file expire on the next bounce. `adopt` also stops trashing a rescued file
 for being older than its TTL, which is the whole of what the rescue buys.
 
-The file does not move. It stays in `~/slop/inbox/<zone>/`, so a kept image is
+The file does not move. It stays in `~/transom/inbox/<zone>/`, so a kept image is
 still one `rm` from gone; what it is safe from is the wall itself.
 
 ## Undo

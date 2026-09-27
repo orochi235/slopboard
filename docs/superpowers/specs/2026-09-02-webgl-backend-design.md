@@ -1,6 +1,6 @@
 # WebGL backend and per-zone stacks
 
-Design for slopboard's r3f backend and the first 3D arrangement. For whoever
+Design for transom's r3f backend and the first 3D arrangement. For whoever
 implements it; assumes `DESIGN.md` has been read and does not restate it.
 
 The question it answers: what does the arrangement interface look like once
@@ -77,7 +77,7 @@ Two consequences. An arrangement is an *instance*, not the module singleton
 windease ships (`export const gridStrategy`) — the registry is a plain `Map` so it
 takes one, and the library's constraint (no DOM, no measuring, no mutating its
 inputs) does not forbid a private closure, which is not an input. Permitted but
-undocumented, and slopboard is the first to lean on it. And `now` rides in
+undocumented, and transom is the first to lean on it. And `now` rides in
 `options`, which is safe only while the host is excluded: `ContainerHost` dedupes
 config by identity, so a per-frame `options` would fight its change detection.
 
@@ -85,7 +85,7 @@ What a 3D arrangement returns:
 
 ```ts
 placements: Map<id, Rect>          // { x, y, z, w, h }, world units
-channels:   Map<id, SlopChannels>  // { opacity, rotX, rotY, rotZ, saturation?, lod? }
+channels:   Map<id, TransomChannels>  // { opacity, rotX, rotY, rotZ, saturation?, lod? }
 ```
 
 One conversion, done once per arrangement, and one non-conversion:
@@ -169,7 +169,7 @@ worth making: cross-fade is a blind lerp of every channel by `id`, which works
 only if they are all numbers.
 
 The cost is real. No key-name safety, and `opacty` fails silently at the
-renderer. slopboard declares its own `SlopChannels` and casts once at the
+renderer. transom declares its own `TransomChannels` and casts once at the
 boundary, so the safety sits with whoever owns the vocabulary.
 
 The purity constraint from `DESIGN.md` survives as windease's own: `layout` is
@@ -215,7 +215,7 @@ proven.
 `"windease": "file:../windease"` declares the coupling in `package.json` and
 gives node and `tsc` a resolution path. Add a **dev-only Vite alias to
 `~/src/windease/src/index.ts`** so a windease edit hot-reloads here instead of
-waiting on `npm run build` in the other repo. slopboard is an app, so aliasing
+waiting on `npm run build` in the other repo. transom is an app, so aliasing
 into a sibling's source is the right call; windease's own shipped source stays
 relative.
 
@@ -303,7 +303,7 @@ cannot afford — a 6000×4000 render is 96 MB as RGBA in VRAM, against a browse
 `<img>` that costs the budget nothing. It also keeps right-click → save, copy,
 drag-to-Finder and true 1:1 inspection, all of which a GL quad destroys.
 
-So slopboard keeps a DOM layer; it just stops having a DOM *wall*. This does not
+So transom keeps a DOM layer; it just stops having a DOM *wall*. This does not
 conflict with deleting `DomBackend`.
 
 ## Camera and interaction
@@ -340,7 +340,7 @@ at 32, about 3.3 MB; ten zones is ~33 MB, against ~280 MB if every item were
 kept at 512. The numbers to verify are where each tier stops being visually
 free — that is a looking-at-it question, not a measuring one.
 
-**windease becomes co-designed with slopboard.** Taking all of layout, not just
+**windease becomes co-designed with transom.** Taking all of layout, not just
 the zone grid, means `channels` and `Rect.z` exist in a window-management library
 because an ambient wall wanted them — a permanent commitment to a consumer whose
 other user manages panes. Keeping `channels` opaque is the whole mitigation: it

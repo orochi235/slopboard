@@ -11,7 +11,7 @@ const png = () =>
 
 /** A file whose mtime is a known, deliberately old value. */
 async function aged(name: string, when: Date) {
-  const dir = await mkdtemp(join(tmpdir(), 'slop-stamp-'))
+  const dir = await mkdtemp(join(tmpdir(), 'transom-stamp-'))
   const path = join(dir, name)
   await writeFile(path, await png())
   await utimes(path, when, when)

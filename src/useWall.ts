@@ -74,7 +74,7 @@ export function useWall(): Wall {
   }, [])
 
   useEffect(() => {
-    if (__SLOP_DEMO__ || !connected) return
+    if (__TRANSOM_DEMO__ || !connected) return
     const read = () =>
       fetch('/api/code')
         .then((res) => (res.ok ? (res.json() as Promise<Build>) : null))

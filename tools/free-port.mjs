@@ -1,7 +1,7 @@
 /**
  * Refuse to start a dev daemon behind the LaunchAgent one, and say what to do.
  *
- * `tech.michaelbaker.slopboard.daemon` holds 8787 with `KeepAlive`, so
+ * `tech.michaelbaker.transom.daemon` holds 8787 with `KeepAlive`, so
  * `npm run dev` would otherwise die with a bare `EADDRINUSE` scrolling past
  * inside `concurrently` while the client comes up fine — which looks like a
  * working dev server in front of a daemon that never picks up an edit.

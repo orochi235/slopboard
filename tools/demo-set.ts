@@ -20,12 +20,12 @@ import type { Stamp } from '../server/xmp.ts'
  * wall carries work zones too, and a zone nobody has thought about yet must
  * fail closed. Adding a name here is a decision to publish that repo's output.
  */
-const ZONES = ['slopboard', 'brick-icons', 'weasel', 'windease', 'levar', 'onto'] as const
+const ZONES = ['transom', 'brick-icons', 'weasel', 'windease', 'levar', 'onto'] as const
 
 /** What a stranger's browser downloads per picture, the wall's own cap. */
 const MAX_EDGE = 1024
 
-const INBOX = join(homedir(), 'slop', 'inbox')
+const INBOX = join(homedir(), 'transom', 'inbox')
 const STAGING = 'demo/staging'
 const OUT = 'demo/img'
 const MANIFEST = 'demo/manifest.json'
@@ -64,7 +64,7 @@ const PICTURES = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif'])
 const colorOf = async (zone: string): Promise<string | null> => {
   try {
     const reg = JSON.parse(
-      await readFile(join(homedir(), 'slop', 'zones', `${zone}.json`), 'utf8'),
+      await readFile(join(homedir(), 'transom', 'zones', `${zone}.json`), 'utf8'),
     ) as { root?: string }
     if (!reg.root) return null
     const hued = await readFile(join(reg.root, '.hued'), 'utf8')
@@ -76,7 +76,7 @@ const colorOf = async (zone: string): Promise<string | null> => {
 
 const sidecarOf = async (path: string): Promise<Stamp | null> => {
   try {
-    return JSON.parse(await readFile(`${path}.slop.json`, 'utf8')) as Stamp
+    return JSON.parse(await readFile(`${path}.transom.json`, 'utf8')) as Stamp
   } catch {
     return null
   }
@@ -95,8 +95,8 @@ async function stage() {
       // sorts together in whatever is being used to look through them.
       const out = join(STAGING, `${zone}__${name}`)
       await sharp(join(dir, name)).toFile(out).catch(() => {})
-      const side = await readFile(join(dir, `${name}.slop.json`), 'utf8').catch(() => null)
-      if (side) await writeFile(`${out}.slop.json`, side)
+      const side = await readFile(join(dir, `${name}.transom.json`), 'utf8').catch(() => null)
+      if (side) await writeFile(`${out}.transom.json`, side)
       staged += 1
       console.log(`${String(staged).padStart(4)}  ${zone}/${name}`)
     }

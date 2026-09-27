@@ -1,4 +1,4 @@
-# slopboard
+# transom
 
 A wall for AI-generated renders, filling a side monitor. Images arrive from
 agents, live for a while, then disappear unless rescued.
@@ -9,10 +9,12 @@ assumes no prior context.
 ## The thesis
 
 Most software defaults to hoarding. Every generated image lands in a folder that
-becomes archaeological sediment. slopboard inverts that: **ephemeral by default,
+becomes archaeological sediment. transom inverts that: **ephemeral by default,
 permanence earned by an act of attention.** Roughly 90% of what lands here is
-slop, and the name is a reminder not to let this drift into being an asset
-manager.
+not worth a second look. The name is the publishing one: a manuscript nobody
+asked for came in over the transom, the window above the editor's door, and
+most of that pile was never read twice. It is a reminder not to let this drift
+into being an asset manager.
 
 The problem it replaces: agents were told to open renders in Preview. Preview
 steals focus constantly, and most renders aren't worth looking at.
@@ -21,7 +23,7 @@ steals focus constantly, and most renders aren't worth looking at.
 
 **Daemon** (Node)
 
-- The OS's own recursive watcher (FSEvents on macOS) watches `~/slop/inbox/`,
+- The OS's own recursive watcher (FSEvents on macOS) watches `~/transom/inbox/`,
   one handle for the tree; `chokidar` is the fallback where that is not
   trustworthy — see Traps. A sweep offers anything the store lacks, so a
   dropped event costs a delay rather than the picture.
@@ -49,8 +51,8 @@ Run it chromeless:
 
 ```
 open -na "Google Chrome" --args \
-  --app=http://localhost:5183 \
-  --user-data-dir=/tmp/slopboard
+  --app=http://localhost:7750 \
+  --user-data-dir=/tmp/transom
 ```
 
 The separate profile keeps it out of the main browser's process pool so it
@@ -85,7 +87,7 @@ renderer.
 ### The interface
 
 An arrangement is a windease `LayoutStrategy` plus the camera it wants: a pure
-function from items and a container to rects, with slopboard's own channels
+function from items and a container to rects, with transom's own channels
 (`z`, `opacity`, `rotX/Y/Z`, `saturation`, `blur`, `lod`, `emphasis`) riding
 alongside. The contract is in the WebGL spec; `src/arrangements/types.ts` is the
 whole of it in code.
@@ -172,7 +174,7 @@ of any level.
 
 **The band is remembered across a reload** — the sort key, the kinds, the time
 range, the arrangement and the `list` row, in one object under
-`slopboard.band.v1`. One object rather than a key per control is what keeps a
+`transom.band.v1`. One object rather than a key per control is what keeps a
 control added later from being forgotten by the store: `BandState` in
 `src/nav/band-state.ts` has one reader per field, keyed on `keyof BandState`,
 so a field added without one does not compile. The arrangement is stored by
@@ -272,7 +274,7 @@ clock for the same reason `age01` is, so a reload does not restart a hold.
 
 **Every sound comes with a toast.** The daemon is the thing that plays it, so
 the daemon says so: an `alert` message with the zone, the level, the repo and
-commit when `slop` knew them, and what the card wants — its question, else its
+commit when `transom` knew them, and what the card wants — its question, else its
 note, else its name. The wall shows it bottom left until it is read or twelve
 seconds pass, and clicking it walks to the card. A sound with nothing on
 screen to explain it is a noise; this is what makes it a message.
@@ -283,15 +285,15 @@ own. Either way the card goes on living out its TTL as an ordinary card.
 
 ### Asking a question
 
-`slop --ask "..." [--choice a --choice b] FILE` puts a question on the card and
+`transom ask "..." [--choice a --choice b] FILE` puts a question on the card and
 waits for the answer: it prints the answer and exits 0, or exits 3 if the
 question is dismissed and 4 if the card is expired first. An agent runs it in
 the background, so the answer arrives as the command finishing.
 
-- **The answer is a file**, `~/slop/answers/<the name slop gave the file>`: the
+- **The answer is a file**, `~/transom/answers/<the name transom gave the file>`: the
   status on the first line (`answered`, `dismissed`, `expired`), the answer
   after it. Not beside the image, since expiry renames that into the trash.
-  `slop --wait PATH` waits on it again if the first wait was lost.
+  `transom wait PATH` waits on it again if the first wait was lost.
 - **A question always flags its card**, at `look` unless the agent names a
   level, and the question is the badge unless there is a `--note`.
 - **Opening the card does not close it**, although opening clears an ordinary
@@ -326,13 +328,13 @@ the background, so the answer arrives as the command finishing.
 - **The answer file has three parts**, since it now carries two: the status,
   the chip, then the text from line 3 on. A blank second line is what tells a
   free-text answer's first line apart from a choice, and it stays line-based
-  because `bin/slop` is `sh` and has no JSON parser. `slop --ask --json` prints
+  because `bin/transom` is `sh` and has no JSON parser. `transom ask --json` prints
   the whole reply for a caller that wants both fields.
 
 ### Runs: many pictures, one card
 
 An agent that renders sixty parts wants a verdict on each. Sixty cards is spam
-and sixty lightbox interrupts is worse, so `slop --run <id>` sends a **take**:
+and sixty lightbox interrupts is worse, so `transom post --run <id>` sends a **take**:
 every send naming the same run joins one card, which opens into a carousel.
 
 A run is a fourth `kind` beside `page`, `video` and `mesh` — the same shape as
@@ -389,7 +391,7 @@ question.
 **The daemon runs `open -a <name> <path>` and never a command line.** The wall
 passes a take and an app *index*: `/api/items/:id/open` already refuses to take
 a path from the browser, and it must not start taking an app name either. What
-does widen is that the store now holds paths outside `~/slop` — the sender
+does widen is that the store now holds paths outside `~/transom` — the sender
 declares a file in its own repo and the daemon will open it. That is the same
 agent that writes into the inbox, so it is inside the existing trust boundary
 rather than past it, but it is the first thing in the store the daemon did not
@@ -533,7 +535,7 @@ has the order and the landing rules.
 ### Entry behavior is a separate axis
 
 Arrivals landing at full presence is the wall's loudest event, and arrivals are
-mostly slop — so the design spends its whole attention budget on the least
+mostly throwaway — so the design spends its whole attention budget on the least
 valuable moment. `bloom` is a modifier, composable with any arrangement: new
 items enter dim and small and ramp to full presence over the first ~10% of their
 life. The wall stops flinching every time a render drops.
@@ -696,7 +698,7 @@ if it is at least four chip heights wide.
 
 ## Ingest contract
 
-Agents write files to `~/slop/inbox/<zone>/`. That is the entire integration
+Agents write files to `~/transom/inbox/<zone>/`. That is the entire integration
 surface — any agent that can write a file already works.
 
 Directory names are the source of truth for which zones exist. A config file, if
@@ -706,32 +708,32 @@ agent writing to a new one would produce silently invisible images, which is the
 worst available failure for a system whose whole promise is "just write a file."
 
 ```sh
-~/src/slopboard/bin/slop render.png       # zone defaults to the repo name
-~/src/slopboard/bin/slop --caption "the sky, turned" render.png
-some-generator | ~/src/slopboard/bin/slop --zone renders
-~/src/slopboard/bin/slop --print-zone     # the one implementation of the rule
+~/src/transom/bin/transom post render.png       # zone defaults to the repo name
+~/src/transom/bin/transom post --caption "the sky, turned" render.png
+some-generator | ~/src/transom/bin/transom post --zone renders
+~/src/transom/bin/transom zone     # the one implementation of the rule
 ```
 
-`slop` refuses an extension the wall does not hold, and says which it does.
+`transom` refuses an extension the wall does not hold, and says which it does.
 The check belongs at the send for the same reason zones may not need
 registering: a file the daemon will never adopt is a silently invisible image,
 and it is worse than one, because nothing expires it either — only an adopted
 artifact is ever trashed. `server/kind.ts` is the list; a test holds the script
 to it.
 
-Ask `slop` for the zone rather than deriving it. A caller that sanitizes the
+Ask `transom` for the zone rather than deriving it. A caller that sanitizes the
 repo name slightly differently binds the repo to a second, adjacent zone, and
 the wall shows the split without ever reporting an error.
 
 **Provenance is written, not asked for.** An instruction to stamp metadata is
 the kind that fails silently and stays failed — nothing about a render looks
-wrong when the field is missing, so compliance drifts. `bin/slop` is the
+wrong when the field is missing, so compliance drifts. `bin/transom` is the
 chokepoint every render already passes through, so it writes what it can see
 (the repo and the commit it ran in) with no cooperation at all, and takes the
 one thing only the caller knows as an argument: `--caption`. An argument fails
 in front of whoever typed it.
 
-It rides in a `<image>.slop.json` sidecar rather than the filename, which is
+It rides in a `<image>.transom.json` sidecar rather than the filename, which is
 where the TTL rides: a caption holds spaces and slashes, and the name is not
 durable anyway — expiry renames a file to `<id>-<zone>`, dropping even its
 extension. The sidecar is written **before** the image, because the image
@@ -739,7 +741,7 @@ landing is what the watcher triggers on; written after, it would lose the race.
 It follows its image into the trash.
 
 **A sidecar answers the caption outright; the filename is read only without
-one.** Since `bin/slop` names its copy with a UUID, a fallback to the name
+one.** Since `bin/transom` names its copy with a UUID, a fallback to the name
 would caption a piped render with a hex string — worse than no caption. So a
 sidecar with no caption means the CLI had nothing to say, and the wall shows
 nothing. A file dropped in by hand has no sidecar, and its name is the only
@@ -781,12 +783,12 @@ artifact is declined when there is none.
 **A page's `w`/`h` are the shot's viewport, not the document's**, which is the
 one field whose meaning differs between the kinds. `--screenshot` captures the
 viewport and not the page, so a short page leaves a card that is mostly
-background; `SLOP_SHOT_WIDTH`/`HEIGHT` is where that is traded. A video's are
+background; `TRANSOM_SHOT_WIDTH`/`HEIGHT` is where that is traded. A video's are
 honest, because ffmpeg writes the poster at the video's own size.
 
 **The only container the wall holds is one the browser can play.** ffmpeg would
 poster a `.mkv` happily and the lightbox would then show a dead player, so
-`slop` refuses it at the send — and refuses any video at all where ffmpeg is
+`transom` refuses it at the send — and refuses any video at all where ffmpeg is
 not on `PATH`, for the reason every send-time check exists: a file the daemon
 declines is silently invisible *and* never expires.
 
@@ -809,7 +811,7 @@ scan.
 the first one. The poster is seeked to one second rather
 than to frame 0, because a fade-in or a screen recording opens on black often
 enough that the first frame is the worse default; anything shorter falls back
-to it. `SLOP_POSTER_AT` moves the offset.
+to it. `TRANSOM_POSTER_AT` moves the offset.
 
 The badge it wears is the animation's `▶` with its runtime beside it — `▶ 0:12`
 — so the card says how much video there is before you spend it. A container
@@ -864,7 +866,7 @@ the copy that leaves the wall, where no store is around to ask. **PNG only for
 the original:** writing metadata means re-encoding, which is lossless for a PNG
 and a silent quality loss for anything else, so a JPEG keeps its bytes and goes
 unstamped. The caption is written to `dc:description` as well as the private
-`slop:` namespace — but note that macOS does not surface a PNG's XMP
+`transom:` namespace — but note that macOS does not surface a PNG's XMP
 description in Spotlight or Get Info, so the standard field is for the
 Adobe-family and `exiftool` readers, not for Finder.
 
@@ -874,7 +876,7 @@ queues the rest, so an unbounded fan-out was never a parallel decode per file �
 its cost was holding every pending full-resolution buffer alive at once.
 Adopting an 85-file inbox peaks at 549MB uncapped against 469MB at a cap of 3
 (410MB against 330MB for the largest single process), and the gap grows with
-the inbox rather than staying flat. `SLOP_INGEST_AT_ONCE` overrides it so the
+the inbox rather than staying flat. `TRANSOM_INGEST_AT_ONCE` overrides it so the
 ceiling can be measured instead of argued about.
 
 Stamping restores the file's **mtime** afterwards. `adopt` derives `bornAt`
@@ -884,19 +886,19 @@ restarting on every server edit, nothing would ever expire while the server is
 being worked on.
 
 **The wall is the default in every repo, not something a repo opts into.** Each
-harness `CLAUDE.md` says renders go to `bin/slop` and not to Preview, so a repo
+harness `CLAUDE.md` says renders go to `bin/transom` and not to Preview, so a repo
 is on the wall the first time it renders — no install, no registration, nothing
 to forget when a repo is created. Per-repo binding was the earlier model and
 scaled the wrong way: eighty repos meant eighty standing instructions to write
 and to keep, and repo eighty-one was silently invisible until someone noticed.
-The skill (`skills/slopboard/`, symlinked into the harness skill directories)
+The skill (`skills/transom/`, symlinked into the harness skill directories)
 now only writes the exceptions — Preview back for one repo, or a zone name that
 isn't the directory's.
 
 **Zones self-register, because the daemon needs a path the image doesn't carry.**
 A zone colored by its project's `.hued` means mapping a zone back to a working
-copy, and the inbox holds only the images. So `bin/slop` writes
-`~/slop/zones/<zone>.json` recording the directory it ran in, on every send.
+copy, and the inbox holds only the images. So `bin/transom` writes
+`~/transom/zones/<zone>.json` recording the directory it ran in, on every send.
 One file per zone rather than a shared registry: two concurrent sends both
 read-modify-writing one JSON file lose each other's entry, and the failure looks
 like a zone that intermittently forgets its color. A record whose directory has
@@ -932,8 +934,8 @@ costs the sound, never the arrival.
 **How long an artifact lives is the daemon's, and the `wall` page of the prefs
 sheet sets it.** It is the one setting in that sheet that is not this browser's:
 everything else is drawing, saved per browser, while this decides when a file
-moves to the trash. It is held in `~/slop/settings.json` as a duration a person
-would write — the same `8h` `SLOP_TTL` takes — and the environment is only the
+moves to the trash. It is held in `~/transom/settings.json` as a duration a person
+would write — the same `8h` `TRANSOM_TTL` takes — and the environment is only the
 fallback for a wall nobody has set. Bounded at a minute and ninety days, since
 either end empties the wall or freezes it. A card sent with its own `--ttl`, and
 a rescued one, ignore it.
@@ -1009,14 +1011,14 @@ is on screen.
 
 **A flag, not a build.** The wall is served from localhost to one machine, so a
 lighter bundle buys nothing, and what the split is for is what is on screen. A
-second vite entry would split dev iteration in two and make `bin/wall` choose a
+second vite entry would split dev iteration in two and make `transom install` choose a
 build, for no gain that a room can see.
 
 ## Traps
 
 **Partial writes.** A watcher reports a file on creation, not on completion, so
 a streaming write hands `sharp` a truncated PNG. `watchTree` holds a file until
-its size stops changing — the `slop()` helper above is exactly this case.
+its size stops changing — `some-generator | transom post` is exactly this case.
 Without that wait a fraction of images arrive corrupt, intermittently, and it is
 miserable to diagnose later.
 
@@ -1056,7 +1058,7 @@ not a regression; run the file on its own before believing it.
 watching. Drop to a low tick when nothing is animating and no pointer is present.
 
 **`res.sendFile` ignores dotfiles by default**, so serving the cache out of
-`~/slop/.cache` 404s every image with no hint as to why. Both file routes pass
+`~/transom/.cache` 404s every image with no hint as to why. Both file routes pass
 `{ dotfiles: 'allow' }`.
 
 **An empty model unwinds the view to the wall.** The focused zone is pruned
@@ -1092,7 +1094,7 @@ Base64-over-WebSocket hitches every time a render lands.
   times the wall's own height. The `mesh` kind arrived and did *not* settle
   this: its card is a rendered poster and the real geometry lives in the
   lightbox, so the wall is still flat and the question is still open. Two separable calls. Whether a *card* gets
-  thickness is ours alone: `SlopChannels` is slopboard's own vocabulary that
+  thickness is ours alone: `TransomChannels` is transom's own vocabulary that
   windease carries and never reads, so a depth channel costs nothing upstream.
   Whether a *zone* gets a depth is a change to windease's `Rect`, and is the one
   that would let the camera frame a pile instead of its front face. Neither is
@@ -1109,31 +1111,31 @@ Base64-over-WebSocket hitches every time a render lands.
   and any text on the card until they are resolved one way or the other,
   delivered or thrown away on purpose. That means a card holding unsent marks
   cannot age out. A Bash call sees `CLAUDE_CODE_SESSION_ID` and `CLAUDE_PID`, so
-  `slop` can record the sender and the daemon can tell whether it is still
+  `transom` can record the sender and the daemon can tell whether it is still
   running. **TODO:** a queue that hands unsent marks to a later session is
   deliberately unbuilt. Let each repo choose how it works when it enrolls.
-  `wire` already enrolls a machine; run inside a repo it should also enroll that
-  repo, writing a settings file the daemon and `slop` read. A repo that never
+  `transom wire` already enrolls a machine; run inside a repo it should also enroll that
+  repo, writing a settings file the daemon and `transom` read. A repo that never
   runs it keeps today's defaults and still joins on its first render.
 
 ## Running it
 
 ```
 npm install
-npm run dev                                   # daemon :8787 + client :5183
+npm run dev                                   # daemon :8787 + client :7750
 npm run sim -- --rate=600 --count=40          # arrivals/hour; count 0 = forever
-SLOP_TTL=90 npm run dev                       # seconds; the fallback before
+TRANSOM_TTL=90 npm run dev                       # seconds; the fallback before
                                               # the prefs sheet sets one
 ```
 
-`sim` writes real files into `~/slop/inbox/<zone>/` in chunks, so it exercises
+`sim` writes real files into `~/transom/inbox/<zone>/` in chunks, so it exercises
 the whole path an agent would — including the partial-write guard.
 
 ## Build order
 
 1. ~~Daemon + snapshot-on-connect + a first arrangement.~~ **Done.**
 2. ~~Sim mode.~~ **Done.**
-3. Point one agent at `~/slop/inbox/` and live with it for a day. This answers
+3. Point one agent at `~/transom/inbox/` and live with it for a day. This answers
    arrival rate, which decides whether 4 and 5 are worth building at all.
 4. r3f backend, `stack`, and zones — designed in
    `docs/superpowers/specs/2026-09-02-webgl-backend-design.md`. Zones arrive

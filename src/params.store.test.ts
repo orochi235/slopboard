@@ -98,7 +98,7 @@ describe('migrating a stored panel', () => {
   it('gives back the attention subtree so a changed meaning cannot survive', () => {
     const storage = fake()
     storage.setItem(
-      'slopboard.params.v1',
+      'transom.params.v1',
       JSON.stringify({ attention: { seek: true, float: true }, origin: { x: 0.9, y: 0.9 } }),
     )
     const out = loadParams(defaultParams, storage)
@@ -109,7 +109,7 @@ describe('migrating a stored panel', () => {
   it('keeps every other tuning, which is why it is not just a version bump', () => {
     const storage = fake()
     storage.setItem(
-      'slopboard.params.v1',
+      'transom.params.v1',
       JSON.stringify({ attention: { seek: true }, origin: { x: 0.9, y: 0.9 } }),
     )
     expect(loadParams(defaultParams, storage).origin).toEqual({ x: 0.9, y: 0.9 })
@@ -117,23 +117,23 @@ describe('migrating a stored panel', () => {
 
   it('retires the old key, so the migration runs once', () => {
     const storage = fake()
-    storage.setItem('slopboard.params.v1', JSON.stringify({ origin: { x: 0.9, y: 0.9 } }))
+    storage.setItem('transom.params.v1', JSON.stringify({ origin: { x: 0.9, y: 0.9 } }))
     loadParams(defaultParams, storage)
-    expect(storage.getItem('slopboard.params.v1')).toBeNull()
-    expect(storage.getItem('slopboard.params.v3')).not.toBeNull()
+    expect(storage.getItem('transom.params.v1')).toBeNull()
+    expect(storage.getItem('transom.params.v3')).not.toBeNull()
   })
 
   it('prefers a newer panel over an older one left behind', () => {
     const storage = fake()
-    storage.setItem('slopboard.params.v1', JSON.stringify({ origin: { x: 0.1, y: 0.1 } }))
-    storage.setItem('slopboard.params.v2', JSON.stringify({ origin: { x: 0.7, y: 0.7 } }))
+    storage.setItem('transom.params.v1', JSON.stringify({ origin: { x: 0.1, y: 0.1 } }))
+    storage.setItem('transom.params.v2', JSON.stringify({ origin: { x: 0.7, y: 0.7 } }))
     expect(loadParams(defaultParams, storage).origin).toEqual({ x: 0.7, y: 0.7 })
   })
 
   it('gives back the prefs subtree, whose stage moved from the sheet to the scrim', () => {
     const storage = fake()
     storage.setItem(
-      'slopboard.params.v2',
+      'transom.params.v2',
       JSON.stringify({ prefs: { parallax: true, step: 14, swing: 40 }, origin: { x: 0.9, y: 0.9 } }),
     )
     const out = loadParams(defaultParams, storage)
@@ -145,7 +145,7 @@ describe('migrating a stored panel', () => {
   it('gives back prefs from a v1 panel too, which predates the change as well', () => {
     const storage = fake()
     storage.setItem(
-      'slopboard.params.v1',
+      'transom.params.v1',
       JSON.stringify({ prefs: { parallax: true, step: 14, swing: 40 } }),
     )
     expect(loadParams(defaultParams, storage).prefs).toEqual(defaultParams.prefs)
@@ -153,10 +153,10 @@ describe('migrating a stored panel', () => {
 
   it('leaves every legacy key retired, so a stale one cannot resurface', () => {
     const storage = fake()
-    storage.setItem('slopboard.params.v1', JSON.stringify({ origin: { x: 0.1, y: 0.1 } }))
-    storage.setItem('slopboard.params.v2', JSON.stringify({ origin: { x: 0.7, y: 0.7 } }))
+    storage.setItem('transom.params.v1', JSON.stringify({ origin: { x: 0.1, y: 0.1 } }))
+    storage.setItem('transom.params.v2', JSON.stringify({ origin: { x: 0.7, y: 0.7 } }))
     loadParams(defaultParams, storage)
-    expect(storage.getItem('slopboard.params.v1')).toBeNull()
-    expect(storage.getItem('slopboard.params.v2')).toBeNull()
+    expect(storage.getItem('transom.params.v1')).toBeNull()
+    expect(storage.getItem('transom.params.v2')).toBeNull()
   })
 })

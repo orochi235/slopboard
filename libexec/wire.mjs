@@ -1,25 +1,25 @@
 #!/usr/bin/env node
-// `wire` — put slopboard in front of the agents on this machine.
+// `transom wire`: put transom in front of the agents on this machine.
 //
-//   wire            install into every Claude config dir found
-//   wire --off      take it back out
-//   wire --dry      say what would change, change nothing
+//   transom wire            install into every Claude config dir found
+//   transom wire --off      take it back out
+//   transom wire --dry      say what would change, change nothing
 //
 // Three mechanical pieces: the skill on the skills path, the wall-nudge hook in
-// settings.json, and `slop` on PATH. The CLAUDE.md rule is prose and is only
+// settings.json, and `transom` on PATH. The CLAUDE.md rule is prose and is only
 // checked here — a tool that rewrites hand-written preferences fights its author.
 //
-// Idempotent: re-running strips every slopboard-tagged hook entry and re-adds it.
+// Idempotent: re-running strips every transom-tagged hook entry and re-adds it.
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync,
          rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
-const MARKER = 'slopboard'
+const MARKER = 'transom'
 // node resolves the entry script's symlinks, so under Homebrew this file sees the
-// versioned Cellar path; the formula points SLOPBOARD_HOME at the stable opt path.
-const REPO = process.env.SLOPBOARD_HOME
+// versioned Cellar path; the formula points TRANSOM_HOME at the stable opt path.
+const REPO = process.env.TRANSOM_HOME
   ?? path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const HOME = homedir()
 
@@ -92,27 +92,27 @@ function wireHook(dir) {
   return removed ? `hook rewired` : `hook wired`
 }
 
-/** `slop` typed bare has to resolve, or a half-remembered rule dies at not-found. */
+/** `transom` typed bare has to resolve, or a half-remembered rule dies at not-found. */
 function linkBin() {
-  const target = path.join(REPO, 'bin', 'slop')
+  const target = path.join(REPO, 'bin', 'transom')
   const onPath = (process.env.PATH ?? '').split(':')
   const dest = [path.join(HOME, '.local', 'bin'), '/usr/local/bin']
     .find((d) => onPath.includes(d))
-  if (!dest) return `slop NOT on PATH — no writable PATH directory found; add ${rel(path.join(REPO, 'bin'))} yourself`
-  const link = path.join(dest, 'slop')
+  if (!dest) return `transom NOT on PATH — no writable PATH directory found; add ${rel(path.join(REPO, 'bin'))} yourself`
+  const link = path.join(dest, 'transom')
   const already = existsSync(link) && lstatSync(link).isSymbolicLink() && readlinkSync(link) === target
   if (off) {
-    if (!already) return `slop link absent`
+    if (!already) return `transom link absent`
     if (!dry) rmSync(link)
-    return `slop unlinked from ${rel(dest)}`
+    return `transom unlinked from ${rel(dest)}`
   }
-  if (already) return `slop already on PATH at ${rel(link)}`
-  if (existsSync(link)) return `slop NOT linked — ${rel(link)} exists and is not our symlink`
+  if (already) return `transom already on PATH at ${rel(link)}`
+  if (existsSync(link)) return `transom NOT linked — ${rel(link)} exists and is not our symlink`
   if (!dry) {
     mkdirSync(dest, { recursive: true })
     symlinkSync(target, link)
   }
-  return `slop linked at ${rel(link)}`
+  return `transom linked at ${rel(link)}`
 }
 
 /** The rule itself lives in prose we do not own. Report, do not write.
@@ -120,7 +120,7 @@ function linkBin() {
 function ruleFound(dirs) {
   return dirs.some((dir) => {
     const file = path.join(dir, 'CLAUDE.md')
-    return existsSync(file) && /\bslop\b/.test(readFileSync(file, 'utf8'))
+    return existsSync(file) && /\btransom\b/.test(readFileSync(file, 'utf8'))
   })
 }
 
@@ -130,30 +130,30 @@ async function daemon() {
     const body = await res.json()
     return `daemon up — ${body.items} on the wall, ttl ${Math.round(body.ttlMs / 3600000)}h`
   } catch {
-    return `daemon down — renders still land in ~/slop/inbox and appear at its next start`
+    return `daemon down — renders still land in ~/transom/inbox and appear at its next start`
   }
 }
 
 const dirs = configDirs()
 if (dirs.length === 0) {
-  console.error('wire: no Claude config directory found under ~. Nothing to wire.')
+  console.error('transom wire: no Claude config directory found under ~. Nothing to wire.')
   process.exit(1)
 }
 
-say('·', `${off ? 'unwiring' : 'wiring'} slopboard from ${rel(REPO)}${dry ? ' (dry run)' : ''}`)
+say('·', `${off ? 'unwiring' : 'wiring'} transom from ${rel(REPO)}${dry ? ' (dry run)' : ''}`)
 dirs.forEach((dir, i) => {
   say(`${i + 1}/${dirs.length}`, `${rel(dir)}: ${linkSkill(dir)}; ${wireHook(dir)}`)
 })
 say('·', linkBin())
 
 if (!off && !ruleFound(dirs)) {
-  say('!', `no slop rule in any CLAUDE.md — the hook only fires after a miss`)
+  say('!', `no transom rule in any CLAUDE.md — the hook only fires after a miss`)
   console.log(`
   Add this bullet to ~/.claude/CLAUDE.md, so an agent knows the wall exists
   before it renders anything:
 
   - **Any image you create goes on the wall, not just into a file.** Reading an
-    image only shows it to you. Send it with \`slop <file>\`, or pipe a generator
+    image only shows it to you. Send it with \`transom post <file>\`, or pipe a generator
     straight in; the zone is the repo's own directory name. Then say which zone
     it went to. Never \`open\` a render in Preview.
 `)

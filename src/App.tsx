@@ -54,7 +54,7 @@ export function App() {
   const tints = useMemo(() => tintsFor(zoneColors, zoneSettings), [zoneColors, zoneSettings])
   // Lazy: reading storage on every render would be wasted, and the tuning
   // pass is the whole reason the panel exists — losing it on reload defeats it.
-  const [params, setParams] = useState(() => loadParams(__SLOP_DEMO__ ? demoParams : defaultParams))
+  const [params, setParams] = useState(() => loadParams(__TRANSOM_DEMO__ ? demoParams : defaultParams))
   // Every arrangement closes over its params, so a change rebuilds them
   // and resets their allocators — one frame of snapping, the same contract
   // every cache here already honors. Keyed on the layout half alone so that

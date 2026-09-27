@@ -8,7 +8,7 @@ const item = (over: Partial<WallItem> = {}): WallItem => ({
   origUrl: '/orig/a',
   zone: 'windease',
   name: 'a',
-  path: '/slop/inbox/windease/a.png',
+  path: '/transom/inbox/windease/a.png',
   bornAt: 1000,
   w: 200,
   h: 100,

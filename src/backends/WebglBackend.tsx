@@ -14,7 +14,7 @@ import type { Rect } from 'windease'
 import { actions } from '@/actions.ts'
 import { posterTake, runBadge } from '@shared/runs.ts'
 import { ASK_GLYPH, askChip, asksOf } from '@/asks.ts'
-import type { Arrangement, SlopChannels } from '@/arrangements/index.ts'
+import type { Arrangement, TransomChannels } from '@/arrangements/index.ts'
 import { containerFor, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
 import { frameExtent, framePose, type Pose } from '@/camera/frame.ts'
 import { type Move, poseAt } from '@/camera/move.ts'
@@ -269,7 +269,7 @@ function Wall({
   }
   // Which artifacts are asking, and what their badges say. Off the items
   // rather than the channels: a level is a name and a note is a sentence,
-  // and `SlopChannels` carries numbers.
+  // and `TransomChannels` carries numbers.
   // A closed question keeps a badge that no longer asks: the question and
   // what it got, with no emphasis behind it.
   const flagged = useMemo(() => {
@@ -407,8 +407,8 @@ function Wall({
           )
           plate.renderOrder = CHROME_ORDER
           // The badge is a shortcut to its own artifact, so it takes a pick.
-          plate.userData.slopId = id
-          plate.userData.slopBadge = true
+          plate.userData.transomId = id
+          plate.userData.transomBadge = true
           held = { plate, key: '', w: 0, h: 0 }
           byId.set(id, held)
         }
@@ -698,7 +698,7 @@ function Wall({
     const targets: THREE.Object3D[] = [...meshes.current.values()]
     for (const { plate } of badges.byId.values()) if (plate.visible) targets.push(plate)
     const hit = raycaster.intersectObjects(targets, false)[0]
-    const id = hit?.object.userData.slopId as string | undefined
+    const id = hit?.object.userData.transomId as string | undefined
     const hitZone = id ? zoneById.current.get(id) : undefined
     if (id && hitZone) {
       // A card is a destination, not a rung: hitting one goes straight to its
@@ -738,7 +738,7 @@ function Wall({
       camera,
     )
     const hit = raycaster.intersectObjects(targets, false)[0]
-    return (hit?.object.userData.slopId as string | undefined) ?? null
+    return (hit?.object.userData.transomId as string | undefined) ?? null
   }
 
   /** One rung per gesture: across if the cursor is over another branch, down
@@ -1175,7 +1175,7 @@ function Wall({
       },
     })
 
-    const channels = (result.channels ?? new Map()) as Map<string, SlopChannels>
+    const channels = (result.channels ?? new Map()) as Map<string, TransomChannels>
     const wantLod = new Map<string, number>()
     for (const [id, ch] of channels) wantLod.set(id, ch.lod ?? 0)
     textures.sync(wantLod)
@@ -1519,7 +1519,7 @@ function Wall({
     for (const [id, rect] of result.placements as Map<string, Rect>) {
       const mesh = meshes.current.get(id)
       if (!mesh) continue
-      const ch = channels.get(id) ?? ({} as SlopChannels)
+      const ch = channels.get(id) ?? ({} as TransomChannels)
       const aspect = aspects.get(id) ?? 1
       const side = rect.w
 
@@ -2007,7 +2007,7 @@ function Wall({
             if (m) {
               // What the raycast reads back: the pick has to name a card, and
               // the alternative is a reverse scan of every mesh on the wall.
-              m.userData.slopId = id
+              m.userData.transomId = id
               meshes.current.set(id, m)
             } else meshes.current.delete(id)
           }}
@@ -2100,8 +2100,8 @@ function applyPose(
 }
 
 export function WebglBackend(props: Props) {
-  const [sidebarOpen, setSidebarOpen] = usePersistedFlag('slopboard.sidebar.open.v1', false)
-  const [showBounds, setShowBounds] = usePersistedFlag('slopboard.debug.bounds.v1', false)
+  const [sidebarOpen, setSidebarOpen] = usePersistedFlag('transom.sidebar.open.v1', false)
+  const [showBounds, setShowBounds] = usePersistedFlag('transom.debug.bounds.v1', false)
   const [backedOff, setBackedOff] = useState(false)
   const { listed } = props.band
   // The fraction of the canvas the panel covers, measured rather than assumed:

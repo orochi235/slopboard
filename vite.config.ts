@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { CLIENT_PORT, DAEMON_PORT } from './server/ports.ts'
 
 // Source, not dist, for a sibling checkout: windease and delamin8r are
 // co-designed with this repo, and each `main` points at a dist an edit to its
@@ -15,7 +16,7 @@ const sibling = (name: string, entries: Record<string, string>) => {
   )
 }
 
-const daemon = `http://localhost:${process.env.SLOP_PORT ?? 8787}`
+const daemon = `http://localhost:${DAEMON_PORT}`
 const proxy = { target: daemon, ws: true, changeOrigin: false }
 
 
@@ -25,7 +26,7 @@ export default defineConfig({
   // to drop the demo branch, and with it the daemon and forty pictures. An
   // env var read at runtime keeps all of it in the ordinary bundle.
   define: {
-    __SLOP_DEMO__: JSON.stringify(process.env.VITE_SLOP_DEMO === '1'),
+    __TRANSOM_DEMO__: JSON.stringify(process.env.VITE_TRANSOM_DEMO === '1'),
   },
   resolve: {
     alias: {
@@ -42,7 +43,7 @@ export default defineConfig({
     // Its own port, not vite's 5173: this machine runs several vite projects
     // and whichever starts first takes 5173. strictPort then fails loudly
     // instead of drifting to a port nobody thinks to open.
-    port: Number(process.env.SLOP_CLIENT_PORT ?? 5183),
+    port: CLIENT_PORT,
     // Both address families. Left unset, node binds whatever the resolver
     // returns for `localhost` first — here `::1` — and the IPv4 loopback then
     // refuses, so the port is plainly listening and the page will not load.

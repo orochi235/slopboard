@@ -61,7 +61,7 @@ type Sidecar = Record<string, unknown>
 /**
  * Writes one artifact: the sidecar first, then the image, because the watcher
  * triggers on the image and the other order is a race it loses. Mirrors what
- * `bin/slop` writes.
+ * `bin/transom` writes.
  *
  * The sidecar is built from the destination rather than passed in, since an
  * offered app points at the artifact and the artifact's name is a UUID picked
@@ -71,7 +71,7 @@ async function land(caption: string, blob: Buffer, sidecar: (dest: string) => Si
   const dir = join(config.inbox, ZONE)
   await mkdir(dir, { recursive: true })
   const dest = join(dir, `${randomUUID()}.ttl${SYNTH_TTL}.png`)
-  await writeFile(`${dest}.slop.json`, `${JSON.stringify({ ...sidecar(dest), caption })}\n`)
+  await writeFile(`${dest}.transom.json`, `${JSON.stringify({ ...sidecar(dest), caption })}\n`)
   await writeFile(dest, blob)
   return dest
 }
@@ -86,7 +86,7 @@ const asked = (dest: string): Sidecar => ({
   choices: VERDICTS,
   why: 'anything to add?',
   apps: [{ name: 'Preview', path: dest }],
-  links: [{ label: 'slopboard on github', url: 'https://github.com/orochi235/slopboard' }],
+  links: [{ label: 'transom on github', url: 'https://github.com/orochi235/transom' }],
 })
 
 /** A run: one card, `takes` pictures, a question on each. */

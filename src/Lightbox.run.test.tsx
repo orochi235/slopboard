@@ -20,7 +20,7 @@ const take = (id: string, over: Partial<Take> = {}): Take => ({
   url: `/img/${id}`,
   origUrl: `/orig/${id}`,
   name: id,
-  path: `/slop/inbox/z/${id}.png`,
+  path: `/transom/inbox/z/${id}.png`,
   at: 1000,
   w: 480,
   h: 320,

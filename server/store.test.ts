@@ -9,7 +9,7 @@ import type { WallItem } from '@shared/protocol.ts'
  *  environment at import, so each test needs the root set and the module
  *  graph dropped before it loads either. */
 async function freshStore(root: string) {
-  process.env.SLOP_ROOT = root
+  process.env.TRANSOM_ROOT = root
   vi.resetModules()
   return await import('./store.ts')
 }
@@ -18,7 +18,7 @@ const itemAt = (path: string, over: Partial<WallItem> = {}): WallItem => ({
   id: 'a1',
   url: '/img/a1',
   origUrl: '/orig/a1',
-  zone: 'slopboard',
+  zone: 'transom',
   name: 'a',
   path,
   bornAt: 1000,
@@ -31,9 +31,9 @@ let root: string
 let source: string
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'slop-store-'))
-  source = join(root, 'inbox', 'slopboard', 'a.png')
-  await mkdir(join(root, 'inbox', 'slopboard'), { recursive: true })
+  root = await mkdtemp(join(tmpdir(), 'transom-store-'))
+  source = join(root, 'inbox', 'transom', 'a.png')
+  await mkdir(join(root, 'inbox', 'transom'), { recursive: true })
   await writeFile(source, 'png')
 })
 
@@ -49,13 +49,13 @@ describe('keep', () => {
     const keptAt = await store.keep('a1', true)
     expect(typeof keptAt).toBe('number')
     expect(store.snapshot()[0]?.keptAt).toBe(keptAt)
-    expect(JSON.parse(await readFile(`${source}.slop.json`, 'utf8')).kept).toBe(
+    expect(JSON.parse(await readFile(`${source}.transom.json`, 'utf8')).kept).toBe(
       new Date(keptAt as number).toISOString(),
     )
 
     await store.keep('a1', false)
     expect(store.snapshot()[0]?.keptAt).toBeUndefined()
-    expect(JSON.parse(await readFile(`${source}.slop.json`, 'utf8')).kept).toBeUndefined()
+    expect(JSON.parse(await readFile(`${source}.transom.json`, 'utf8')).kept).toBeUndefined()
   })
 
   it('says so rather than throwing when the wall has already forgotten the item', async () => {
@@ -94,7 +94,7 @@ describe('expireNow and undoExpiry', () => {
   /** One file per id in the one zone, fresh enough that the sweeper leaves it. */
   const seedFresh = async (store: Awaited<ReturnType<typeof freshStore>>, ids: string[]) => {
     for (const id of ids) {
-      const path = join(root, 'inbox', 'slopboard', `${id}.png`)
+      const path = join(root, 'inbox', 'transom', `${id}.png`)
       await writeFile(path, 'png')
       store.add({
         item: itemAt(path, { id, bornAt: Date.now() }),
@@ -197,11 +197,11 @@ describe('questions', () => {
       ...over,
     })
   const answerFile = () => join(root, 'answers', 'a.png')
-  const sidecar = async () => JSON.parse(await readFile(`${source}.slop.json`, 'utf8'))
+  const sidecar = async () => JSON.parse(await readFile(`${source}.transom.json`, 'utf8'))
 
   beforeEach(async () => {
     await writeFile(
-      `${source}.slop.json`,
+      `${source}.transom.json`,
       JSON.stringify({ question: 'which crop?', choices: ['left', 'right'], attention: 'look', caption: 'a' }),
     )
   })
@@ -274,11 +274,11 @@ describe('questions', () => {
 
 describe("a zone's own lifetime", () => {
   it('takes what is already hanging in the zone, not just what lands next', async () => {
-    process.env.SLOP_TTL = '8h'
+    process.env.TRANSOM_TTL = '8h'
     const store = await freshStore(root)
     const zones = await import('./zones.ts')
     await zones.load()
-    await zones.set('slopboard', { lifetime: 60_000 })
+    await zones.set('transom', { lifetime: 60_000 })
     // Two minutes old, inside the wall's eight hours and past the zone's minute.
     store.add({
       item: itemAt(source, { bornAt: Date.now() - 120_000 }),
@@ -290,16 +290,16 @@ describe("a zone's own lifetime", () => {
       await vi.waitFor(() => expect(existsSync(source)).toBe(false), { timeout: 3000 })
     } finally {
       stop()
-      delete process.env.SLOP_TTL
+      delete process.env.TRANSOM_TTL
     }
   })
 
   it('loses to the artifact\'s own TTL, which is the narrower claim', async () => {
-    process.env.SLOP_TTL = '1m'
+    process.env.TRANSOM_TTL = '1m'
     const store = await freshStore(root)
     const zones = await import('./zones.ts')
     await zones.load()
-    await zones.set('slopboard', { lifetime: 60_000 })
+    await zones.set('transom', { lifetime: 60_000 })
     store.add({
       item: itemAt(source, { bornAt: Date.now() - 120_000, ttlMs: 86_400_000 }),
       sourcePath: source,
@@ -308,18 +308,18 @@ describe("a zone's own lifetime", () => {
     const stop = store.startSweeper()
     await new Promise((r) => setTimeout(r, 1200))
     stop()
-    delete process.env.SLOP_TTL
+    delete process.env.TRANSOM_TTL
     expect(existsSync(source)).toBe(true)
   })
 
   it.each(['indefinite', 'eternal'] as const)(
     'holds an artifact off the clock when the zone says %s',
     async (hold) => {
-      process.env.SLOP_TTL = '1m'
+      process.env.TRANSOM_TTL = '1m'
       const store = await freshStore(root)
       const zones = await import('./zones.ts')
       await zones.load()
-      await zones.set('slopboard', { lifetime: hold })
+      await zones.set('transom', { lifetime: hold })
       // A year old, against a wall lifetime of one minute.
       store.add({
         item: itemAt(source, { bornAt: Date.now() - 365 * 86_400_000 }),
@@ -329,7 +329,7 @@ describe("a zone's own lifetime", () => {
       const stop = store.startSweeper()
       await new Promise((r) => setTimeout(r, 1200))
       stop()
-      delete process.env.SLOP_TTL
+      delete process.env.TRANSOM_TTL
       expect(existsSync(source)).toBe(true)
     },
   )
@@ -340,13 +340,13 @@ describe('taking a zone in bulk', () => {
     const store = await freshStore(root)
     const zones = await import('./zones.ts')
     await zones.load()
-    await zones.set('slopboard', { lifetime: 'eternal' })
+    await zones.set('transom', { lifetime: 'eternal' })
     store.add({
       item: itemAt(source, { bornAt: Date.now() }),
       sourcePath: source,
       cachePath: join(root, 'a.webp'),
     })
-    expect(await store.expireZone('slopboard')).toEqual([])
+    expect(await store.expireZone('transom')).toEqual([])
     expect(existsSync(source)).toBe(true)
   })
 
@@ -354,20 +354,20 @@ describe('taking a zone in bulk', () => {
     const store = await freshStore(root)
     const zones = await import('./zones.ts')
     await zones.load()
-    await zones.set('slopboard', { lifetime: 'indefinite' })
+    await zones.set('transom', { lifetime: 'indefinite' })
     store.add({
       item: itemAt(source, { bornAt: Date.now() }),
       sourcePath: source,
       cachePath: join(root, 'a.webp'),
     })
-    expect(await store.expireZone('slopboard')).toHaveLength(1)
+    expect(await store.expireZone('transom')).toHaveLength(1)
     expect(existsSync(source)).toBe(false)
   })
 })
 
 describe('the wall lifetime as the panel sets it', () => {
   it('sweeps against the live setting rather than what the daemon started with', async () => {
-    process.env.SLOP_TTL = '8h'
+    process.env.TRANSOM_TTL = '8h'
     const store = await freshStore(root)
     const settings = await import('./settings.ts')
     await settings.load()
@@ -383,7 +383,7 @@ describe('the wall lifetime as the panel sets it', () => {
       await vi.waitFor(() => expect(existsSync(source)).toBe(false), { timeout: 3000 })
     } finally {
       stop()
-      delete process.env.SLOP_TTL
+      delete process.env.TRANSOM_TTL
     }
   })
 })
@@ -408,10 +408,10 @@ describe('runs', () => {
 
   /** A take's own file, since each one is answered and trashed separately. */
   async function fileFor(id: string) {
-    const path = join(root, 'inbox', 'slopboard', `${id}.png`)
+    const path = join(root, 'inbox', 'transom', `${id}.png`)
     await writeFile(path, 'png')
-    // A take always has one: `slop` writes the sidecar that carries its question.
-    await writeFile(`${path}.slop.json`, JSON.stringify({ run: 'sweep' }))
+    // A take always has one: `transom` writes the sidecar that carries its question.
+    await writeFile(`${path}.transom.json`, JSON.stringify({ run: 'sweep' }))
     return path
   }
 
@@ -462,7 +462,7 @@ describe('runs', () => {
     expect(await readFile(join(root, 'answers', 't1.png'), 'utf8')).toBe('answered\nworse\ntoo dark')
     expect(store.replyOf('run1', 't1')).toMatchObject({ choice: 'worse', text: 'too dark' })
     // And the sidecar carries it, so a restart shows the reply rather than asking again.
-    expect(JSON.parse(await readFile(`${one}.slop.json`, 'utf8')).choice).toBe('worse')
+    expect(JSON.parse(await readFile(`${one}.transom.json`, 'utf8')).choice).toBe('worse')
   })
 
   it('answers each take once, so a second click cannot overwrite what was read', async () => {
@@ -546,6 +546,6 @@ describe('runs', () => {
     store.addTake(card(), takeAt('t2', 1001, two), { sourcePath: two, cachePath: two }, {})
     expect(store.has(one)).toBe(true)
     expect(store.has(two)).toBe(true)
-    expect(store.has(join(root, 'inbox', 'slopboard', 'other.png'))).toBe(false)
+    expect(store.has(join(root, 'inbox', 'transom', 'other.png'))).toBe(false)
   })
 })

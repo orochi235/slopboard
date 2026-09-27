@@ -4,9 +4,9 @@ import { shotArgv } from './shoot.ts'
 
 const argv = shotArgv({
   browser: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  url: 'file:///slop/inbox/z/page.html',
+  url: 'file:///transom/inbox/z/page.html',
   outPath: '/tmp/shot.png',
-  profileDir: '/tmp/slop-shot-abc',
+  profileDir: '/tmp/transom-shot-abc',
   width: 1280,
   height: 800,
 })
@@ -14,7 +14,7 @@ const argv = shotArgv({
 describe('shotArgv', () => {
   it('leads with the browser and ends with the page as a file URL', () => {
     expect(argv[0]).toMatch(/Google Chrome$/)
-    expect(argv[argv.length - 1]).toBe('file:///slop/inbox/z/page.html')
+    expect(argv[argv.length - 1]).toBe('file:///transom/inbox/z/page.html')
   })
 
   it('asks for a headless shot at the given size', () => {
@@ -24,12 +24,12 @@ describe('shotArgv', () => {
   })
 
   it('gives every shot its own profile, so two never fight over one lock', () => {
-    expect(argv).toContain('--user-data-dir=/tmp/slop-shot-abc')
+    expect(argv).toContain('--user-data-dir=/tmp/transom-shot-abc')
   })
 
   it('escapes a path that would otherwise break the file URL', () => {
-    expect(pathToFileURL('/slop/inbox/my zone/a b.html').href).toBe(
-      'file:///slop/inbox/my%20zone/a%20b.html',
+    expect(pathToFileURL('/transom/inbox/my zone/a b.html').href).toBe(
+      'file:///transom/inbox/my%20zone/a%20b.html',
     )
   })
 

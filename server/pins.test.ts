@@ -3,21 +3,21 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-let slopRoot: string
+let transomRoot: string
 
 beforeEach(async () => {
-  slopRoot = await mkdtemp(join(tmpdir(), 'slop-pins-'))
+  transomRoot = await mkdtemp(join(tmpdir(), 'transom-pins-'))
   vi.resetModules()
-  process.env.SLOP_ROOT = slopRoot
+  process.env.TRANSOM_ROOT = transomRoot
 })
 
 afterEach(() => {
-  delete process.env.SLOP_ROOT
+  delete process.env.TRANSOM_ROOT
 })
 
 const load = () => import('./pins.ts')
 
-const file = () => join(slopRoot, 'pins.json')
+const file = () => join(transomRoot, 'pins.json')
 
 test('no file means no pinned zones', async () => {
   const { readPins } = await load()
