@@ -217,6 +217,9 @@ export function createDemoDaemon() {
         },
         ...(reply.take === undefined ? {} : { take: reply.take }),
       }),
+    // No session sent any of the set, so a drawing has nowhere to go.
+    markUp: async () => false,
+    discardMarkup: () => {},
     openInApp: () => {},
     // The demo wall ships a fixed set and has no inbox to write into.
     synth: async () => false,

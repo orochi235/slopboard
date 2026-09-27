@@ -155,6 +155,17 @@ export function useWall(): Wall {
                 i.id === msg.id ? { ...i, takes: [...(i.takes ?? []), msg.take], ...msg.poster } : i,
               ),
             )
+          } else if (msg.type === 'markup') {
+            setItems((prev) =>
+              prev.map((i) => {
+                if (i.id !== msg.id) return i
+                if (msg.take === undefined) return { ...i, markup: msg.markup }
+                return {
+                  ...i,
+                  takes: (i.takes ?? []).map((t) => (t.id === msg.take ? { ...t, markup: msg.markup } : t)),
+                }
+              }),
+            )
           } else if (msg.type === 'reply') {
             setItems((prev) =>
               prev.map((i) => {

@@ -1,0 +1,145 @@
+/* The surface a drawing is measured against: the whole window, like the port
+   under it, so the picture's box is in the same coordinates as the view that
+   placed it. It takes every click, so a stroke that ends past the picture's
+   edge does not land on the port and close the lightbox under it. */
+.markup {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  cursor: default;
+}
+
+.markup__surface {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* The tile the overlay tracks: where the picture is drawn, and nothing else. */
+.markup__target {
+  position: absolute;
+  left: var(--mk-x);
+  top: var(--mk-y);
+  width: var(--mk-w);
+  height: var(--mk-h);
+  pointer-events: none;
+}
+
+/* labkit's own input box. Its rule ships in labkit's whole stylesheet, which
+   also sets weasel's document tokens — the same reason `weasel.css` exists —
+   so this is that rule alone. */
+.markup .lk-annotate__input {
+  position: absolute;
+  left: var(--lk-anno-x);
+  top: var(--lk-anno-y);
+  width: var(--lk-anno-w);
+  height: var(--lk-anno-h);
+  z-index: 2;
+  cursor: crosshair;
+}
+
+.markup .lk-annotate__input:focus {
+  outline: none;
+}
+
+.markup .lk-annotate__input[data-idle] {
+  pointer-events: none;
+}
+
+/* A drawing replaces the question and the outs: both would sit over the
+   picture being drawn on, and neither can be acted on until it is sent. */
+.lightbox[data-marking] ~ .lightbox__ask,
+.lightbox[data-marking] ~ .lightbox__outs {
+  display: none;
+}
+
+/* Where the outs sit, which a drawing has hidden. */
+.markup__bar {
+  position: fixed;
+  z-index: 101;
+  bottom: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(640px, calc(100vw - 32px));
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  outline: 1px solid var(--lb-accent, var(--accent));
+  background: color-mix(in srgb, var(--scrim) 88%, transparent);
+  color: var(--ink);
+  font: 500 calc(12px * var(--ui-type))/1.4 var(--chrome-face);
+  cursor: default;
+}
+
+.markup__tools {
+  display: flex;
+  gap: 2px;
+}
+
+.markup__tool {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: color-mix(in srgb, var(--ink) 70%, transparent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.markup__tool:hover,
+.markup__tool:focus-visible {
+  color: var(--ink);
+}
+
+.markup__tool[aria-pressed='true'] {
+  border-color: var(--lb-accent, var(--accent));
+  color: var(--ink);
+}
+
+.markup__tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.markup__text {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  color: var(--ink);
+  font: inherit;
+}
+
+.markup__failed {
+  color: var(--lb-accent, var(--accent));
+  white-space: nowrap;
+}
+
+/* Where a text mark's words are typed: on the mark, above the input box that
+   took the click that made it. */
+.markup__words {
+  position: absolute;
+  left: var(--mk-x);
+  top: var(--mk-y);
+  z-index: 3;
+  width: 16ch;
+  padding: 1px 4px;
+  border: 1px solid #e5484d;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  color: var(--ink);
+  font: 14px/1.2 var(--chrome-face);
+}

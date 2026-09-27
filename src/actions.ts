@@ -1,5 +1,6 @@
 import type { Level } from '@shared/attention.ts'
 import type { ZoneSettings } from '@shared/protocol.ts'
+import type { SerializedAnnotations } from '@weasel-js/labkit'
 import type { Lifetime } from '@shared/lifetime.ts'
 import { download } from '@/menu/zip.ts'
 
@@ -37,6 +38,12 @@ export type Actions = {
    *  submit, so `choice` is what a question offering choices answers with and
    *  `text` is whatever was in the free-text box, empty or not. */
   answer: (id: string, answer: { choice?: string; text?: string; take?: string }) => void
+  /** Send a drawing back to the session that made the artifact: the picture
+   *  with the marks flattened onto it, the marks themselves and a line of text.
+   *  `id` is a card's or one take's. Resolves false if the daemon refused. */
+  markUp: (id: string, marked: { png: Blob; marks: SerializedAnnotations; text: string }) => Promise<boolean>
+  /** Throw away a drawing that has not reached its sender. */
+  discardMarkup: (id: string) => void
   /** Hand the original to whatever the OS opens it with. The browser cannot,
    *  so the daemon does. `app` is a take's offered app by position — never a
    *  name and never a path, so a page cannot name either. */
@@ -77,6 +84,15 @@ const post = (path: string, body?: unknown) => {
   }).catch(() => {})
 }
 
+/** A blob as the base64 data URL a JSON body can carry. */
+const dataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+
 const zone = (name: string) => `/api/zones/${encodeURIComponent(name)}`
 
 const live: Actions = {
@@ -89,6 +105,19 @@ const live: Actions = {
     post(`/api/items/${id}/dismiss${query.size > 0 ? `?${query}` : ''}`)
   },
   answer: (id, answer) => post(`/api/items/${id}/answer`, answer),
+  markUp: async (id, marked) => {
+    try {
+      const res = await fetch(`/api/items/${id}/markup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ png: await dataUrl(marked.png), marks: marked.marks, text: marked.text }),
+      })
+      return ((await res.json()) as { ok?: boolean }).ok === true
+    } catch {
+      return false
+    }
+  },
+  discardMarkup: (id) => post(`/api/items/${id}/markup/discard`),
   openInApp: (id, app) => post(`/api/items/${id}/open${app === undefined ? '' : `?app=${app}`}`),
   undo: async () => {
     try {
@@ -139,6 +168,8 @@ export const actions: Actions = {
   expire: (id) => current.expire(id),
   dismiss: (id, question, take) => current.dismiss(id, question, take),
   answer: (id, answer) => current.answer(id, answer),
+  markUp: (id, marked) => current.markUp(id, marked),
+  discardMarkup: (id) => current.discardMarkup(id),
   openInApp: (id, app) => current.openInApp(id, app),
   undo: () => current.undo(),
   expireZone: (name) => current.expireZone(name),

@@ -1,4 +1,4 @@
-import type { WallItem } from '@shared/protocol.ts'
+import type { Reply, WallItem } from '@shared/protocol.ts'
 
 /**
  * Whether a card is waiting on an answer, and how far through one it is.
@@ -46,6 +46,31 @@ export function askChip(asks: Asks): string {
     : `${DONE_GLYPH} ${asks.count}`
 }
 
+/** Drawn on and sent back, but not yet collected by the session that sent it.
+ *  In the flag's color like an open question: it is holding the card up. */
+export const MARKS_GLYPH = '✎'
+
+/** Whether a card, or any take in it, holds a drawing its sender has not got. */
+export function holdsMarks(item: WallItem): boolean {
+  if (item.markup?.status === 'pending') return true
+  return (item.takes ?? []).some((t) => t.markup?.status === 'pending')
+}
+
+/**
+ * What the bottom-right corner says: unsent marks over everything, since they
+ * are the one thing on the card that is lost if nobody acts; else the question.
+ */
+export function cornerChip(item: WallItem): { text: string; open: boolean } | null {
+  if (holdsMarks(item)) return { text: MARKS_GLYPH, open: true }
+  const state = asksOf(item)
+  return state ? { text: askChip(state), open: state.open } : null
+}
+
+/** How a question closed, in the words the wall shows for it. */
+export function replyWords(reply: Reply): string {
+  return reply.status === 'marked' ? 'marked up' : reply.status
+}
+
 /**
  * The same thing in words, for the lightbox's status row where there is room
  * for them. A question closed without an answer says how it closed instead:
@@ -54,5 +79,5 @@ export function askChip(asks: Asks): string {
 export function askWords(item: WallItem, asks: Asks): string {
   if (asks.open) return 'needs a response'
   if (item.kind === 'run') return 'responded'
-  return item.reply?.status === 'answered' ? 'responded' : (item.reply?.status ?? 'responded')
+  return item.reply && item.reply.status !== 'answered' ? replyWords(item.reply) : 'responded'
 }
