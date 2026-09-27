@@ -1102,6 +1102,19 @@ Base64-over-WebSocket hitches every time a render lands.
   card, and needs a history in the lightbox and a way to mark it resolved. Worth
   it only if follow-ups keep arriving as new cards.
 - **Multi-monitor.** Does a zone ever span displays, or is one board one screen?
+- **Marking up a render and sending it back — decided, not built.** Draw on a
+  card in the lightbox (labkit's annotation overlay) and press *No, like this*;
+  the marked-up picture goes back to the session that sent the card if that
+  session is still live. Otherwise nothing is dropped: the wall keeps the marks
+  and any text on the card until they are resolved one way or the other,
+  delivered or thrown away on purpose. That means a card holding unsent marks
+  cannot age out. A Bash call sees `CLAUDE_CODE_SESSION_ID` and `CLAUDE_PID`, so
+  `slop` can record the sender and the daemon can tell whether it is still
+  running. **TODO:** a queue that hands unsent marks to a later session is
+  deliberately unbuilt. Let each repo choose how it works when it enrolls.
+  `wire` already enrolls a machine; run inside a repo it should also enroll that
+  repo, writing a settings file the daemon and `slop` read. A repo that never
+  runs it keeps today's defaults and still joins on its first render.
 
 ## Running it
 
