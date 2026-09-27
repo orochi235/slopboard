@@ -147,7 +147,14 @@ done
 # Not `[ -n ... ] && ...`: that returns non-zero when unset, and set -e exits.
 suffix=""
 if [ -n "$ttl" ]; then suffix=".ttl$ttl"; fi
-root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+# The main checkout, not the worktree: an agent worktree is named for its own
+# hash and carries no untracked `.hued`, so sending from one both invented a
+# zone called `agent-a4ac2473…` and cost the real zone its color.
+root=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+case "$root" in
+  */.git) root=${root%/.git} ;;
+  *) root=$(git rev-parse --show-toplevel 2>/dev/null || pwd) ;;
+esac
 repo=$(basename "$root")
 sha=$(git rev-parse --short HEAD 2>/dev/null || true)
 if [ -z "$zone" ]; then
