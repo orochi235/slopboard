@@ -20,7 +20,7 @@ import type { Stamp } from '../server/xmp.ts'
  * wall carries work zones too, and a zone nobody has thought about yet must
  * fail closed. Adding a name here is a decision to publish that repo's output.
  */
-const ZONES = ['slopboard', 'brick-icons', 'weasel'] as const
+const ZONES = ['slopboard', 'brick-icons', 'weasel', 'windease'] as const
 
 /** What a stranger's browser downloads per picture, the wall's own cap. */
 const MAX_EDGE = 1024

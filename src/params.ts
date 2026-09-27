@@ -731,3 +731,32 @@ export const defaultParams: StackParams = {
     revealFadeMs: 250,
   },
 }
+
+/**
+ * What the public demo opens at, over a browser that has never set anything.
+ *
+ * The wall's own defaults sit on an oblique orbit, which reads as depth on a
+ * monitor you walk past and as skew in a 16/9 tile nobody can turn. The demo
+ * looks straight down -Z instead — the projection was always orthographic, so
+ * squaring the orbit is what makes the cells rectangles — and lays its zones
+ * in one row, where the wall is a line of piles rather than a sparse grid.
+ */
+export const demoParams: StackParams = {
+  ...defaultParams,
+  camera: {
+    ...defaultParams.camera,
+    yawDeg: 0,
+    pitchDeg: 0,
+    // Wider slack at the wall rung than the default 1.08: a pile leans up and
+    // left as it deepens, the camera frames the cells rather than the overhang,
+    // and in a single row the leftmost pile is the one that leaves the frame.
+    margins: [1.3, 1.12],
+    homeMargin: 1.3,
+  },
+  zoneGrid: { ...defaultParams.zoneGrid, rows: 1 },
+  // A row of cells is narrower than a grid's, and a pile hung at the cell's
+  // top-left corner then leans out past the first cell's left edge — off the
+  // frame, since the camera frames the cells and not what overhangs them.
+  origin: { x: 0.5, y: 0.5 },
+  side: 0.26,
+}
