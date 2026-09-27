@@ -148,3 +148,15 @@ pre code {
   color: var(--edge);
   font-size: 1rem;
 }
+
+/* Only the integration page has lists so far. Indented to the paragraph's own
+   left edge rather than the browser's, which sits a marker's width outside it. */
+ul {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+}
+
+li {
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
