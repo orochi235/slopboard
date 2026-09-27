@@ -34,8 +34,9 @@ const TTL_MS = 150_000
  *  waits sees the wall change rather than sit. */
 const ARRIVE_MS = 5000
 /** How much of the wall is already there when someone arrives, so the piles
- *  have depth rather than filling from empty. */
-const STANDING = 26
+ *  have depth rather than filling from empty. Spread across the set's zones,
+ *  so it climbs with them: at 26 over six zones every pile was four cards. */
+const STANDING = 40
 
 const { items: manifest, zones } = set as DemoSet
 
