@@ -83,10 +83,10 @@ npm run dev</code></pre>
       </section>
 
       <section>
-        <h2>There is no per-repo setup</h2>
+        <h2>A repo needs no setup</h2>
         <p>
           A zone is one pile on the wall, and the zone is the directory name of the repository you
-          ran in. Nothing registers a project: the first send creates its zone, and
+          ran in. Nothing has to register a project: the first send creates its zone, and
           <code>bin/transom</code> records which directory the renders came from so the daemon can
           read that project&rsquo;s <code>.hued</code> file and paint the pile in its color.
         </p>
@@ -116,12 +116,29 @@ transom ask "which crop reads better?" \
       </section>
 
       <section>
-        <h2>Excepting a repo</h2>
+        <h2>Settings for one repo</h2>
         <p>
-          Some work should not go on a wall someone else can see. The skill covers putting one repo
-          back to opening images locally, or sending it to a zone that is not its directory name,
-          without changing anything for the others. Ask for it in those words &mdash; &ldquo;stop
-          sending renders to the wall here&rdquo; &mdash; and the agent has the instructions.
+          A <code>.transom.yaml</code> at the repo root changes what a send from that repo does. It
+          is committed with the repo, and every key is optional; a flag on
+          <code>transom post</code> still beats it. Inside the repo:
+        </p>
+        <pre><code># write a starter, or check the file
+transom wire --repo
+# remove a starter nobody edited
+transom wire --repo --off</code></pre>
+        <pre><code>zone: icons          # not the directory name
+show: preview        # open locally, skip the wall
+defaults:
+  ttl: 30m
+  apps: [LDView]     # &ldquo;Open in LDView&rdquo;
+attention:
+  loudest: soon      # louder sends are lowered
+  sound: false</code></pre>
+        <p>
+          The file&rsquo;s first line points your editor at
+          <a href="../schema/transom.json">the schema</a>, which completes the keys and flags a
+          wrong one. <code>transom post</code> checks it too: a file with a mistake in it stops
+          the send and names each problem rather than being quietly ignored.
         </p>
       </section>
     </main>

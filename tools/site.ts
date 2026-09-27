@@ -29,6 +29,9 @@ await cp('site', OUT, { recursive: true })
 // The page is set in the wall's own faces. Copied rather than duplicated, so
 // there is one of each file in the repo.
 await cp('src/fonts', `${OUT}/fonts`, { recursive: true })
+// Where a repo's .transom.yaml points its editor: `SCHEMA_URL`.
+await mkdir(`${OUT}/schema`, { recursive: true })
+await cp('shared/transom.schema.json', `${OUT}/schema/transom.json`)
 
 console.log('2/3  the wall, as the demo')
 run('npx', ['vite', 'build', '--base', BASE, '--outDir', `${OUT}/wall`, '--emptyOutDir'], {

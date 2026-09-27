@@ -20,6 +20,29 @@ export type RepoSettings = {
 
 export const SETTINGS_FILE = '.transom.yaml'
 
+export const SCHEMA_URL = 'https://michaelbaker.tech/transom/schema/transom.json'
+
+/** What `transom wire --repo` writes: every setting, commented out at its
+ *  default, so the file changes nothing until someone uncomments a line. */
+export const STARTER = `# yaml-language-server: $schema=${SCHEMA_URL}
+#
+# How transom treats renders sent from this repo. Every key is optional, and a
+# flag on \`transom post\` beats this file.
+#
+# zone: my-zone          # default: this repo's directory name
+# show: wall             # wall | preview (open renders locally instead)
+# defaults:
+#   ttl: 8h              # as --ttl
+#   apps:                # as --app; a path is relative to the repo root
+#     - LDView
+#     - { name: Studio, path: parts/3001.dat }
+# attention:
+#   loudest: problem     # look | soon | urgent | problem
+#   sound: true
+# marks:
+#   unsent: keep         # marks left when the sending session is gone
+`
+
 // Read rather than imported: this module also runs under bare `node`, from the
 // send path and the hook, where a JSON import needs an attribute tsc rejects.
 const schema = JSON.parse(readFileSync(new URL('./transom.schema.json', import.meta.url), 'utf8'))

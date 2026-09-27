@@ -109,3 +109,27 @@ describe('transom post with a .transom.yaml', () => {
     expect((await run(['zone'])).out.trim()).toBe('icons')
   })
 })
+
+describe('transom wire --repo', () => {
+  it('writes the starter, then checks it, then removes it untouched', async () => {
+    expect((await run(['wire', '--repo'])).code).toBe(0)
+    const written = await readFile(join(repo, '.transom.yaml'), 'utf8')
+    expect(written).toMatch(/^# yaml-language-server: \$schema=/)
+    expect((await run(['wire', '--repo'])).out).toMatch(/is valid/)
+    expect((await run(['wire', '--repo', '--off'])).out).toMatch(/removed/)
+    expect(await readdir(repo)).not.toContain('.transom.yaml')
+  })
+
+  it('names the errors in a file it finds broken', async () => {
+    await settings('show: preveiw\n')
+    const { code, out } = await run(['wire', '--repo'])
+    expect(code).toBe(1)
+    expect(out).toMatch(/\/show: must be equal to one of the allowed values/)
+  })
+
+  it('will not remove a file someone edited', async () => {
+    await settings('zone: icons\n')
+    expect((await run(['wire', '--repo', '--off'])).out).toMatch(/has been edited/)
+    expect(await readdir(repo)).toContain('.transom.yaml')
+  })
+})

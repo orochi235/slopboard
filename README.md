@@ -46,7 +46,13 @@ image's own metadata: the caption, plus the repo and commit the render ran in.
 brew install orochi235/tap/transom
 transom install                               # daemon :8787 + page :7750, as LaunchAgents
 transom wire                                  # skill, hook and rule check for Claude Code
+transom wire --repo                           # optional, in a repo: its .transom.yaml
 ```
+
+A repo's `.transom.yaml` is committed with it and changes what a send from it
+does — its zone, whether renders open in Preview instead, default lifetime and
+apps, how loud a card may be. Every key is optional and a flag beats the file;
+`shared/transom.schema.json` defines it.
 
 From a checkout:
 

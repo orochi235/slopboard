@@ -1,9 +1,9 @@
 ---
 name: transom
-description: Wire transom into a Claude account or machine so renders reach the wall, diagnose why they are not, or make one repo an exception - back to Preview, or onto a zone that is not its directory name. Triggers on "install transom", "set up the wall on this account", "renders aren't reaching the wall", "agents keep writing images to /tmp", "stop sending renders to the wall here", "open images in Preview in this repo", "use a different zone for this repo", or checking what the current repo does.
+description: Wire transom into a Claude account or machine so renders reach the wall, diagnose why they are not, or change how one repo sends - back to Preview, onto a zone that is not its directory name, quieter, or with its own defaults, through that repo's .transom.yaml. Triggers on "install transom", "set up the wall on this account", "renders aren't reaching the wall", "agents keep writing images to /tmp", "stop sending renders to the wall here", "open images in Preview in this repo", "use a different zone for this repo", "stop this repo making noise", "set up transom for this repo", or checking what the current repo does.
 ---
 
-# Wiring transom to agents, and excepting a repo from it
+# Wiring transom to agents, and setting one repo up
 
 transom (`~/src/transom`) is a wall of generated images on a side monitor.
 Images arrive, live for a while, then expire unless rescued. An agent puts one
@@ -11,8 +11,10 @@ there by writing a file into `~/transom/inbox/<zone>/` — that is the entire
 protocol. There is nothing to connect to and no client library.
 
 **Per repo there is nothing to install.** Once an account is wired, a new repo
-is on the wall the first time it renders: no registration, no config file. The
-first section below wires an account; the rest are the per-repo exceptions.
+is on the wall the first time it renders. A repo that wants something other
+than the defaults says so in a committed `.transom.yaml` at its root, which
+`transom post` reads on every send. The first section below wires an account;
+the rest are that file.
 
 **Zones register themselves.** `bin/transom` writes `~/transom/zones/<zone>.json`
 recording which directory the renders came from, and the daemon reads that to
@@ -49,82 +51,64 @@ In order, because each step rules out the one below:
 
 1. `transom zone` in the repo. `command not found` means `transom wire` never ran
    here, or `~/.local/bin` is not on this shell's PATH.
-2. Is the repo excepted? See **Status** below — a Preview block silences both
-   the rule and the hook.
+2. Does the repo's `.transom.yaml` say `show: preview`? Then `transom post`
+   opens renders locally and the hook stays quiet, which is the file working.
+   A file with an error makes `transom post` exit 1 and name each problem.
 3. Was the session started before `transom wire`? Its hooks are a snapshot.
 4. `curl -s localhost:8787/api/health`. A down daemon is *not* the cause: files
    written while it is down are picked up at its next start, provided they are
    newer than the TTL. Renders that never got sent are the cause.
 
-## Put Preview back for one repo
+## A repo's `.transom.yaml`
 
-1. Write the block below into `<repo>/CLAUDE.local.md`, creating the file if
-   needed. If a `transom:begin`/`transom:end` pair is already there,
-   **replace it in place** — never append a second one.
-2. Add `CLAUDE.local.md` to the repo's `.gitignore` if it isn't matched already.
-   It is a private per-repo file and must not be committed.
-3. Say that renders here open in Preview again, and that every other repo is
-   unaffected.
+`transom wire --repo`, run inside the repo, writes a starter file with every
+setting commented out, so it changes nothing until a line is uncommented. Run
+again, it checks the file; `--off` removes a starter nobody edited. The file is
+**committed**: the settings belong to the repo, not to one checkout. Its first
+line points the editor at the schema, and `transom post` enforces the same
+schema — an unknown key or a bad value stops the send with every problem named.
 
-```markdown
-<!-- transom:begin -->
-## Renders open in Preview here, not on the wall
+Edit only the keys the user asked for, and leave the rest commented:
 
-This repo is an exception to the global rule that image output goes to the
-transom wall. Here, `open` the render so it lands on Mike's screen, the way
-the preference read before transom became the default. Do not send images to
-`~/src/transom/bin/transom` from this repo.
-
-This applies to this repo and nowhere else.
-<!-- transom:end -->
+```yaml
+zone: icons            # instead of the directory name
+show: preview          # wall | preview: `transom post` opens the file locally
+defaults:
+  ttl: 30m             # as --ttl
+  apps:                # as --app; a path is relative to the repo root
+    - LDView
+attention:
+  loudest: soon        # look | soon | urgent | problem; a louder send is lowered
+  sound: false         # keep the level, never play the sound
 ```
 
-## Put the repo back on the wall
+- **Put Preview back for this repo**: `show: preview`. Agents keep calling
+  `transom post`; it is the command that opens the file, so the global rule
+  still holds and nothing about it changes for any other repo. `transom ask`
+  refuses here, since there is no card to ask on.
+- **Put the repo back on the wall**: remove the `show` line, or set
+  `show: wall`.
+- **A different zone**: `zone:`. Only when the user asks for a name that is
+  not the directory's — several checkouts that should pile onto one zone, say.
+  Check the result with `transom zone` inside the repo.
+- **A flag beats the file.** `--zone`, `--ttl` and `--app` on one send override
+  it for that send.
 
-Remove the marker block from `<repo>/CLAUDE.local.md`. If that leaves the file
-empty or whitespace-only, delete the file. The global default takes over again
-immediately — there is nothing to re-register, and the zone reappears the next
-time the repo renders. Say that Preview is off here again.
-
-## Give a repo a different zone
-
-Only when the user asks for a zone name that isn't the repo's directory name —
-several checkouts that should pile onto one zone, say. Get the current name from
-`~/src/transom/bin/transom zone` run inside the repo rather than deriving
-it: that script is the one implementation of the naming rule, and a name
-recorded here that disagrees with the one it writes to splits the repo across
-two zones on the wall, silently. Then write this block, same rules as above:
-
-```markdown
-<!-- transom:begin -->
-## Renders go to the `<zone>` zone
-
-Image output from this repo goes to the wall under a zone name that is not this
-directory's name:
-
-    ~/src/transom/bin/transom post --zone <zone> <file>
-
-Pass `--zone <zone>` on every send from this repo. Everything else about the
-wall is the global default.
-<!-- transom:end -->
-```
+The file is read from the main checkout, not from a worktree, for the same
+reason the zone is: a worktree is named for its own hash.
 
 ## Status
 
-Read `<repo>/CLAUDE.local.md` for a `transom:begin` block — its absence means
-the repo is on the wall under `transom zone`'s answer, which is the normal
-case. Then check the daemon: `curl -s localhost:8787/api/health`. The default
-holds whether or not the daemon is running; files written while it is down are
-picked up at its next start, provided they are newer than the TTL.
+`transom zone` in the repo prints where its renders go, with the file applied.
+`transom wire --repo` says whether the file is valid. Then check the daemon:
+`curl -s localhost:8787/api/health`. The default holds whether or not the daemon
+is running; files written while it is down are picked up at its next start,
+provided they are newer than the TTL.
 
 ## Notes
 
-- **Zone names come from directory names.** A config file may only decorate a
-  zone that already exists by name, so a new zone never needs registering.
-- **If a block doesn't take effect** in a fresh session, add `@CLAUDE.local.md`
-  as a line in the repo's committed `CLAUDE.md`. That is the documented import
-  path and loads it explicitly. Only do this if the user accepts a one-line
-  committed change.
+- **A zone comes into being when something is sent to it**, under the
+  directory's name or the repo's `zone:`. Nothing registers one.
 - **For one conversation only**, skip all of the above and pipe to
   `~/src/transom/bin/transom post --zone <name>` directly; there is nothing to install.
 - **The hook is a backstop, not the rule.** It fires after an image has already

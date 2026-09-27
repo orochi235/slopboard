@@ -4,6 +4,9 @@
 //   transom wire            install into every Claude config dir found
 //   transom wire --off      take it back out
 //   transom wire --dry      say what would change, change nothing
+//   transom wire --repo     enroll the repo you are in: write its .transom.yaml,
+//                           or check the one it has. With --off, remove a
+//                           starter file nobody has edited.
 //
 // Three mechanical pieces: the skill on the skills path, the wall-nudge hook in
 // settings.json, and `transom` on PATH. The CLAUDE.md rule is prose and is only
@@ -13,6 +16,7 @@
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync,
          rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
@@ -132,6 +136,40 @@ async function daemon() {
   } catch {
     return `daemon down — renders still land in ~/transom/inbox and appear at its next start`
   }
+}
+
+/** The repo's settings file: written from the starter when absent, checked
+ *  when present. Loaded only here, so wiring a machine needs no YAML at all. */
+async function enrollRepo() {
+  const top = spawnSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' })
+  if (top.status !== 0) {
+    console.error('transom wire --repo: not in a git repository')
+    process.exit(1)
+  }
+  const { SETTINGS_FILE, STARTER, parseRepoSettings } = await import('../shared/repoSettings.ts')
+  const file = path.join(top.stdout.trim(), SETTINGS_FILE)
+  const have = existsSync(file) ? readFileSync(file, 'utf8') : null
+
+  if (off) {
+    if (have === null) return say('·', `${rel(file)} absent`)
+    if (have !== STARTER) return say('!', `${rel(file)} has been edited — delete it yourself if you mean to`)
+    if (!dry) rmSync(file)
+    return say('·', `${rel(file)} removed`)
+  }
+  if (have === null) {
+    if (!dry) writeFileSync(file, STARTER)
+    say('·', `${rel(file)} written — every setting is commented out, so nothing changes until you uncomment one`)
+    return say('·', 'commit it: the settings belong to the repo')
+  }
+  const { errors } = parseRepoSettings(have)
+  if (errors.length === 0) return say('·', `${rel(file)} is valid`)
+  for (const e of errors) say('!', `${rel(file)}: ${e}`)
+  process.exit(1)
+}
+
+if (args.has('--repo')) {
+  await enrollRepo()
+  process.exit(0)
 }
 
 const dirs = configDirs()

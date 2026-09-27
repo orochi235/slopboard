@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { clampAttention, parseRepoSettings } from './repoSettings.ts'
+import { SCHEMA_URL, STARTER, clampAttention, parseRepoSettings } from './repoSettings.ts'
 
 describe('parseRepoSettings', () => {
   it('reads every setting', () => {
@@ -75,5 +76,25 @@ describe('clampAttention', () => {
 
   it('does nothing without a ceiling', () => {
     expect(clampAttention('problem', undefined)).toBe('problem')
+  })
+})
+
+describe('STARTER', () => {
+  it('changes nothing as written', () => {
+    expect(parseRepoSettings(STARTER)).toEqual({ settings: {}, errors: [] })
+  })
+
+  it('is valid with every line uncommented, so it cannot drift from the schema', () => {
+    const open = STARTER.split('\n').filter((l) => !l.startsWith('# yaml-language-server'))
+      .map((l) => l.replace(/^# (?=\s*[a-z-]+:|\s*- )/, '')).join('\n')
+    const { settings, errors } = parseRepoSettings(open)
+    expect(errors).toEqual([])
+    expect(Object.keys(settings).sort()).toEqual(['attention', 'defaults', 'marks', 'show', 'zone'])
+  })
+
+  it('points editors at the schema the schema says is its own', () => {
+    const schema = JSON.parse(readFileSync(new URL('./transom.schema.json', import.meta.url), 'utf8'))
+    expect(schema.$id).toBe(SCHEMA_URL)
+    expect(STARTER.split('\n')[0]).toBe(`# yaml-language-server: $schema=${SCHEMA_URL}`)
   })
 })

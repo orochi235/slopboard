@@ -905,6 +905,37 @@ like a zone that intermittently forgets its color. A record whose directory has
 gone, or that is caught half-written, drops that zone's color and never the
 others'.
 
+## A repo's settings
+
+A committed `.transom.yaml` at the repo root changes what a send from that repo
+does. Every key is optional and a flag beats the file; `transom wire --repo`
+writes a starter with every line commented out.
+
+- **One definition.** `shared/transom.schema.json` is the file's schema. The
+  starter's first line points `yaml-language-server` at it by URL, and the site
+  serves it there. `transom post` validates against the same schema and stops
+  the send on any error, naming each one: a committed typo that did nothing
+  would be the silently ignored config this exists to prevent. The schema also
+  makes YAML's implicit typing safe, since `zone: 1.10` fails `type: string`
+  instead of becoming a number.
+- **Read at send time, by node.** `bin/transom` is `sh`, so it asks
+  `libexec/settings.mjs` for the file's values and only when there is a file.
+  A repo without one sends exactly as before. With one, a send pays node's
+  startup: 0.2s measured, 0.12s of it node itself.
+- **Applied before the sidecar is written, so the daemon never reads the
+  file.** Zone, lifetime and apps fill whatever the flags left blank;
+  `attention.loudest` lowers a louder `--attention`, keeping its hold; and
+  `sound: false` rides in the sidecar as `quiet`, which keeps a card's level
+  and drops only its sound. `marks.unsent` is the exception to come: the queue
+  it would choose is unbuilt, and when it is, the daemon reads the file
+  through the root each zone record already carries.
+- **`show: preview` replaces the exception blocks** that the skill used to
+  write into `CLAUDE.local.md`. `transom post` opens the file itself, so the
+  global rule never changes: agents always send, and the repo decides what
+  sending means. The hook reads the same key and stays quiet there.
+- **Read from the main checkout**, like the zone and for the same reason: a
+  worktree is named for its own hash.
+
 ## Asking for the screen
 
 `--attention` already says how hard an item is asking. What each level *does*
@@ -1113,25 +1144,8 @@ Base64-over-WebSocket hitches every time a render lands.
   cannot age out. A Bash call sees `CLAUDE_CODE_SESSION_ID` and `CLAUDE_PID`, so
   `transom` can record the sender and the daemon can tell whether it is still
   running. **TODO:** a queue that hands unsent marks to a later session is
-  deliberately unbuilt. Let each repo choose how it works when it enrolls.
-  `transom wire` already enrolls a machine; run inside a repo it should also enroll that
-  repo, writing a settings file the daemon and `transom` read. A repo that never
-  runs it keeps today's defaults and still joins on its first render.
-- **Per-repo settings — decided, not built.** One `.transom.yaml` at the repo
-  root, committed with the repo, checked against a JSON Schema that transom
-  ships and the Pages site hosts, so the file's first line can point
-  `yaml-language-server` at it the way `menubar.yaml` does. The schema is the
-  one definition of the file and rejects unknown keys, which is also what makes
-  YAML's implicit typing safe here: `zone: 1.10` fails `type: string` instead
-  of becoming a number. Only node reads it. The daemon finds it through the
-  root the zone record already carries (`~/slop/zones/<zone>.json`), and
-  `transom post` asks a node helper only when the file exists, so a repo
-  without one sends as fast as before. A flag beats the file, and the file
-  beats the wall's own settings. It holds the zone name, `show: preview`
-  (then `transom post` opens the file locally, and the `CLAUDE.md` exception
-  blocks go away), default lifetime and *Open in…* apps, the loudest attention
-  level and whether it may sound, and what happens to unsent marks. Color and
-  icon stay in `.hued`.
+  deliberately unbuilt. A repo chooses it with `marks.unsent` in its
+  `.transom.yaml` (*A repo's settings*), which takes only `keep` until then.
 
 ## Running it
 
