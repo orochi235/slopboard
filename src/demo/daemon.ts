@@ -2,6 +2,8 @@ import { UNKNOWN } from '@shared/build.ts'
 import { BEAT_MS, type ServerMessage, type WallItem, type ZoneSettings } from '@shared/protocol.ts'
 import type { Actions } from '@/actions.ts'
 import type { Sink, Transport } from '@/transport.ts'
+import { zipHere } from '@/menu/zip.ts'
+import { zipName, zipPlanForRun, zipPlanForZone } from '@shared/zipPlan.ts'
 import type { DemoSet } from '../../tools/demo-set.ts'
 import set from '../../demo/manifest.json'
 
@@ -39,6 +41,17 @@ const ARRIVE_MS = 5000
 const STANDING = 40
 
 const { items: manifest, zones } = set as DemoSet
+
+/** Where the bytes for an id are. The demo ships one picture per card and no
+ *  originals, so a zip of it holds what the wall draws. */
+const urlById = (held: readonly WallItem[]) => {
+  const by = new Map<string, string>()
+  for (const item of held) {
+    by.set(item.id, item.origUrl || item.url)
+    for (const take of item.takes ?? []) by.set(take.id, take.origUrl || take.url)
+  }
+  return (id: string) => by.get(id)
+}
 
 /**
  * The set, dealt round-robin across its zones.
@@ -215,6 +228,18 @@ export function createDemoDaemon() {
         send({ type: 'arrive', item })
       }
       return back.map((i) => i.id)
+    },
+    // No daemon to stream an archive, so the page builds it from the pictures
+    // it is already showing.
+    zipZone: (zone) => {
+      const held = [...items.values()]
+      void zipHere(zipPlanForZone(held, zone), urlById(held), zipName(zone))
+    },
+    zipRun: (id) => {
+      const item = items.get(id)
+      if (!item) return
+      const held = [...items.values()]
+      void zipHere(zipPlanForRun(item), urlById(held), zipName(`${item.zone}-${item.name}`))
     },
     expireZone: (zone) => {
       const taken = [...items.values()].filter((i) => i.zone === zone && i.keptAt === undefined)

@@ -2401,6 +2401,11 @@ export function WebglBackend(props: Props) {
         setMenu(null)
         return props.onConfigureZone(target.zone)
       }
+      if (action === 'zipZone' && target?.kind === 'zone') {
+        setArmed(null)
+        setMenu(null)
+        return actions.zipZone(target.zone)
+      }
       if ((action === 'pinZone' || action === 'unpinZone') && target?.kind === 'zone') {
         setArmed(null)
         setMenu(null)
@@ -2419,6 +2424,7 @@ export function WebglBackend(props: Props) {
         return actions.openInApp(shown?.id ?? id, app)
       }
       if (action === 'dismiss') return dismiss(id)
+      if (action === 'zipRun') return actions.zipRun(id)
       if (action === 'copyArtifact' && menuItem)
         return void copyArtifact(menuItem).catch((e) => console.warn('[menu] copy failed', e))
       if (action === 'copyPath' && menuItem)

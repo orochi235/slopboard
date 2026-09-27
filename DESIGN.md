@@ -401,6 +401,32 @@ different thing, and says "no app named LDView" on the row the alerts use.
 Links are `http(s)` only — a `file:` link a browser silently blocks is exactly
 the artifact that wanted `--app`.
 
+### Zipping a stack
+
+"Copy artifact" carries one picture. A pile is the other unit a viewer wants
+whole — the twelve frames a sweep left in a zone, the eight takes of a run — so
+the right-click menu offers **Zip the zone (12)** on a zone and **Zip the run
+(8)** on a run's card. Originals, never the wall's capped thumbnails. A run
+inside a zipped zone contributes a folder of every take, not the one take its
+card happens to be drawing: the card stands for all of them and a zip that
+quietly dropped seven would be the wrong archive.
+
+Two decisions worth keeping:
+
+**Stored, not deflated.** The wall holds PNG, JPEG, WebP, MP4 and glb, which
+all deflate to within a percent of themselves. Compressing costs the daemon a
+core per download and buys nothing.
+
+**A GET, streamed.** `/api/zones/:zone/zip` and `/api/items/:id/zip` are the
+only reads beside `/img` and `/orig`, which is what lets the menu start a
+download by navigating rather than holding the whole archive in a blob first.
+One file is in memory at a time, and a file the disk no longer holds is left
+out rather than failing an archive that is already half sent.
+
+The zip writer is in `shared/` because the demo wall has no daemon and builds
+the same archive in the page, so what a visitor downloads is what the real
+wall gives.
+
 ### How depth reads
 
 Two things say "this card is far back," and they are deliberately different

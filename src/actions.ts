@@ -1,6 +1,7 @@
 import type { Level } from '@shared/attention.ts'
 import type { ZoneSettings } from '@shared/protocol.ts'
 import type { Lifetime } from '@shared/lifetime.ts'
+import { download } from '@/menu/zip.ts'
 
 /** What the daemon decided to do about one attention level. */
 export type Plan = { sound: boolean; notify: boolean; raise: 'none' | 'front' | 'start' }
@@ -45,6 +46,11 @@ export type Actions = {
   undo: () => Promise<string[]>
   /** Take a whole zone at once. */
   expireZone: (zone: string) => void
+  /** Save a whole stack: a zone's pile, or one run's takes. The only read on
+   *  this interface — it is here because the demo wall has no daemon to stream
+   *  an archive and builds its own in the page. */
+  zipZone: (zone: string) => void
+  zipRun: (id: string) => void
   /** Hold a zone at the top of the wall, or let it back into the order. */
   pinZone: (zone: string, on: boolean) => void
   /** Set one zone's overrides. */
@@ -94,6 +100,8 @@ const live: Actions = {
     }
   },
   expireZone: (name) => post(`${zone(name)}/expire`),
+  zipZone: (name) => download(`${zone(name)}/zip`),
+  zipRun: (id) => download(`/api/items/${id}/zip`),
   pinZone: (name, on) => post(`${zone(name)}/pin?on=${on ? '1' : '0'}`),
   setZoneSettings: (name, patch) => post(`${zone(name)}/settings`, patch),
   setTtl: (ms) => post('/api/settings/ttl', { ms }),
@@ -134,6 +142,8 @@ export const actions: Actions = {
   openInApp: (id, app) => current.openInApp(id, app),
   undo: () => current.undo(),
   expireZone: (name) => current.expireZone(name),
+  zipZone: (name) => current.zipZone(name),
+  zipRun: (id) => current.zipRun(id),
   pinZone: (name, on) => current.pinZone(name, on),
   setZoneSettings: (name, patch) => current.setZoneSettings(name, patch),
   setTtl: (ms) => current.setTtl(ms),

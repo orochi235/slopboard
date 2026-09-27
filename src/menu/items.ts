@@ -24,6 +24,9 @@ export type Action =
   | 'expire'
   | 'expireZone'
   | 'copyArtifact'
+  /** The whole stack as one download: a run's takes, or a zone's pile. */
+  | 'zipRun'
+  | 'zipZone'
   | 'copyPath'
   | 'dismiss'
   | 'undo'
@@ -79,6 +82,8 @@ export function menuFor(
         : { action: 'pin', label: 'Pin' },
     )
     if (ctx.item.attention) items.push({ action: 'dismiss', label: 'Dismiss the flag' })
+    if (ctx.item.kind === 'run' && (ctx.item.takes?.length ?? 0) > 1)
+      items.push({ action: 'zipRun', label: `Zip the run (${ctx.item.takes?.length ?? 0})` })
     items.push({ action: 'copyArtifact', label: 'Copy artifact' })
     items.push({ action: 'copyPath', label: 'Copy path' })
     items.push({ action: 'expire', label: 'Expire now', grave: true })
@@ -95,6 +100,7 @@ export function menuFor(
         ? { action: 'unpinZone', label: 'Unpin the zone' }
         : { action: 'pinZone', label: 'Pin the zone to the top' },
     )
+    items.push({ action: 'zipZone', label: `Zip the zone (${n})` })
     items.push({
       action: 'expireZone',
       label:

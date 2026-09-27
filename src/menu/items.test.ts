@@ -95,12 +95,47 @@ describe('menuFor on a zone', () => {
 
   it('leads with the sheet, then the pin, then the row that takes the zone away', () => {
     const menu = menuFor(zone, { canUndo: false, zoneCount: 3 })
-    expect(menu.map((i) => i.action)).toEqual(['configureZone', 'pinZone', 'expireZone'])
+    expect(menu.map((i) => i.action)).toEqual([
+      'configureZone',
+      'pinZone',
+      'zipZone',
+      'expireZone',
+    ])
   })
 
   it('marks nothing about the pin as destructive — it goes both ways', () => {
     const menu = menuFor(zone, { canUndo: false, zoneCount: 3, zonePinned: true })
     expect(menu.filter((i) => i.grave).map((i) => i.action)).toEqual(['expireZone'])
+  })
+
+  it('says what a zip of the zone would hold', () => {
+    expect(rowFor('zipZone', { canUndo: false, zoneCount: 12 })?.label).toBe('Zip the zone (12)')
+  })
+
+  it('offers to zip a run, and nothing else on the wall', () => {
+    const takes = ['t1', 't2', 't3'].map((id) => ({
+      id,
+      url: `/img/${id}`,
+      origUrl: `/orig/${id}`,
+      name: id,
+      path: `/slop/inbox/z/${id}.png`,
+      at: 1,
+      w: 10,
+      h: 10,
+    }))
+    const card = targetOf(['slopboard', 'a'])
+    const run = menuFor(card, { item: item({ kind: 'run', takes }), canUndo: false })
+    expect(run.find((i) => i.action === 'zipRun')?.label).toBe('Zip the run (3)')
+    // A picture is one file, which Copy artifact and the lightbox's save both
+    // already hand over.
+    expect(menuFor(card, { item: item(), canUndo: false }).map((i) => i.action)).not.toContain(
+      'zipRun',
+    )
+    expect(
+      menuFor(card, { item: item({ kind: 'run', takes: takes.slice(0, 1) }), canUndo: false }).map(
+        (i) => i.action,
+      ),
+    ).not.toContain('zipRun')
   })
 
   it('offers nothing on a zone that is already empty', () => {

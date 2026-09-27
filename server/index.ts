@@ -18,6 +18,8 @@ import { zoneCounts } from './zoneCounts.ts'
 import { alert, debugItem, toastFor } from './alert.ts'
 import { MAX_SYNTH_TAKES, synthAnswered, synthAsk, synthRun } from './synth.ts'
 import { withKeyForwarder } from './page-keys.ts'
+import { readOriginal, serveZip } from './serveZip.ts'
+import { zipName, zipPlanForRun, zipPlanForZone } from '@shared/zipPlan.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { Lifetime } from '@shared/lifetime.ts'
 import { BEAT_MS, type ServerMessage } from '@shared/protocol.ts'
@@ -235,6 +237,26 @@ app.post('/api/zones/:zone/expire', async (req, res) => {
   for (const id of ids) broadcast({ type: 'expire', id })
   if (ids.length > 0) console.log(`[expire] zone ${req.params.zone} (${ids.length})`)
   res.json({ ok: ids.length > 0, expired: ids.length })
+})
+
+// A whole stack as one download: a zone's pile, and a run's takes. Reads, so
+// unlike the writes around them these are GETs a browser can navigate to —
+// which is how the menu starts the download, without holding the archive in a
+// blob first.
+app.get('/api/zones/:zone/zip', async (req, res) => {
+  const zone = req.params.zone
+  const plan = zipPlanForZone(store.snapshot(), zone)
+  if (plan.length === 0) return void res.sendStatus(404)
+  console.log(`[zip] zone ${zone} (${plan.length})`)
+  await serveZip(res, plan, zipName(zone), readOriginal(store.resolveOriginal))
+})
+
+app.get('/api/items/:id/zip', async (req, res) => {
+  const item = store.snapshot().find((i) => i.id === req.params.id)
+  if (!item) return void res.sendStatus(404)
+  const plan = zipPlanForRun(item)
+  console.log(`[zip] ${item.zone}/${item.name} (${plan.length})`)
+  await serveZip(res, plan, zipName(`${item.zone}-${item.name}`), readOriginal(store.resolveOriginal))
 })
 
 // Holding a zone at the top, and letting it go. Reversible in one click, so
