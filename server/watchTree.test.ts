@@ -52,6 +52,36 @@ describe.each(backends)('watchTree (%s)', (backend) => {
     return hits
   }
 
+  it('reports an artifact deleted from outside the wall', async () => {
+    root = mkdtempSync(join(tmpdir(), 'wt-'))
+    await mkdir(join(root, 'brick-icons'))
+    const gone: string[] = []
+    const hits = await start({ onGone: (p) => gone.push(p) })
+
+    const f = join(root, 'brick-icons', 'a.png')
+    await writeFile(f, 'x')
+    await waitFor(() => hits.length === 1)
+
+    await rm(f)
+    await waitFor(() => gone.includes(f))
+  })
+
+  it('reports every artifact under a zone directory that is removed', async () => {
+    root = mkdtempSync(join(tmpdir(), 'wt-'))
+    await mkdir(join(root, 'weasel'))
+    const gone: string[] = []
+    const hits = await start({ onGone: (p) => gone.push(p) })
+
+    const f = join(root, 'weasel', 'b.png')
+    await writeFile(f, 'x')
+    await waitFor(() => hits.length === 1)
+
+    // The case the wall actually met: the zone's whole directory went, and the
+    // card stayed up serving a 404 because nothing reported the file.
+    await rm(join(root, 'weasel'), { recursive: true })
+    await waitFor(() => gone.includes(f))
+  })
+
   it('emits a file dropped into a zone that was already there', async () => {
     root = mkdtempSync(join(tmpdir(), 'wt-'))
     await mkdir(join(root, 'brick-icons'))

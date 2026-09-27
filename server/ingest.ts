@@ -288,6 +288,10 @@ export function watchInbox(onLand: (landed: Landed) => void) {
   const watcher = watchTree(config.inbox, {
     ignore: notAnArtifact,
     onFile: take,
+    onGone: (p) => {
+      const id = store.forget(p)
+      if (id) console.log(`[watch] ${basename(p)} left the inbox; its card is off the wall`)
+    },
   })
   void watcher.ready.then(() => {
     console.log(`[watch] ${config.inbox} (ttl ${wallTtlMs() / 1000}s)`)

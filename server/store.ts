@@ -115,6 +115,39 @@ export function onExpire(fn: (id: string) => void) {
   listeners.add(fn)
 }
 
+/**
+ * Drop whatever this path was holding, because the file is no longer there.
+ *
+ * The wall's own expiry moves the file and drops the item first, so by the time
+ * the watcher reports it there is nothing left to match and this does nothing.
+ * It is for a deletion from outside — a directory removed, a file cleaned up by
+ * something that never heard of the wall — which otherwise left a card whose
+ * lightbox served a 404 for as long as the daemon ran.
+ *
+ * A run loses only the take: the card stands while any take still has a file.
+ */
+export function forget(sourcePath: string): string | null {
+  for (const entry of entries.values()) {
+    if (entry.takes.size > 0) {
+      for (const [takeId, files] of entry.takes.entries()) {
+        if (files.sourcePath !== sourcePath) continue
+        entry.takes.delete(takeId)
+        takeOwner.delete(takeId)
+        if (entry.takes.size > 0) return null
+        entries.delete(entry.item.id)
+        for (const fn of listeners) fn(entry.item.id)
+        return entry.item.id
+      }
+      continue
+    }
+    if (entry.sourcePath !== sourcePath) continue
+    entries.delete(entry.item.id)
+    for (const fn of listeners) fn(entry.item.id)
+    return entry.item.id
+  }
+  return null
+}
+
 /** Every file one expiry moved, since a run takes its whole carousel with it. */
 type Gone = { entry: Entry; moves: { from: string; to: string }[] }
 

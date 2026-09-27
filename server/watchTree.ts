@@ -34,6 +34,11 @@ export interface TreeWatchOptions {
   onFile: TreeWatchHandler
   /** Paths to never emit — the sidecars, which arrive in the same directory. */
   ignore?: (absPath: string) => boolean
+  /** Called when an artifact's file leaves the inbox. The wall's own expiry
+   *  moves the file itself and has already dropped the item, so this is for a
+   *  deletion from outside — which otherwise left a card on the wall whose
+   *  lightbox served a 404 forever. */
+  onGone?: (absPath: string) => void
   /** Test seam; also lets a caller opt into chokidar. */
   backend?: 'native' | 'chokidar'
   /** How long a file's size must hold steady before it counts as written.
@@ -94,7 +99,10 @@ function gate(root: string, opts: TreeWatchOptions, isClosed: () => boolean) {
           if (!s.isFile()) return
           now = s.size
         } catch {
-          return // gone again before it settled
+          // Gone. Either it never settled, or it has left the inbox for good;
+          // the store decides which by whether it holds an item for this path.
+          opts.onGone?.(abs)
+          return
         }
         if (now === size) {
           steadyFor += pollMs
@@ -208,6 +216,10 @@ function chokidarTree(root: string, opts: TreeWatchOptions): TreeWatcher {
     const adopting = !armed
     const done = offer(p, adopting)
     if (adopting) initial.push(done)
+  })
+
+  watcher.on('unlink', (p) => {
+    if (inAZone(root, p) && !opts.ignore?.(p)) opts.onGone?.(p)
   })
 
   const ready = new Promise<void>((resolve) => {
