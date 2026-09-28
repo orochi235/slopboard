@@ -94,9 +94,16 @@ section {
   pointer-events: none;
 }
 
+/* A panel over the hero rather than text straight on the picture. */
 .home main {
   position: relative;
-  padding-top: 38vh;
+  max-width: none;
+  width: min(66ch, calc(100% - 32px));
+  margin: 38vh auto 18vh;
+  padding: 2.5rem clamp(1.1rem, 4vw, 2.5rem);
+  border: 1px solid color-mix(in srgb, var(--muted) 25%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
 }
 
 .home header {

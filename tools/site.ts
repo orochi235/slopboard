@@ -29,6 +29,8 @@ await cp('site', OUT, { recursive: true })
 // The page is set in the wall's own faces. Copied rather than duplicated, so
 // there is one of each file in the repo.
 await cp('src/fonts', `${OUT}/fonts`, { recursive: true })
+// The landing page's parallax, from the same package the wall uses.
+await cp('node_modules/delamin8r/dist/delamin8r.js', `${OUT}/delamin8r.js`)
 // Where a repo's .transom.yaml points its editor: `SCHEMA_URL`.
 await mkdir(`${OUT}/schema`, { recursive: true })
 await cp('shared/transom.schema.json', `${OUT}/schema/transom.json`)
