@@ -6,7 +6,7 @@ import { ParallaxModal } from '@/ParallaxModal.tsx'
 import { Prefs } from '@/Prefs.tsx'
 import { ZoneConfig } from '@/ZoneConfig.tsx'
 import { layoutKeyOf } from '@/params.layout.ts'
-import { defaultParams, demoParams } from '@/params.ts'
+import { defaultParams, demoParams, embedParams } from '@/params.ts'
 import { loadParams, saveParams } from '@/params.store.ts'
 import { useBandState } from '@/nav/useBandState.ts'
 import { Toasts } from '@/Toasts.tsx'
@@ -16,6 +16,10 @@ import { useWall } from '@/useWall.ts'
 import { tintsFor } from '@/zone-settings.ts'
 
 const ARRANGEMENT_COUNT = registry.length
+
+/** The demo framed inside another page. It shares an origin with the full
+ *  demo, so it neither reads nor writes the stored tuning. */
+const EMBEDDED = __TRANSOM_DEMO__ && new URLSearchParams(location.search).has('embed')
 
 /** A stored arrangement name back to its place in the cycle. An unknown name —
  *  a retired arrangement, or one from a build that had it — is the first. */
@@ -54,7 +58,9 @@ export function App() {
   const tints = useMemo(() => tintsFor(zoneColors, zoneSettings), [zoneColors, zoneSettings])
   // Lazy: reading storage on every render would be wasted, and the tuning
   // pass is the whole reason the panel exists — losing it on reload defeats it.
-  const [params, setParams] = useState(() => loadParams(__TRANSOM_DEMO__ ? demoParams : defaultParams))
+  const [params, setParams] = useState(() =>
+    EMBEDDED ? embedParams : loadParams(__TRANSOM_DEMO__ ? demoParams : defaultParams),
+  )
   // Every arrangement closes over its params, so a change rebuilds them
   // and resets their allocators — one frame of snapping, the same contract
   // every cache here already honors. Keyed on the layout half alone so that
@@ -70,7 +76,7 @@ export function App() {
   // tuned one either, since it has no panel to tune with.
   const loaded = useRef(params)
   useEffect(() => {
-    if (params !== loaded.current) saveParams(params)
+    if (!EMBEDDED && params !== loaded.current) saveParams(params)
   }, [params])
 
   useEffect(() => {

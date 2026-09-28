@@ -776,17 +776,28 @@ export const demoParams: StackParams = {
     // and in a single row the leftmost pile is the one that leaves the frame.
     margins: [1.3, 1.12],
     homeMargin: 1.3,
-    wallShows: 2.4,
   },
-  zoneGrid: { ...defaultParams.zoneGrid, rows: 1, cellW: 0.55 },
+  zoneGrid: { ...defaultParams.zoneGrid, rows: 1 },
   // A row of cells is narrower than a grid's, and a pile hung at the cell's
   // top-left corner then leans out past the first cell's left edge — off the
   // frame, since the camera frames the cells and not what overhangs them.
   origin: { x: 0.5, y: 0.5 },
   side: 0.26,
-  // No band and no loose camera. A stranger gets a wall that plays, not a
-  // console: every control is something to read before deciding to ignore it,
-  // and one flick of an orbit leaves the framing these parameters exist to set.
-  band: { ...defaultParams.band, shown: false },
-  nav: { ...defaultParams.nav, orbit: false, dragCardSetsStep: false },
+}
+
+/**
+ * The demo as a tile embedded in another page (`?embed`), which is a preview
+ * and not the app: a wall that plays, not a console.
+ *
+ * It holds its scale and runs off the sides rather than shrinking every pile
+ * to fit a 16/9 tile. No band, since every control is something to read before
+ * deciding to ignore it, and no orbit, since one flick loses the framing these
+ * parameters exist to set.
+ */
+export const embedParams: StackParams = {
+  ...demoParams,
+  camera: { ...demoParams.camera, wallShows: 2.4 },
+  zoneGrid: { ...demoParams.zoneGrid, cellW: 0.55 },
+  band: { ...demoParams.band, shown: false },
+  nav: { ...demoParams.nav, orbit: false, dragCardSetsStep: false },
 }
