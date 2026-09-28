@@ -90,7 +90,7 @@ section {
   inset: 0 0 auto;
   height: 100vh;
   background: url('./wall.webp') center top / cover no-repeat;
-  opacity: 0.5;
+  opacity: 0.35;
   mask-image: linear-gradient(to bottom, #000 35%, transparent);
   pointer-events: none;
 }
