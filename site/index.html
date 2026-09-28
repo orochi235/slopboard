@@ -10,7 +10,8 @@
     />
     <link rel="stylesheet" href="./site.css" />
   </head>
-  <body>
+  <body class="home">
+    <div class="hero" aria-hidden="true"></div>
     <main>
       <header>
         <h1>transom</h1>
@@ -19,13 +20,6 @@
           on a second screen. Supports embedded pages, 3d meshes, and additional formats via
           plugins. Lets agents flag artifacts for your perusal and even solicit inline feedback.
         </p>
-        <img
-          class="shot"
-          src="./wall.webp"
-          width="1600"
-          height="1327"
-          alt="The wall: one pile of renders per project in a grid, each with its age and count, the filter band across the top and the tuning panel down the right."
-        />
         <pre><code>brew install orochi235/tap/transom
 transom install    # daemon and client, as LaunchAgents
 transom wire       # the skill and hook for Claude Code</code></pre>
