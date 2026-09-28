@@ -1,17 +1,18 @@
 /* The wall's own faces and palette, so the page and the thing it links to are
    plainly the same object. Both files are copied out of `src/` by the site
-   build rather than duplicated here. */
+   build rather than duplicated here. Each page preloads them, and they block
+   rather than swap, so text is drawn once in its own face. */
 @font-face {
   font-family: 'Tektur';
   src: url('./fonts/tektur.woff2') format('woff2');
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
 }
 @font-face {
   font-family: 'Oxanium';
   src: url('./fonts/oxanium.woff2') format('woff2');
   font-weight: 200 800;
-  font-display: swap;
+  font-display: block;
 }
 
 :root {
