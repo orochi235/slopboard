@@ -82,16 +82,6 @@
     },
     {
       "zone": "transom",
-      "file": "img/038.webp",
-      "name": "wall-sidebar",
-      "w": 1600,
-      "h": 1000,
-      "bornAt": 1790475542229.4446,
-      "repo": "transom",
-      "sha": "ec3626b"
-    },
-    {
-      "zone": "transom",
       "file": "img/039.webp",
       "name": "demo-row",
       "w": 2400,
@@ -139,16 +129,6 @@
       "bornAt": 1790475542793.211,
       "repo": "transom",
       "sha": "dacecbf"
-    },
-    {
-      "zone": "transom",
-      "file": "img/044.webp",
-      "name": "dropdown-open",
-      "w": 1600,
-      "h": 1000,
-      "bornAt": 1790475542866.7607,
-      "repo": "transom",
-      "sha": "ddbf908"
     },
     {
       "zone": "brick-icons",
@@ -461,25 +441,6 @@
       "bornAt": 1790475544749.7554,
       "repo": "windease",
       "sha": "d659e74"
-    },
-    {
-      "zone": "levar",
-      "file": "img/015.webp",
-      "name": "peek",
-      "w": 1400,
-      "h": 500,
-      "bornAt": 1790475544777.8613,
-      "repo": "pw"
-    },
-    {
-      "zone": "levar",
-      "file": "img/016.webp",
-      "name": "lab-marks",
-      "w": 1280,
-      "h": 720,
-      "bornAt": 1790475544825.0098,
-      "repo": "levar",
-      "sha": "dd9a7d2"
     },
     {
       "zone": "levar",
