@@ -11,21 +11,6 @@
     <link rel="preload" href="./fonts/tektur.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="./fonts/oxanium.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="./site.css" />
-    <script type="module">
-      import { delaminate } from './delamin8r.js'
-      // The panel, its sections, and one shared plane for the code blocks and
-      // the button row. The row moves, not each button: a button on a plane of
-      // its own is one the pointer chases. Set rather than derived, since a
-      // derived step scales with this tall a container.
-      delaminate(document.querySelector('main'), {
-        mode: 'window',
-        maxDepth: 3,
-        skip: '.panel > * > :not(pre, .actions)',
-        step: 10,
-        perspective: 1400,
-        swing: 700,
-      })
-    </script>
   </head>
   <body class="home">
     <div class="hero" aria-hidden="true"></div>
@@ -38,10 +23,10 @@
             on a second screen. Supports embedded pages, 3d meshes, and additional formats via
             plugins. Lets agents flag artifacts for your perusal and even solicit inline feedback.
           </p>
-          <pre data-dl-lift="2"><code>brew install orochi235/tap/transom
+          <pre><code>brew install orochi235/tap/transom
 transom install    # daemon and client, as LaunchAgents
 transom wire       # the skill and hook for Claude Code</code></pre>
-          <p class="actions" data-dl-lift="2">
+          <p class="actions">
             <a class="button" href="./wall/">Try a demo</a>
             <a class="button button--quiet" href="./integrate/">Instructions</a>
             <a class="button button--quiet" href="https://github.com/orochi235/transom"
@@ -73,10 +58,10 @@ transom wire       # the skill and hook for Claude Code</code></pre>
         <section>
           <h2>Posting to it</h2>
           <p>The easiest way is to simply call the CLI:</p>
-          <pre data-dl-lift="2"><code>transom post render.png</code></pre>
+          <pre><code>transom post render.png</code></pre>
           <p>Or to a specific zone, with a caption, flagged as time-sensitive, and marked as 3rd in a 
             series of 12, and openable in an external app:</p>
-          <pre data-dl-lift="2"><code>transom post sweep-03.png --zone brick-icons --ttl 2h \
+          <pre><code>transom post sweep-03.png --zone brick-icons --ttl 2h \
   --caption "silhouette at 1.5px" --attention soon \
   --run outline-sweep --of 12 --app LDView</code></pre>
           <p>

@@ -95,8 +95,6 @@ section {
   pointer-events: none;
 }
 
-/* The stage for the parallax. The panel is its own plane, so its backdrop
-   moves against the hero and the text moves against it. */
 .home main {
   position: relative;
   max-width: none;
