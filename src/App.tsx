@@ -6,7 +6,7 @@ import { ParallaxModal } from '@/ParallaxModal.tsx'
 import { Prefs } from '@/Prefs.tsx'
 import { ZoneConfig } from '@/ZoneConfig.tsx'
 import { layoutKeyOf } from '@/params.layout.ts'
-import { defaultParams, demoParams, embedParams } from '@/params.ts'
+import { defaultParams, embedParams } from '@/params.ts'
 import { loadParams, saveParams } from '@/params.store.ts'
 import { useBandState } from '@/nav/useBandState.ts'
 import { Toasts } from '@/Toasts.tsx'
@@ -59,7 +59,7 @@ export function App() {
   // Lazy: reading storage on every render would be wasted, and the tuning
   // pass is the whole reason the panel exists — losing it on reload defeats it.
   const [params, setParams] = useState(() =>
-    EMBEDDED ? embedParams : loadParams(__TRANSOM_DEMO__ ? demoParams : defaultParams),
+    EMBEDDED ? embedParams : loadParams(defaultParams),
   )
   // Every arrangement closes over its params, so a change rebuilds them
   // and resets their allocators — one frame of snapping, the same contract
