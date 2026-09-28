@@ -101,7 +101,7 @@ section {
   position: relative;
   max-width: none;
   width: min(calc(66ch + 180px), calc(100% - 32px));
-  margin: 19vh auto 18vh;
+  margin: max(16px, calc(19vh - 120px)) auto 18vh;
   padding: 0;
 }
 
