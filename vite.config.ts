@@ -29,6 +29,9 @@ export default defineConfig({
     __TRANSOM_DEMO__: JSON.stringify(process.env.VITE_TRANSOM_DEMO === '1'),
   },
   resolve: {
+    // Sibling source imports react from its own tree, which may have no
+    // node_modules — and two Reacts break hooks even where it does.
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
