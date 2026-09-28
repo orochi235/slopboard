@@ -82,6 +82,17 @@ section {
   margin-top: 3.5rem;
 }
 
+/* Wider than the text column, which would shrink the wall to thumbnails. */
+.shot {
+  display: block;
+  width: min(1100px, calc(100vw - 32px));
+  height: auto;
+  margin: 0 0 2rem;
+  margin-inline: calc(50% - min(550px, 50vw - 16px));
+  border: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+  border-radius: 3px;
+}
+
 p {
   margin: 0 0 1rem;
 }
