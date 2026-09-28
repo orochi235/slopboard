@@ -72,11 +72,15 @@ transom wire       # the skill and hook for Claude Code</code></pre>
 
         <section>
           <h2>Posting to it</h2>
-          <p>Writing the file is the whole protocol. There is nothing to start or connect to.</p>
+          <p>The easiest way is to simply call the CLI:</p>
           <pre data-dl-lift="2"><code>transom post render.png</code></pre>
+          <p>Or with a few options:</p>
+          <pre data-dl-lift="2"><code>transom post sweep-03.png --zone brick-icons --ttl 2h \
+  --caption "silhouette at 1.5px" --attention soon \
+  --run outline-sweep --of 12 --app LDView</code></pre>
           <p>
-            <a href="./integrate/">Wiring it to your own agents</a> is one command. Artifacts go to whichever
-            zone you specify, which by default is the name of the repo that published the item.
+            <a href="./integrate/">Wiring it to your own agents</a> is one command. Artifacts land in 
+            whichever zone you specify, which defaults to the name of their repo.
           </p>
         </section>
 
