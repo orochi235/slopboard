@@ -3,7 +3,7 @@ import { BEAT_MS, type ServerMessage, type WallItem, type ZoneSettings } from '@
 import type { Actions } from '@/actions.ts'
 import type { Sink, Transport } from '@/transport.ts'
 import { zipHere } from '@/menu/zip.ts'
-import { zipName, zipPlanForRun, zipPlanForZone } from '@shared/zipPlan.ts'
+import { zipName, zipPlanForGroup, zipPlanForZone } from '@shared/zipPlan.ts'
 import type { DemoSet } from '../../tools/demo-set.ts'
 import set from '../../demo/manifest.json'
 
@@ -238,11 +238,11 @@ export function createDemoDaemon() {
       const held = [...items.values()]
       void zipHere(zipPlanForZone(held, zone), urlById(held), zipName(zone))
     },
-    zipRun: (id) => {
+    zipGroup: (id) => {
       const item = items.get(id)
       if (!item) return
       const held = [...items.values()]
-      void zipHere(zipPlanForRun(item), urlById(held), zipName(`${item.zone}-${item.name}`))
+      void zipHere(zipPlanForGroup(item), urlById(held), zipName(`${item.zone}-${item.name}`))
     },
     expireZone: (zone) => {
       const taken = [...items.values()].filter((i) => i.zone === zone && i.keptAt === undefined)

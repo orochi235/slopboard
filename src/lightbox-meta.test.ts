@@ -113,7 +113,7 @@ describe('statusOf', () => {
     ).toEqual(['dismissed'])
   })
 
-  it('says a run needs a response while any of its takes does', () => {
+  it('says a group needs a response while any of its takes does', () => {
     const take = (id: string, answered: boolean) => ({
       id,
       url: `/img/${id}`,
@@ -126,10 +126,10 @@ describe('statusOf', () => {
       question: 'reads?',
       ...(answered ? { reply: { status: 'answered' as const, text: '', at: 2 } } : {}),
     })
-    expect(statusOf(item({ kind: 'run', takes: [take('t1', true), take('t2', false)] }))).toEqual([
+    expect(statusOf(item({ kind: 'group', takes: [take('t1', true), take('t2', false)] }))).toEqual([
       'needs a response',
     ])
-    expect(statusOf(item({ kind: 'run', takes: [take('t1', true)] }))).toEqual(['responded'])
+    expect(statusOf(item({ kind: 'group', takes: [take('t1', true)] }))).toEqual(['responded'])
   })
 })
 

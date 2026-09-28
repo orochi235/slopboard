@@ -129,7 +129,7 @@ describe('transom ask', () => {
     expect(err).toContain('the question comes first')
   })
 
-  it('refuses several files outside a run', async () => {
+  it('refuses several files outside a group', async () => {
     const second = join(root, 'two.png')
     await writeFile(second, 'png')
     const { code, err } = await run(['ask', 'q', png, second])
@@ -195,30 +195,36 @@ describe('transom post', () => {
     expect(err).toContain('no such flag: --ask')
   })
 
-  it('names the run, its label and how many takes are coming', async () => {
-    const { sent } = await run(['post', '--run', 'sweep-3', '--run-label', 'outline sweep', '--of', '12', png])
+  it('names the group, its label and how many takes are coming', async () => {
+    const { sent } = await run(['post', '--group', 'sweep-3', '--group-label', 'outline sweep', '--of', '12', png])
     const stamp = await stampOf(sent[0]!)
-    expect(stamp.run).toBe('sweep-3')
-    expect(stamp.runLabel).toBe('outline sweep')
+    expect(stamp.group).toBe('sweep-3')
+    expect(stamp.groupLabel).toBe('outline sweep')
     expect(stamp.of).toBe(12)
   })
 
-  it('takes several files for a question in a run, since a run answers per take', async () => {
+  it('still takes the v0.2.0 spellings, on the command line and in a sidecar', async () => {
+    const { sent } = await run(['post', '--run', 'sweep-3', '--run-label', 'outline sweep', png])
+    expect(await stampOf(sent[0]!)).toMatchObject({ group: 'sweep-3', groupLabel: 'outline sweep' })
+    expect(parseStamp({ run: 'old', runLabel: 'old label' })).toMatchObject({ group: 'old', groupLabel: 'old label' })
+  })
+
+  it('takes several files for a question in a group, since a group answers per take', async () => {
     const second = join(root, 'two.png')
     await writeFile(second, 'png')
-    const { code, sent } = await run(['ask', 'how does this read?', '--run', 'r', '--no-wait', png, second])
+    const { code, sent } = await run(['ask', 'how does this read?', '--group', 'r', '--no-wait', png, second])
     expect(code).toBe(0)
     expect(sent).toHaveLength(2)
     expect((await stampOf(sent[1]!)).question).toBe('how does this read?')
   })
 
-  it('refuses a run count that is not one', async () => {
-    expect((await run(['post', '--run', 'r', '--of', 'lots', png])).code).toBe(1)
-    expect((await run(['post', '--run', 'r', '--of', '0', png])).code).toBe(1)
+  it('refuses a group count that is not one', async () => {
+    expect((await run(['post', '--group', 'r', '--of', 'lots', png])).code).toBe(1)
+    expect((await run(['post', '--group', 'r', '--of', '0', png])).code).toBe(1)
   })
 
-  it('refuses --run-label and --of without a run to hang them on', async () => {
-    expect((await run(['post', '--run-label', 'x', png])).code).toBe(1)
+  it('refuses --group-label and --of without a group to hang them on', async () => {
+    expect((await run(['post', '--group-label', 'x', png])).code).toBe(1)
     expect((await run(['post', '--of', '3', png])).code).toBe(1)
   })
 

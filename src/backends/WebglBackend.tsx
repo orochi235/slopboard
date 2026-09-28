@@ -12,7 +12,7 @@ import {
 import * as THREE from 'three'
 import type { Rect } from 'windease'
 import { actions } from '@/actions.ts'
-import { posterTake, runBadge } from '@shared/runs.ts'
+import { posterTake, groupBadge } from '@shared/groups.ts'
 import { ASK_GLYPH, cornerChip, replyWords } from '@/asks.ts'
 import type { Arrangement, TransomChannels } from '@/arrangements/index.ts'
 import { containerFor, frontSlotOf, gridCells } from '@/arrangements/zones.ts'
@@ -169,8 +169,8 @@ const PIN_GLYPH = '📌'
 const PLAYS_GLYPH = '▶'
 const MESH_GLYPH = '⬡'
 /** A card that stands for many pictures rather than one, with how far through
- *  them the poster is. Two sheets, because that is what a run is. */
-const RUN_GLYPH = '⧉'
+ *  them the poster is. Two sheets, because that is what a group is. */
+const GROUP_GLYPH = '⧉'
 
 const BADGE_LIFT = 0.002
 
@@ -1117,11 +1117,11 @@ function Wall({
     // mesh is not played at all and says so with its own.
     const playsText = new Map(
       current.items
-        .filter((i) => i.frames || i.kind === 'video' || i.kind === 'mesh' || i.kind === 'run')
+        .filter((i) => i.frames || i.kind === 'video' || i.kind === 'mesh' || i.kind === 'group')
         .map((i) => [
           i.id,
-          i.kind === 'run'
-            ? `${RUN_GLYPH} ${runBadge(i)}`
+          i.kind === 'group'
+            ? `${GROUP_GLYPH} ${groupBadge(i)}`
             : i.kind === 'mesh'
               ? MESH_GLYPH
               : i.duration
@@ -2287,12 +2287,12 @@ export function WebglBackend(props: Props) {
     turning.current = requestAnimationFrame(tick)
   }, [onParams])
 
-  // A run holds the lightbox open until nothing in it is waiting: a reply to
+  // A group holds the lightbox open until nothing in it is waiting: a reply to
   // the third of twelve takes is not a reason to put the viewer back on the
   // wall. `lit` is read through a ref because these are bound once.
   const lastOpenQuestion = useCallback((id: string, take?: string) => {
     const item = openItem.current
-    if (item?.id !== id || item.kind !== 'run') return true
+    if (item?.id !== id || item.kind !== 'group') return true
     const waiting = (item.takes ?? []).filter((t) => t.question !== undefined && t.reply === undefined)
     return waiting.length <= 1 && (take === undefined || waiting[0]?.id === take)
   }, [])
@@ -2420,13 +2420,13 @@ export function WebglBackend(props: Props) {
       const id = target.id
       if (action === 'open') return void dispatch({ type: 'to', path: [target.zone, id] })
       if (action === 'openInApp' && menuItem && app !== undefined) {
-        // A run's apps belong to the take on the card, so the open is addressed
+        // A group's apps belong to the take on the card, so the open is addressed
         // to that take rather than to the card that is drawing it.
         const shown = posterTake(menuItem.takes ?? [])
         return actions.openInApp(shown?.id ?? id, app)
       }
       if (action === 'dismiss') return dismiss(id)
-      if (action === 'zipRun') return actions.zipRun(id)
+      if (action === 'zipGroup') return actions.zipGroup(id)
       if (action === 'copyArtifact' && menuItem)
         return void copyArtifact(menuItem).catch((e) => console.warn('[menu] copy failed', e))
       if (action === 'copyPath' && menuItem)

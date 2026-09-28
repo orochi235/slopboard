@@ -48,7 +48,8 @@ const isKind = (v: unknown): v is KindKey => KINDS.some((k) => k.key === v)
 
 const READERS: { [K in keyof BandState]: Reader<K> } = {
   sort: (raw) => SORTS.find((s) => s.key === raw)?.key,
-  kinds: (raw) => (Array.isArray(raw) ? raw.filter(isKind) : undefined),
+  // `run` is what a group was called in v0.2.0.
+  kinds: (raw) => (Array.isArray(raw) ? raw.map((k) => (k === 'run' ? 'group' : k)).filter(isKind) : undefined),
   range: (raw) => {
     if (raw === null) return null
     if (typeof raw !== 'object') return undefined

@@ -23,12 +23,12 @@ export type Stamp = {
   /** The placeholder for the free-text box offered beside the choices. Absent
    *  means the question offers no box. */
   why?: string
-  /** The run this file joins, as `--run` named it, and what the sender said
-   *  about the run itself. A file naming a run is a take rather than a card of
+  /** The group this file joins, as `--group` named it, and what the sender said
+   *  about the group itself. A file naming a group is a take rather than a card of
    *  its own. Sidecar only. */
-  run?: string
-  runLabel?: string
-  /** How many takes the run said were coming. */
+  group?: string
+  groupLabel?: string
+  /** How many takes the group said were coming. */
   of?: number
   /** Apps the sender offered for this take, and pages it points at. Structured
    *  rather than strings, so they never reach the XMP packet. */

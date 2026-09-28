@@ -1,5 +1,5 @@
 import type { WallItem } from '@shared/protocol.ts'
-import { posterTake } from '@shared/runs.ts'
+import { posterTake } from '@shared/groups.ts'
 
 /** What the pointer was over. The chain `chainAt` returns, named. */
 export type Target =
@@ -24,8 +24,8 @@ export type Action =
   | 'expire'
   | 'expireZone'
   | 'copyArtifact'
-  /** The whole stack as one download: a run's takes, or a zone's pile. */
-  | 'zipRun'
+  /** The whole stack as one download: a group's takes, or a zone's pile. */
+  | 'zipGroup'
   | 'zipZone'
   | 'copyPath'
   | 'dismiss'
@@ -71,7 +71,7 @@ export function menuFor(
   if (target.kind === 'card' && ctx.item) {
     items.push({ action: 'open', label: 'Open' })
     // The sender's own apps beside the OS default, for the take the card is
-    // drawing — which for a run is the one the viewer is being asked about.
+    // drawing — which for a group is the one the viewer is being asked about.
     const offered = (posterTake(ctx.item.takes ?? []) ?? ctx.item).apps ?? []
     offered.forEach((app, at) =>
       items.push({ action: 'openInApp', label: `Open in ${app.name}`, app: at }),
@@ -82,10 +82,10 @@ export function menuFor(
         : { action: 'pin', label: 'Pin' },
     )
     if (ctx.item.attention) items.push({ action: 'dismiss', label: 'Dismiss the flag' })
-    if (ctx.item.kind === 'run' && (ctx.item.takes?.length ?? 0) > 1)
+    if (ctx.item.kind === 'group' && (ctx.item.takes?.length ?? 0) > 1)
       items.push({
-        action: 'zipRun',
-        label: `Download zip of the run (${ctx.item.takes?.length ?? 0})`,
+        action: 'zipGroup',
+        label: `Download zip of the group (${ctx.item.takes?.length ?? 0})`,
       })
     items.push({ action: 'copyArtifact', label: 'Copy artifact' })
     items.push({ action: 'copyPath', label: 'Copy path' })

@@ -388,7 +388,7 @@ describe('the wall lifetime as the panel sets it', () => {
   })
 })
 
-describe('runs', () => {
+describe('groups', () => {
   const card = (over: Partial<WallItem> = {}) => {
     const { takes: _takes, kind: _kind, ...rest } = itemAt(source, { id: 'run1', ...over })
     return rest
@@ -411,7 +411,7 @@ describe('runs', () => {
     const path = join(root, 'inbox', 'transom', `${id}.png`)
     await writeFile(path, 'png')
     // A take always has one: `transom` writes the sidecar that carries its question.
-    await writeFile(`${path}.transom.json`, JSON.stringify({ run: 'sweep' }))
+    await writeFile(`${path}.transom.json`, JSON.stringify({ group: 'sweep' }))
     return path
   }
 
@@ -427,7 +427,7 @@ describe('runs', () => {
     expect(second?.opened).toBe(false)
     expect(store.snapshot()).toHaveLength(1)
     expect(store.snapshot()[0]?.takes?.map((t) => t.id)).toEqual(['t1', 't2'])
-    expect(store.snapshot()[0]?.run?.of).toBe(2)
+    expect(store.snapshot()[0]?.group?.of).toBe(2)
   })
 
   it('holds takes in arrival order however the daemon re-adopted them', async () => {
@@ -529,7 +529,7 @@ describe('runs', () => {
 
   it('refuses a take past the cap, so a card cannot grow without bound', async () => {
     const store = await freshStore(root)
-    const { MAX_TAKES } = await import('@shared/runs.ts')
+    const { MAX_TAKES } = await import('@shared/groups.ts')
     for (let n = 0; n < MAX_TAKES; n++) {
       const path = await fileFor(`t${n}`)
       expect(store.addTake(card(), takeAt(`t${n}`, 1000 + n, path), { sourcePath: path, cachePath: path }, {})).not.toBe(null)

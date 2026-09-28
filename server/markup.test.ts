@@ -158,7 +158,7 @@ describe('markUp', () => {
     expect(await store.recheckSenders()).toEqual([])
   })
 
-  it('refuses a run card, whose drawings are on its takes', async () => {
+  it('refuses a group card, whose drawings are on its takes', async () => {
     const { store } = await fresh(root)
     store.addTake(
       itemAt(source, { id: 'run1' }),

@@ -177,7 +177,7 @@ export function useWall(): Wall {
                 const takes = (i.takes ?? []).map((t) =>
                   t.id === msg.take ? { ...t, reply: msg.reply } : t,
                 )
-                // A run stops asking only once nothing in it is waiting, so its
+                // A group stops asking only once nothing in it is waiting, so its
                 // flag survives every answer but the last.
                 const asking = takes.some((t) => t.question !== undefined && t.reply === undefined)
                 const { attention, ...rest } = i

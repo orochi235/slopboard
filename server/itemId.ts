@@ -18,14 +18,15 @@ export function idFor(sourcePath: string): string {
 }
 
 /**
- * A run's card id, derived from its zone and the name `--run` gave it.
+ * A group's card id, derived from its zone and the name `--group` gave it.
  *
  * Derived rather than minted so that appending a take is a lookup: two takes
  * landing in the same tick resolve to the same card, and a daemon restart
- * re-adopts every take of a run into the one card it was in before.
+ * re-adopts every take of a group into the one card it was in before.
  */
-export function runIdFor(zone: string, run: string): string {
-  return createHash('sha1').update(`run:${zone}:${run}`).digest('hex').slice(0, 32)
+export function groupIdFor(zone: string, group: string): string {
+  // `run:` is the v0.2.0 name, kept so a group card keeps its id.
+  return createHash('sha1').update(`run:${zone}:${group}`).digest('hex').slice(0, 32)
 }
 
 /**

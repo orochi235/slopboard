@@ -108,7 +108,7 @@ describe('watchInbox', () => {
     expect(ours()).toHaveLength(1)
   })
 
-  it('lands every take of a run on one card, and appends the rest', async () => {
+  it('lands every take of a group on one card, and appends the rest', async () => {
     const { watchInbox } = await bootDaemon(root)
     const landed: { as: string; id: string }[] = []
     const w = watchInbox((l) => landed.push({ as: l.as, id: l.item.id }))
@@ -119,7 +119,7 @@ describe('watchInbox', () => {
     for (const name of ['a', 'b', 'c']) {
       await writeFile(
         join(dir, `${name}.png.transom.json`),
-        JSON.stringify({ run: 'sweep', runLabel: 'outline sweep', of: 3, question: 'reads?' }),
+        JSON.stringify({ group: 'sweep', groupLabel: 'outline sweep', of: 3, question: 'reads?' }),
       )
       await writeFile(join(dir, `${name}.png`), await png())
     }
@@ -131,7 +131,7 @@ describe('watchInbox', () => {
     const store = await import('./store.ts')
     expect(store.snapshot()).toHaveLength(1)
     const card = store.snapshot()[0]!
-    expect(card.kind).toBe('run')
+    expect(card.kind).toBe('group')
     expect(card.name).toBe('outline sweep')
     expect(card.takes).toHaveLength(3)
     // The card draws a take, so its own url is one of theirs.

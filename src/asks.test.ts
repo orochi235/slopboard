@@ -33,7 +33,7 @@ const take = (id: string, reply?: Reply): Take => ({
 describe('what a card asks', () => {
   it('is nothing for an ordinary artifact', () => {
     expect(asksOf(item())).toBe(null)
-    expect(asksOf(item({ kind: 'run', takes: [{ ...take('t1'), question: undefined }] }))).toBe(null)
+    expect(asksOf(item({ kind: 'group', takes: [{ ...take('t1'), question: undefined }] }))).toBe(null)
   })
 
   it('is open while a question has no reply, and closed once it has one', () => {
@@ -45,14 +45,14 @@ describe('what a card asks', () => {
     })
   })
 
-  it('counts a run by its takes, and stays open while any is waiting', () => {
+  it('counts a group by its takes, and stays open while any is waiting', () => {
     const takes = [take('t1', answered), take('t2'), take('t3')]
-    expect(asksOf(item({ kind: 'run', takes }))).toEqual({ open: true, count: 3, answered: 1 })
+    expect(asksOf(item({ kind: 'group', takes }))).toEqual({ open: true, count: 3, answered: 1 })
   })
 
-  it('closes a run only when nothing in it is waiting', () => {
+  it('closes a group only when nothing in it is waiting', () => {
     const takes = [take('t1', answered), take('t2', { status: 'dismissed', text: '', at: 3 })]
-    expect(asksOf(item({ kind: 'run', takes }))?.open).toBe(false)
+    expect(asksOf(item({ kind: 'group', takes }))?.open).toBe(false)
   })
 })
 
@@ -62,11 +62,11 @@ describe('the chip', () => {
     expect(askChip({ open: false, count: 1, answered: 1 })).toBe('✓')
   })
 
-  it('counts what a run has left, not what it has done', () => {
+  it('counts what a group has left, not what it has done', () => {
     expect(askChip({ open: true, count: 12, answered: 3 })).toBe('? 9')
   })
 
-  it('counts the whole run once it is finished', () => {
+  it('counts the whole group once it is finished', () => {
     expect(askChip({ open: false, count: 12, answered: 12 })).toBe('✓ 12')
   })
 })
@@ -94,9 +94,9 @@ describe('the corner', () => {
     expect(cornerChip(item({ question: 'reads?', markup: marked('pending') }))).toEqual({ text: '✎', open: true })
   })
 
-  it('finds them on a run take too', () => {
-    const run = item({ kind: 'run', takes: [{ ...take('t1'), markup: marked('pending') }] })
-    expect(cornerChip(run)?.text).toBe('✎')
+  it('finds them on a group take too', () => {
+    const group = item({ kind: 'group', takes: [{ ...take('t1'), markup: marked('pending') }] })
+    expect(cornerChip(group)?.text).toBe('✎')
   })
 
   it('goes back to the question once they are sent or thrown away', () => {

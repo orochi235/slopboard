@@ -32,20 +32,20 @@ async function sidecars() {
   )
 }
 
-describe('a synthetic run', () => {
-  it('lands one take per picture, all naming one run', async () => {
+describe('a synthetic group', () => {
+  it('lands one take per picture, all naming one group', async () => {
     const synth = await fresh(root)
-    const made = await synth.synthRun(3)
+    const made = await synth.synthGroup(3)
     expect(made).toHaveLength(3)
     const held = await sidecars()
     expect(held).toHaveLength(3)
-    expect(new Set(held.map((s) => s.run)).size).toBe(1)
+    expect(new Set(held.map((s) => s.group)).size).toBe(1)
     expect(held.every((s) => s.of === 3)).toBe(true)
   })
 
   it('asks a question on every take, with chips and a comment box', async () => {
     const synth = await fresh(root)
-    await synth.synthRun(2)
+    await synth.synthGroup(2)
     for (const stamp of await sidecars()) {
       expect(stamp.question).toBeTruthy()
       expect(stamp.choices).toContain('no change')
@@ -55,7 +55,7 @@ describe('a synthetic run', () => {
 
   it('offers a way out pointed at the file that was actually written', async () => {
     const synth = await fresh(root)
-    const [dest] = await synth.synthRun(1)
+    const [dest] = await synth.synthGroup(1)
     const [stamp] = await sidecars()
     // The app's file is the artifact, whose name is a UUID picked at the write:
     // a sidecar composed before it would point at nothing.
@@ -65,7 +65,7 @@ describe('a synthetic run', () => {
 
   it('writes the sidecar before the image, which is what the watcher waits on', async () => {
     const synth = await fresh(root)
-    await synth.synthRun(1)
+    await synth.synthGroup(1)
     const names = await readdir(inbox())
     const image = names.find((f) => f.endsWith('.png'))!
     const { mtimeMs: sidecarAt } = await import('node:fs/promises').then((fs) =>
@@ -79,7 +79,7 @@ describe('a synthetic run', () => {
 
   it('gives every take a TTL, so a session of them clears itself', async () => {
     const synth = await fresh(root)
-    await synth.synthRun(2)
+    await synth.synthGroup(2)
     for (const name of await readdir(inbox())) expect(name).toContain('.ttl')
   })
 })

@@ -6,7 +6,7 @@ import * as store from './store.ts'
 import type { Poster, Take, WallItem } from '@shared/protocol.ts'
 import { ttlFromName } from './ttlSuffix.ts'
 import { captionFor } from './captionName.ts'
-import { idFor, origUrlFor, runIdFor } from './itemId.ts'
+import { idFor, origUrlFor, groupIdFor } from './itemId.ts'
 import { kindOf } from './kind.ts'
 import { keptFrom, readStamp, replyFrom } from './sidecar.ts'
 import * as marks from './markup.ts'
@@ -16,7 +16,7 @@ import { framesOf } from './frames.ts'
 import { posterFor } from './poster.ts'
 import { durationOf } from './probe.ts'
 import { parseAttention } from '@shared/attention.ts'
-import { MAX_TAKES } from '@shared/runs.ts'
+import { MAX_TAKES } from '@shared/groups.ts'
 import { buildXmp, type Stamp } from './xmp.ts'
 import { createLimiter } from './limit.ts'
 import { watchTree } from './watchTree.ts'
@@ -46,9 +46,9 @@ export async function stampOriginal(sourcePath: string, xmp: string): Promise<vo
 }
 
 /**
- * What landing produced: a card of its own, or a take appended to a run — in
+ * What landing produced: a card of its own, or a take appended to a group — in
  * which case the wall needs the take and the poster it moved the card to, and
- * `opened` says whether this was the run's first, since a run alerts once.
+ * `opened` says whether this was the group's first, since a group alerts once.
  */
 export type Landed =
   | { as: 'card'; item: WallItem }
@@ -140,10 +140,10 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
   const own = { ...(sender ? { sender } : {}), ...(drawn ? { marks: drawn } : {}) }
   if (drawn?.status === 'pending' && drawn.sender) await marks.flagWaiting(drawn.sender.session, true)
 
-  // A file naming a run is a take: it joins that run's card rather than
+  // A file naming a group is a take: it joins that group's card rather than
   // standing up one of its own. Everything above this is the picture pipeline
   // unchanged, which is the point — a take is a picture with a question on it.
-  if (sidecar?.run) {
+  if (sidecar?.group) {
     const take: Take = {
       id,
       url: `/img/${id}`,
@@ -163,7 +163,7 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
     }
     const landed = store.addTake(
       {
-        id: runIdFor(zone, sidecar.run),
+        id: groupIdFor(zone, sidecar.group),
         ...(ttlMs === null ? {} : { ttlMs }),
         ...(keptAt === null ? {} : { keptAt }),
         ...(attention === null ? {} : { attention }),
@@ -171,13 +171,13 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
         ...(sidecar.repo ? { repo: sidecar.repo } : {}),
         ...(sidecar.sha ? { sha: sidecar.sha } : {}),
         ...(sidecar.quiet ? { quiet: true as const } : {}),
-        // Overwritten by the poster the store picks; a run's card has no
+        // Overwritten by the poster the store picks; a group's card has no
         // pixels of its own, only whichever take it is drawing.
         url: take.url,
         origUrl: take.origUrl,
         path: sourcePath,
         zone,
-        name: sidecar.runLabel ?? sidecar.run,
+        name: sidecar.groupLabel ?? sidecar.group,
         bornAt,
         w: take.w,
         h: take.h,
@@ -185,13 +185,13 @@ async function ingest(sourcePath: string, bornAt: number): Promise<Landed | null
       take,
       { sourcePath, cachePath, ...own },
       {
-        ...(sidecar.runLabel ? { label: sidecar.runLabel } : {}),
+        ...(sidecar.groupLabel ? { label: sidecar.groupLabel } : {}),
         ...(sidecar.of === undefined ? {} : { of: sidecar.of }),
       },
     )
     if (!landed) {
       console.warn(
-        `[ingest] run "${sidecar.run}" is full at ${MAX_TAKES} takes: ${basename(sourcePath)} stays in the inbox`,
+        `[ingest] group "${sidecar.group}" is full at ${MAX_TAKES} takes: ${basename(sourcePath)} stays in the inbox`,
       )
       return null
     }

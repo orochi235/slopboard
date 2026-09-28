@@ -205,7 +205,7 @@
   cursor: pointer;
 }
 
-/* The take count beside the run button: a label wrapping its own field, so the
+/* The take count beside the group button: a label wrapping its own field, so the
    number and the word it means stay together when the row wraps. */
 .sidebar__count {
   display: flex;

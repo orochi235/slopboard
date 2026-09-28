@@ -11,14 +11,14 @@ import type { Reply, WallItem } from '@shared/protocol.ts'
 export type Asks = {
   /** Something is still waiting on a reply. */
   open: boolean
-  /** How many questions the card carries: one, or a run's takes. */
+  /** How many questions the card carries: one, or a group's takes. */
   count: number
   answered: number
 }
 
 /** Null for an artifact that asks nothing, which is most of the wall. */
 export function asksOf(item: WallItem): Asks | null {
-  if (item.kind === 'run') {
+  if (item.kind === 'group') {
     const asking = (item.takes ?? []).filter((t) => t.question !== undefined)
     if (asking.length === 0) return null
     const answered = asking.filter((t) => t.reply !== undefined).length
@@ -37,7 +37,7 @@ export const DONE_GLYPH = '✓'
 
 /**
  * The corner chip. A bare glyph for one question, since "1" would say nothing;
- * a run counts, because how many are left is the whole reason to look.
+ * a group counts, because how many are left is the whole reason to look.
  */
 export function askChip(asks: Asks): string {
   if (asks.count === 1) return asks.open ? ASK_GLYPH : DONE_GLYPH
@@ -78,6 +78,6 @@ export function replyWords(reply: Reply): string {
  */
 export function askWords(item: WallItem, asks: Asks): string {
   if (asks.open) return 'needs a response'
-  if (item.kind === 'run') return 'responded'
+  if (item.kind === 'group') return 'responded'
   return item.reply && item.reply.status !== 'answered' ? replyWords(item.reply) : 'responded'
 }

@@ -8,23 +8,23 @@ import type { Markup, Poster, Reply, Take, WallItem } from '@shared/protocol.ts'
 import * as marks from './markup.ts'
 import type { MarkRecord, Sender } from './markup.ts'
 import { isEternal, lifetimeMs } from '@shared/lifetime.ts'
-import { MAX_TAKES, posterOf, posterTake, runIsOpen, takeIsOpen } from '@shared/runs.ts'
+import { MAX_TAKES, posterOf, posterTake, groupIsOpen, takeIsOpen } from '@shared/groups.ts'
 
 /** One artifact's files: the original the sender wrote and the thumbnail the
- *  daemon made of it. A run has a pair per take. `sender` is the session that
+ *  daemon made of it. A group has a pair per take. `sender` is the session that
  *  sent it, where `bin/transom` saw one, and `marks` the drawing sent back. */
 type Files = { sourcePath: string; cachePath: string; sender?: Sender; marks?: MarkRecord }
 
 /**
- * A run's own `sourcePath`/`cachePath` mirror whichever take it is drawing, so
+ * A group's own `sourcePath`/`cachePath` mirror whichever take it is drawing, so
  * `/img/:id` and `/orig/:id` keep serving the card with no route of their own.
  * `takes` is empty for everything else.
  */
 type Entry = Files & { item: WallItem; takes: Map<string, Files> }
 
 const entries = new Map<string, Entry>()
-/** Which run each take belongs to, so `/img/<takeId>` resolves in one lookup
- *  rather than a scan of every run on the wall. */
+/** Which group each take belongs to, so `/img/<takeId>` resolves in one lookup
+ *  rather than a scan of every group on the wall. */
 const takeOwner = new Map<string, string>()
 const listeners = new Set<(id: string) => void>()
 
@@ -34,13 +34,13 @@ export function add(entry: { item: WallItem } & Files) {
 
 const filesOf = (entry: Entry): Files[] => artifactsOf(entry).map(([, files]) => files)
 
-/** Each artifact the card holds, by its own id: the card itself, or a run's
- *  takes. A run's own fields mirror whichever take it is drawing, so they are
+/** Each artifact the card holds, by its own id: the card itself, or a group's
+ *  takes. A group's own fields mirror whichever take it is drawing, so they are
  *  never read as an artifact of their own. */
 const artifactsOf = (entry: Entry): [string, Files][] =>
   entry.takes.size > 0 ? [...entry.takes.entries()] : [[entry.item.id, entry]]
 
-/** A drawing its sender has not got holds the whole card: the run is the unit
+/** A drawing its sender has not got holds the whole card: the group is the unit
  *  of lifetime, as it is for an open question. */
 const holdsMarks = (entry: Entry) => artifactsOf(entry).some(([, f]) => f.marks?.status === 'pending')
 
@@ -50,7 +50,7 @@ export function has(sourcePath: string) {
       if (e.sourcePath === sourcePath) return true
       continue
     }
-    // A run's own sourcePath is a copy of a take's, so only the takes are
+    // A group's own sourcePath is a copy of a take's, so only the takes are
     // asked: the sweep must re-offer nothing, and must not skip a take either.
     for (const f of e.takes.values()) if (f.sourcePath === sourcePath) return true
   }
@@ -58,21 +58,21 @@ export function has(sourcePath: string) {
 }
 
 /**
- * Adds a take to a run, opening the run's card if this is its first.
+ * Adds a take to a group, opening the group's card if this is its first.
  *
  * Synchronous on purpose, and called with every `await` already finished: two
- * takes landing in the same tick must not both create the run. The failure
+ * takes landing in the same tick must not both create the group. The failure
  * would be two cards with the same name holding half the takes each, and it
  * would only show under load.
  *
- * Null when the run is full — the cap is what bounds a card's size, since the
+ * Null when the group is full — the cap is what bounds a card's size, since the
  * only other bound is how long the agent runs.
  */
 export function addTake(
   card: Omit<WallItem, 'takes' | 'kind'>,
   take: Take,
   files: Files,
-  run: { label?: string; of?: number },
+  group: { label?: string; of?: number },
 ): { item: WallItem; poster: Poster; opened: boolean } | null {
   const held = entries.get(card.id)
   if (held && (held.item.takes?.length ?? 0) >= MAX_TAKES) return null
@@ -80,26 +80,26 @@ export function addTake(
   const entry: Entry =
     held ??
     ({
-      item: { ...card, kind: 'run', takes: [], ...(Object.keys(run).length > 0 ? { run } : {}) },
+      item: { ...card, kind: 'group', takes: [], ...(Object.keys(group).length > 0 ? { group } : {}) },
       sourcePath: files.sourcePath,
       cachePath: files.cachePath,
       takes: new Map(),
     } satisfies Entry)
 
   // Kept in arrival order rather than ingest order: a restart re-adopts a
-  // run's takes in whatever order the watcher offers them, and a carousel that
+  // group's takes in whatever order the watcher offers them, and a carousel that
   // shuffles itself when the daemon bounces would be unreviewable.
   const takes = [...(entry.item.takes ?? []), take]
   takes.sort((a, b) => a.at - b.at)
   entry.item.takes = takes
   entry.takes.set(take.id, files)
   takeOwner.set(take.id, entry.item.id)
-  // A run may learn its total late — the first send need not know it — and a
-  // later label is the sender correcting itself, not a second run.
-  if (run.of !== undefined || run.label !== undefined) {
-    entry.item.run = { ...entry.item.run, ...run }
+  // A group may learn its total late — the first send need not know it — and a
+  // later label is the sender correcting itself, not a second group.
+  if (group.of !== undefined || group.label !== undefined) {
+    entry.item.group = { ...entry.item.group, ...group }
   }
-  // A take arriving means the run is still producing, so the card is not stale.
+  // A take arriving means the group is still producing, so the card is not stale.
   if (held) entry.item.bornAt = take.at
   entries.set(entry.item.id, entry)
   return { item: entry.item, poster: repost(entry), opened: !held }
@@ -112,7 +112,7 @@ export function addTake(
  */
 function repost(entry: Entry): Poster {
   const take = posterTake(entry.item.takes ?? [])
-  if (!take) throw new Error(`run ${entry.item.id} has no takes`)
+  if (!take) throw new Error(`group ${entry.item.id} has no takes`)
   Object.assign(entry.item, posterOf(entry.item.takes ?? []))
   const files = entry.takes.get(take.id)
   if (files) Object.assign(entry, files)
@@ -136,7 +136,7 @@ export function onExpire(fn: (id: string) => void) {
  * something that never heard of the wall — which otherwise left a card whose
  * lightbox served a 404 for as long as the daemon ran.
  *
- * A run loses only the take: the card stands while any take still has a file.
+ * A group loses only the take: the card stands while any take still has a file.
  */
 export function forget(sourcePath: string): string | null {
   for (const entry of entries.values()) {
@@ -160,7 +160,7 @@ export function forget(sourcePath: string): string | null {
   return null
 }
 
-/** Every file one expiry moved, since a run takes its whole carousel with it. */
+/** Every file one expiry moved, since a group takes its whole carousel with it. */
 type Gone = { entry: Entry; moves: { from: string; to: string }[] }
 
 /** The expiries a person asked for, oldest first, each the artifacts one step
@@ -174,8 +174,8 @@ function remember(step: Gone[]) {
   if (undoable.length > UNDO_DEPTH) undoable.shift()
 }
 
-/** Expiry moves the source file to the trash; the wall never unlinks. A run
- *  takes every take with it: the run is the unit of lifetime, and a take left
+/** Expiry moves the source file to the trash; the wall never unlinks. A group
+ *  takes every take with it: the group is the unit of lifetime, and a take left
  *  in the inbox would be adopted as a card of its own on the next sweep. */
 async function expire(entry: Entry): Promise<Gone> {
   await closeAll(entry, 'expired')
@@ -184,7 +184,7 @@ async function expire(entry: Entry): Promise<Gone> {
   await mkdir(config.trash, { recursive: true })
   const moves: { from: string; to: string }[] = []
   for (const [at, files] of filesOf(entry).entries()) {
-    // One name per file, so a run's takes cannot land on top of each other.
+    // One name per file, so a group's takes cannot land on top of each other.
     const dest = join(config.trash, `${entry.item.id}${at === 0 ? '' : `-${at}`}-${entry.item.zone}`)
     await rename(files.sourcePath, dest).catch(() => {})
     await trashStamp(files.sourcePath, dest)
@@ -211,7 +211,7 @@ export function startSweeper(): () => void {
       // An open question has someone waiting on it.
       if (entry.item.keptAt || isOpen(entry.item) || holdsMarks(entry)) continue
       // A question can stay open for longer than a TTL, so an answered card
-      // gets a whole life from its answer — and a run from its last one, since
+      // gets a whole life from its answer — and a group from its last one, since
       // reviewing the twelfth take is not a reason to have already dropped it.
       // A drawing resolved gets the same: the composite's path went to its
       // sender, who may not read it for a while.
@@ -294,7 +294,7 @@ export async function undoExpiry(): Promise<WallItem[]> {
       try {
         await rename(move.to, move.from)
       } catch {
-        // One take that will not come back must not strand the rest of its run.
+        // One take that will not come back must not strand the rest of its group.
         continue
       }
       await trashStamp(move.to, move.from)
@@ -333,10 +333,10 @@ export async function dismiss(id: string, closeQuestion = false): Promise<boolea
 
 export type Closed = Reply['status']
 
-/** A run is open while any take is: the run is the unit of lifetime, so one
+/** A group is open while any take is: the group is the unit of lifetime, so one
  *  unanswered take holds the whole card off the clock. */
 const isOpen = (item: WallItem) =>
-  item.kind === 'run' ? runIsOpen(item) : item.question !== undefined && item.reply === undefined
+  item.kind === 'group' ? groupIsOpen(item) : item.question !== undefined && item.reply === undefined
 
 /**
  * The answer file, which is what `transom ask` is waiting on. Three parts:
@@ -397,15 +397,15 @@ async function closeTake(
   take.reply = reply
   await writeAnswer(files.sourcePath, reply, image)
   await closeQuestion(files.sourcePath, reply)
-  // A run stops asking once nothing in it is waiting.
-  if (!runIsOpen(entry.item)) delete entry.item.attention
+  // A group stops asking once nothing in it is waiting.
+  if (!groupIsOpen(entry.item)) delete entry.item.attention
   return repost(entry)
 }
 
 /** Every open question on the card at once: what a card-level dismiss and an
- *  expiry both mean for a run. */
+ *  expiry both mean for a group. */
 async function closeAll(entry: Entry, status: Closed): Promise<boolean> {
-  if (entry.item.kind !== 'run') return close(entry, status, '')
+  if (entry.item.kind !== 'group') return close(entry, status, '')
   let closed = false
   for (const take of entry.item.takes ?? []) {
     if (await closeTake(entry, take.id, status, '')) closed = true
@@ -413,7 +413,7 @@ async function closeAll(entry: Entry, status: Closed): Promise<boolean> {
   return closed
 }
 
-/** The reply a question closed with, for the caller to broadcast. A run's
+/** The reply a question closed with, for the caller to broadcast. A group's
  *  replies are its takes'. */
 export const replyOf = (id: string, takeId?: string) => {
   const item = entries.get(id)?.item
@@ -421,13 +421,13 @@ export const replyOf = (id: string, takeId?: string) => {
   return item?.takes?.find((t) => t.id === takeId)?.reply
 }
 
-/** The poster a run is drawing, for a caller that has to broadcast it. */
+/** The poster a group is drawing, for a caller that has to broadcast it. */
 export const posterAt = (id: string): Poster | null => {
   const item = entries.get(id)?.item
-  return item?.kind === 'run' ? posterOf(item.takes ?? []) : null
+  return item?.kind === 'group' ? posterOf(item.takes ?? []) : null
 }
 
-/** False when there is no such item or no open question on it. A run answers
+/** False when there is no such item or no open question on it. A group answers
  *  one take at a time, which is what `takeId` names. */
 export async function answer(
   id: string,
@@ -442,7 +442,7 @@ export async function answer(
   return close(entry, status, text, choice)
 }
 
-/** The item or take a take id belongs to. A run's takes are addressed by their
+/** The item or take a take id belongs to. A group's takes are addressed by their
  *  own ids, so `/img/<takeId>` and the open route resolve without a scan. */
 export function takeAt(takeId: string): { item: WallItem; take: Take } | null {
   const owner = takeOwner.get(takeId)
@@ -451,7 +451,7 @@ export function takeAt(takeId: string): { item: WallItem; take: Take } | null {
   return item && take ? { item, take } : null
 }
 
-/** The apps offered for an id, whether it names a card or one take of a run.
+/** The apps offered for an id, whether it names a card or one take of a group.
  *  Empty for anything that offered none, which is most of the wall. */
 export const appsAt = (id: string) =>
   takeAt(id)?.take.apps ?? entries.get(id)?.item.apps ?? []
@@ -478,13 +478,13 @@ export function resolveOriginal(id: string) {
 /** A card or a take, by its own id, with the entry that holds it. */
 function locate(id: string): { entry: Entry; files: Files; take?: Take } | null {
   const entry = entries.get(id)
-  // A run's card is not an artifact: its drawings are on its takes.
+  // A group's card is not an artifact: its drawings are on its takes.
   if (entry) return entry.takes.size > 0 ? null : { entry, files: entry }
   const owner = takeOwner.get(id)
-  const run = owner === undefined ? undefined : entries.get(owner)
-  const files = run?.takes.get(id)
-  const take = run?.item.takes?.find((t) => t.id === id)
-  return run && files && take ? { entry: run, files, take } : null
+  const group = owner === undefined ? undefined : entries.get(owner)
+  const files = group?.takes.get(id)
+  const take = group?.item.takes?.find((t) => t.id === id)
+  return group && files && take ? { entry: group, files, take } : null
 }
 
 /** What the wall is told about a drawing: which card, which take, and its

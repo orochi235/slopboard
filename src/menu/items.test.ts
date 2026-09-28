@@ -112,7 +112,7 @@ describe('menuFor on a zone', () => {
     expect(rowFor('zipZone', { canUndo: false, zoneCount: 12 })?.label).toBe('Download zip (12)')
   })
 
-  it('offers to zip a run, and nothing else on the wall', () => {
+  it('offers to zip a group, and nothing else on the wall', () => {
     const takes = ['t1', 't2', 't3'].map((id) => ({
       id,
       url: `/img/${id}`,
@@ -124,18 +124,18 @@ describe('menuFor on a zone', () => {
       h: 10,
     }))
     const card = targetOf(['transom', 'a'])
-    const run = menuFor(card, { item: item({ kind: 'run', takes }), canUndo: false })
-    expect(run.find((i) => i.action === 'zipRun')?.label).toBe('Download zip of the run (3)')
+    const run = menuFor(card, { item: item({ kind: 'group', takes }), canUndo: false })
+    expect(run.find((i) => i.action === 'zipGroup')?.label).toBe('Download zip of the group (3)')
     // A picture is one file, which Copy artifact and the lightbox's save both
     // already hand over.
     expect(menuFor(card, { item: item(), canUndo: false }).map((i) => i.action)).not.toContain(
-      'zipRun',
+      'zipGroup',
     )
     expect(
-      menuFor(card, { item: item({ kind: 'run', takes: takes.slice(0, 1) }), canUndo: false }).map(
+      menuFor(card, { item: item({ kind: 'group', takes: takes.slice(0, 1) }), canUndo: false }).map(
         (i) => i.action,
       ),
-    ).not.toContain('zipRun')
+    ).not.toContain('zipGroup')
   })
 
   it('offers nothing on a zone that is already empty', () => {
@@ -152,7 +152,7 @@ describe('menuFor on a zone', () => {
     expect(menu.filter((i) => i.action === 'openInApp').map((i) => i.app)).toEqual([0, 1])
   })
 
-  it('offers a run the apps of the take it is drawing', () => {
+  it('offers a group the apps of the take it is drawing', () => {
     const take = (id: string, apps?: { name: string; path: string }[]) => ({
       id,
       url: `/img/${id}`,
@@ -167,7 +167,7 @@ describe('menuFor on a zone', () => {
     })
     const answered = { ...take('t1', [{ name: 'Wrong', path: '/a' }]), reply: { status: 'answered' as const, text: '', at: 2 } }
     const menu = menuFor(targetOf(['transom', 'a']), {
-      item: item({ kind: 'run', takes: [answered, take('t2', [{ name: 'LDView', path: '/b' }])] }),
+      item: item({ kind: 'group', takes: [answered, take('t2', [{ name: 'LDView', path: '/b' }])] }),
       canUndo: false,
     })
     expect(menu.filter((i) => i.action === 'openInApp').map((i) => i.label)).toEqual(['Open in LDView'])

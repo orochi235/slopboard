@@ -5,7 +5,7 @@ const MINUTE = 60_000
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 
-/** The lifetimes the panel offers: minutes for watching a run land, hours for
+/** The lifetimes the panel offers: minutes for watching a group land, hours for
  *  a working day, days for a wall left up over a weekend. */
 export const TTL_CHOICES = [
   15 * MINUTE,

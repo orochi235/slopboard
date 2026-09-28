@@ -131,7 +131,7 @@ const readPlan = (level: Level, plan: Plan, opened: boolean): string => {
  * shows the level's treatment as a broken image.
  */
 /**
- * Artifacts the wall makes for itself: a run to page through, a card with a
+ * Artifacts the wall makes for itself: a group to page through, a card with a
  * question, and one already answered — the last because clicking is what it is
  * there to check, so the answered state cannot be reached by clicking.
  *
@@ -143,7 +143,7 @@ function SynthButtons() {
   const [said, setSaid] = useState<string | null>(null)
   const [takes, setTakes] = useState(5)
 
-  const make = async (what: 'run' | 'ask' | 'answered', n?: number) => {
+  const make = async (what: 'group' | 'ask' | 'answered', n?: number) => {
     setSaid(`${what}…`)
     setSaid((await actions.synth(what, n)) ? `${what} sent` : `${what}: the daemon refused it`)
   }
@@ -151,8 +151,8 @@ function SynthButtons() {
   return (
     <>
       <div className="sidebar__buttons">
-        <button type="button" className="params__button" onClick={() => void make('run', takes)}>
-          run of {takes}
+        <button type="button" className="params__button" onClick={() => void make('group', takes)}>
+          group of {takes}
         </button>
         <label className="sidebar__count">
           takes

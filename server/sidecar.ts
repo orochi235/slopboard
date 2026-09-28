@@ -20,17 +20,20 @@ export function parseStamp(blob: unknown): Stamp {
   if (blob === null || typeof blob !== 'object' || Array.isArray(blob)) return {}
   const held = blob as Record<string, unknown>
   const out: Stamp = {}
-  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox', 'reply', 'closed', 'closedAt', 'why', 'run', 'runLabel', 'choice', 'session'] as const) {
+  for (const key of ['caption', 'zone', 'repo', 'sha', 'attention', 'note', 'kept', 'sandbox', 'reply', 'closed', 'closedAt', 'why', 'group', 'groupLabel', 'choice', 'session'] as const) {
     const value = held[key]
     if (typeof value === 'string' && value !== '') out[key] = value
   }
+  // `run`/`runLabel` are the names v0.2.0 wrote, before the idea was a group.
+  if (!out.group && typeof held.run === 'string' && held.run !== '') out.group = held.run
+  if (!out.groupLabel && typeof held.runLabel === 'string' && held.runLabel !== '') out.groupLabel = held.runLabel
   if (typeof held.question === 'string' && held.question !== '') out.question = held.question
   if (Array.isArray(held.choices)) {
     const choices = held.choices.filter((c): c is string => typeof c === 'string' && c !== '')
     if (choices.length > 0) out.choices = choices
   }
   // A count of zero or a fraction says nothing a missing count does not, and
-  // both would reach the badge as a total the run cannot reach.
+  // both would reach the badge as a total the group cannot reach.
   if (typeof held.of === 'number' && Number.isInteger(held.of) && held.of > 0) out.of = held.of
   if (typeof held.pid === 'number' && Number.isInteger(held.pid) && held.pid > 1) out.pid = held.pid
   const apps = pairs(held.apps, 'name', 'path')

@@ -475,7 +475,7 @@
 }
 
 /* There is another take this way. Drawn only where one exists, so the pair
-   never points at nothing, and only for a run — an ordinary card's arrows page
+   never points at nothing, and only for a group — an ordinary card's arrows page
    the wall, which is the whole window and needs no hint. */
 .lightbox__page {
   position: fixed;

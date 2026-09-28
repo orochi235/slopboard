@@ -314,7 +314,7 @@ the background, so the answer arrives as the command finishing.
   plate is not enough on its own: it lapses, and it never said anything about a
   question that *had* been answered — so a card that used to be interactive
   looked like any other picture. `?` in the flag's own color means something is
-  still waiting; `✓` in the ordinary chip colors means it is a record now. A run
+  still waiting; `✓` in the ordinary chip colors means it is a record now. A group
   counts what is left rather than what is done (`? 9`, then `✓ 12`), because how
   many are outstanding is the reason to look. Bottom-right, the last free
   corner: a card can be pinned, hold more than the wall draws, wear its age and
@@ -334,7 +334,7 @@ the background, so the answer arrives as the command finishing.
 
 ### Marking up a render
 
-In the lightbox a picture — a card, or one take of a run — can be drawn on
+In the lightbox a picture — a card, or one take of a group — can be drawn on
 and sent back. `mark up` in the meta row fits the picture above a bar of tools
 (freehand, arrow, box, note, select, undo) and a line of text; **No, like
 this** flattens the marks onto the original at its own resolution and hands the
@@ -377,19 +377,19 @@ result to the daemon. Pages, videos and meshes have no picture to draw on.
   drawing is for a session, `marks/waiting/<session>` exists: the hook stats it
   on every tool call and only asks the daemon when it is there.
 
-### Runs: many pictures, one card
+### Groups: many pictures, one card
 
 An agent that renders sixty parts wants a verdict on each. Sixty cards is spam
-and sixty lightbox interrupts is worse, so `transom post --run <id>` sends a **take**:
-every send naming the same run joins one card, which opens into a carousel.
+and sixty lightbox interrupts is worse, so `transom post --group <id>` sends a **take**:
+every send naming the same group joins one card, which opens into a carousel.
 
-A run is a fourth `kind` beside `page`, `video` and `mesh` — the same shape as
+A group is a fourth `kind` beside `page`, `video` and `mesh` — the same shape as
 those, a poster on the wall and something else in the lightbox — and the first
 artifact that **grows after it lands**. Nothing else in the ingest contract
 appends to a live item, and that is the one new mechanic: a take ingests exactly
 like a picture and is then appended rather than inserted.
 
-- **A run's id is derived from its zone and name**, so an append is a lookup.
+- **A group's id is derived from its zone and name**, so an append is a lookup.
   The create-or-append is one synchronous store call with every `await` already
   finished, because two takes landing in the same tick must not both create the
   card — the failure is two cards with the same name holding half the takes
@@ -398,18 +398,18 @@ like a picture and is then appended rather than inserted.
   animated picture plays; one word for two quantities would make the badge a
   guess, the same call `duration` got against `frames` for video.
 - **The card draws the first unanswered take**, so it shows what it wants from
-  the viewer and works through the run visibly as each is answered, settling on
+  the viewer and works through the group visibly as each is answered, settling on
   the last once nothing is waiting. The store recomputes the poster wherever
   that can change — a take arriving, a question closing — and broadcasts it, so
   no renderer holds a copy of the rule.
-- **The badge reads `⧉ 3/12`**, where the video's `▶ 0:12` sits. A run that
+- **The badge reads `⧉ 3/12`**, where the video's `▶ 0:12` sits. A group that
   never said how many were coming reads `3/7+`: the count so far is true and the
   total is not known, and a bare `3/7` would claim it was.
-- **A run alerts once.** The first take's level applies and every append lands
-  silently. Without this a run at `urgent` is one lightbox interrupt per render,
-  which is the thing a run exists to stop.
-- **A question belongs to a take.** A run whose takes each ask the same thing is
-  the common case and the caller's business to repeat; a run whose takes ask
+- **A group alerts once.** The first take's level applies and every append lands
+  silently. Without this a group at `urgent` is one lightbox interrupt per render,
+  which is the thing a group exists to stop.
+- **A question belongs to a take.** A group whose takes each ask the same thing is
+  the common case and the caller's business to repeat; a group whose takes ask
   different things — or ask nothing, which is a slideshow — costs nothing extra
   this way.
 - **Answering advances to the next take still waiting**, not the next take, and
@@ -421,8 +421,8 @@ like a picture and is then appended rather than inserted.
   gap: a take dropped without a verdict is not one of the outcomes. It closes
   that take alone. The card's own dismiss still closes every open take at once,
   and an expiry takes the whole carousel to the trash under one name per file.
-- **The run is the unit of lifetime.** Its TTL restarts on every append, since a
-  run still producing is not stale, and any unanswered take holds the card off
+- **The group is the unit of lifetime.** Its TTL restarts on every append, since a
+  group still producing is not stale, and any unanswered take holds the card off
   the clock. `MAX_TAKES` is what bounds a card's size: the only other bound is
   how long the agent runs.
 
@@ -452,11 +452,11 @@ the artifact that wanted `--app`.
 ### Zipping a stack
 
 "Copy artifact" carries one picture. A pile is the other unit a viewer wants
-whole — the twelve frames a sweep left in a zone, the eight takes of a run — so
-the right-click menu offers **Download zip (12)** and, on a run, **Download zip
-of the run (8)**. The zone's zip is on a card's menu as well as the zone's own: a zone
+whole — the twelve frames a sweep left in a zone, the eight takes of a group — so
+the right-click menu offers **Download zip (12)** and, on a group, **Download zip
+of the group (8)**. The zone's zip is on a card's menu as well as the zone's own: a zone
 target needs the label or the floor between piles, and the thing the pointer
-actually lands on is a card. Originals, never the wall's capped thumbnails. A run
+actually lands on is a card. Originals, never the wall's capped thumbnails. A group
 inside a zipped zone contributes a folder of every take, not the one take its
 card happens to be drawing: the card stands for all of them and a zip that
 quietly dropped seven would be the wrong archive.
@@ -798,9 +798,9 @@ thing it says.
 ran in, written only inside Claude Code. They are where a drawing on the card
 goes back to (*Marking up a render*), and never reach the XMP packet.
 
-**A sidecar naming a run makes the file a take rather than a card.** `run` is
-the id `--run` gave it, with `runLabel` and `of` saying what the run is called
-and how many takes are coming. That one field is the whole of the run protocol
+**A sidecar naming a group makes the file a take rather than a card.** `group` is
+the id `--group` gave it, with `groupLabel` and `of` saying what the group is called
+and how many takes are coming. That one field is the whole of the group protocol
 at the ingest boundary; everything else about a take — its question, its
 `choices`, its `why` box, the `apps` and `links` it offers — is what an ordinary
 card can carry too.
@@ -1078,7 +1078,7 @@ machine, so they cost a room-facing wall nothing by existing.
 
 **The debug section fabricates real artifacts, not fake ones.** Its row of
 alert buttons fires the daemon's own treatment; its synth buttons write an
-actual file and sidecar into a `debug` zone on a 20-minute TTL — a run of takes,
+actual file and sidecar into a `debug` zone on a 20-minute TTL — a group of takes,
 a card with a question, or one already answered. A card fabricated in the browser
 could not be answered at all, because its id reaches no daemon, and a carousel
 nobody can click says nothing about the carousel. The answered one exists

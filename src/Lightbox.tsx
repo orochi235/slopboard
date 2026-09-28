@@ -24,12 +24,12 @@ import {
   type View,
 } from '@/lightbox/view.ts'
 import type { Reply, Take, TakeApp, TakeLink, WallItem } from '@shared/protocol.ts'
-import { countOf, nextOpen, posterTake } from '@shared/runs.ts'
+import { countOf, nextOpen, posterTake } from '@shared/groups.ts'
 import { replyWords } from '@/asks.ts'
 import './lightbox.css'
 import '@/lightbox/markup.css'
 
-/** What a question is, wherever it hangs: on a card, or on one take of a run. */
+/** What a question is, wherever it hangs: on a card, or on one take of a group. */
 type Asked = {
   question?: string
   choices?: string[]
@@ -79,7 +79,7 @@ function Outs({ id, apps, links }: { id: string; apps?: TakeApp[]; links?: TakeL
  *
  * The chip is the submit: clicking one — or pressing its number — sends the
  * verdict with whatever is in the comment box, empty or not. Text alone cannot
- * send, which is what makes advancing through a run unambiguous. A question
+ * send, which is what makes advancing through a group unambiguous. A question
  * with no choices at all is the older shape and still a text box where Enter
  * sends and Shift+Enter breaks the line.
  *
@@ -94,7 +94,7 @@ function Ask({
 }: {
   asked: Asked
   closing: boolean
-  /** `3/12` while a run is being reviewed; absent for a card's own question. */
+  /** `3/12` while a group is being reviewed; absent for a card's own question. */
   count?: string
   onAnswer: (answer: { choice?: string; text: string }) => void
   onDismiss: () => void
@@ -938,7 +938,7 @@ function MeshLightbox({
   )
 }
 
-/** One take drawn as the picture it is: the run's own fields, with the take's
+/** One take drawn as the picture it is: the group's own fields, with the take's
  *  pixels and its own name, and its question left to `Ask` to draw. */
 function takeItem(item: WallItem, take: Take): WallItem {
   const { kind: _run, takes: _members, question: _q, choices: _c, reply: _r, markup: _m, ...card } = item
@@ -959,14 +959,14 @@ function takeItem(item: WallItem, take: Take): WallItem {
 }
 
 /**
- * A run's carousel: one take at a time, paged with the arrows, each with its
+ * A group's carousel: one take at a time, paged with the arrows, each with its
  * own question. Opens on the take the card was drawing — the first unanswered —
  * so the picture the wall was asking about is the one that comes up.
  *
  * Answering advances to the next take still waiting rather than the next take,
  * which is what makes twelve verdicts twelve keystrokes.
  */
-function RunLightbox({
+function GroupLightbox({
   item,
   quietMs,
   closing,
@@ -995,7 +995,7 @@ function RunLightbox({
     [takes, at],
   )
 
-  // The arrows page the run rather than leaving the card, the same way the
+  // The arrows page the group rather than leaving the card, the same way the
   // video lightbox claims the space bar: a capture listener, so the wall's own
   // handler never sees the key.
   useEffect(() => {
@@ -1017,7 +1017,7 @@ function RunLightbox({
   if (!take) return null
   const answer = (answer: { choice?: string; text: string }) => {
     onAnswer({ ...answer, take: take.id })
-    // Advanced from what the run will look like once this reply lands, since it
+    // Advanced from what the group will look like once this reply lands, since it
     // has not yet: the take just answered is otherwise still the first open one.
     const closed = takes.map((t) =>
       t.id === take.id ? { ...t, reply: { status: 'answered' as const, text: '', at: Date.now() } } : t,
@@ -1108,10 +1108,10 @@ export function Lightbox(props: {
       className="lightbox__tint"
       style={tint ? ({ '--lb-accent': tint } as CSSProperties) : undefined}
     >
-      {rest.item.kind === 'run' ? (
-        // Keyed on the card, so opening another run starts on its own poster
+      {rest.item.kind === 'group' ? (
+        // Keyed on the card, so opening another group starts on its own poster
         // rather than wherever the last one was left.
-        <RunLightbox
+        <GroupLightbox
           key={rest.item.id}
           {...rest}
           closing={closing}

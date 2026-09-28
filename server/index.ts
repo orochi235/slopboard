@@ -8,7 +8,7 @@ import { config } from './config.ts'
 import { classifyPortHolder } from './portGuard.ts'
 import * as store from './store.ts'
 import { watchInbox } from './ingest.ts'
-import { runBadge } from '@shared/runs.ts'
+import { groupBadge } from '@shared/groups.ts'
 import { mountMeshView } from './meshview.ts'
 import { watchZoneColors } from './zoneColors.ts'
 import { readPins, setPinned } from './pins.ts'
@@ -17,11 +17,11 @@ import * as zones from './zones.ts'
 import * as settings from './settings.ts'
 import { zoneCounts } from './zoneCounts.ts'
 import { alert, debugItem, toastFor } from './alert.ts'
-import { MAX_SYNTH_TAKES, synthAnswered, synthAsk, synthRun } from './synth.ts'
+import { MAX_SYNTH_TAKES, synthAnswered, synthAsk, synthGroup } from './synth.ts'
 import { withKeyForwarder } from './page-keys.ts'
 import { readOriginal, serveZip } from './serveZip.ts'
 import { idFromOrig } from './itemId.ts'
-import { zipName, zipPlanForRun, zipPlanForZone } from '@shared/zipPlan.ts'
+import { zipName, zipPlanForGroup, zipPlanForZone } from '@shared/zipPlan.ts'
 import { LEVELS, type Level } from '@shared/attention.ts'
 import type { Lifetime } from '@shared/lifetime.ts'
 import { BEAT_MS, type ServerMessage } from '@shared/protocol.ts'
@@ -299,7 +299,7 @@ app.post('/api/zones/:zone/expire', async (req, res) => {
   res.json({ ok: ids.length > 0, expired: ids.length })
 })
 
-// A whole stack as one download: a zone's pile, and a run's takes. Reads, so
+// A whole stack as one download: a zone's pile, and a group's takes. Reads, so
 // unlike the writes around them these are GETs a browser can navigate to —
 // which is how the menu starts the download, without holding the archive in a
 // blob first.
@@ -314,7 +314,7 @@ app.get('/api/zones/:zone/zip', async (req, res) => {
 app.get('/api/items/:id/zip', async (req, res) => {
   const item = store.snapshot().find((i) => i.id === req.params.id)
   if (!item) return void res.sendStatus(404)
-  const plan = zipPlanForRun(item)
+  const plan = zipPlanForGroup(item)
   console.log(`[zip] ${item.zone}/${item.name} (${plan.length})`)
   await serveZip(res, plan, zipName(`${item.zone}-${item.name}`), readOriginal(store.resolveOriginal))
 })
@@ -355,7 +355,7 @@ app.post('/api/zones/:zone/settings', express.json(), async (req, res) => {
 // one thing more: the button that calls this is in the wall, so `clients.size`
 // is never zero here and `raise` can only bring the window forward, never
 // launch one.
-// Artifacts the wall makes for itself, so the question, the run and the reply
+// Artifacts the wall makes for itself, so the question, the group and the reply
 // can be looked at with no agent producing one. Real sends: they land in the
 // inbox and are answered through the ordinary route, because a carousel nobody
 // can click is not the thing being evaluated.
@@ -363,10 +363,10 @@ app.post('/api/debug/synth', express.json(), async (req, res) => {
   const body = (req.body ?? {}) as { what?: unknown; takes?: unknown }
   const takes = Math.min(MAX_SYNTH_TAKES, Math.max(1, Number(body.takes) || 5))
   try {
-    if (body.what === 'run') {
-      const made = await synthRun(takes)
-      console.log(`[synth] run of ${made.length}`)
-      return void res.json({ ok: true, what: 'run', takes: made.length })
+    if (body.what === 'group') {
+      const made = await synthGroup(takes)
+      console.log(`[synth] group of ${made.length}`)
+      return void res.json({ ok: true, what: 'group', takes: made.length })
     }
     if (body.what === 'ask') {
       await synthAsk()
@@ -380,7 +380,7 @@ app.post('/api/debug/synth', express.json(), async (req, res) => {
     console.warn(`[synth] ${(err as Error).message}`)
     return void res.status(500).json({ ok: false, error: (err as Error).message })
   }
-  res.status(400).json({ ok: false, what: ['run', 'ask', 'answered'] })
+  res.status(400).json({ ok: false, what: ['group', 'ask', 'answered'] })
 })
 
 app.post('/api/debug/alert/:level', (req, res) => {
@@ -431,11 +431,11 @@ setInterval(() => {
 watchInbox((landed) => {
   const { item } = landed
   if (landed.as === 'take' && !landed.opened) {
-    console.log(`[take] ${item.zone}/${item.id.slice(0, 8)} ${runBadge(item)}`)
+    console.log(`[take] ${item.zone}/${item.id.slice(0, 8)} ${groupBadge(item)}`)
     broadcast({ type: 'take', id: item.id, take: landed.take, poster: landed.poster })
-    // A run alerts once. The first take's level applies and every append after
-    // it lands silently, or a run at `urgent` is one interrupt per render —
-    // which is the thing a run exists to stop.
+    // A group alerts once. The first take's level applies and every append after
+    // it lands silently, or a group at `urgent` is one interrupt per render —
+    // which is the thing a group exists to stop.
     return
   }
   console.log(`[arrive] ${item.zone}/${item.id.slice(0, 8)} ${item.w}x${item.h}`)

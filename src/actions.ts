@@ -34,7 +34,7 @@ export type Actions = {
   /** Stop it asking to be looked at. `question` closes a question rather than
    *  clearing a flag, which is the one dismissal a viewer must ask for. */
   dismiss: (id: string, question?: 'close', take?: string) => void
-  /** Answer the question on a card, or on one take of a run. The chip is the
+  /** Answer the question on a card, or on one take of a group. The chip is the
    *  submit, so `choice` is what a question offering choices answers with and
    *  `text` is whatever was in the free-text box, empty or not. */
   answer: (id: string, answer: { choice?: string; text?: string; take?: string }) => void
@@ -53,11 +53,11 @@ export type Actions = {
   undo: () => Promise<string[]>
   /** Take a whole zone at once. */
   expireZone: (zone: string) => void
-  /** Save a whole stack: a zone's pile, or one run's takes. The only read on
+  /** Save a whole stack: a zone's pile, or one group's takes. The only read on
    *  this interface — it is here because the demo wall has no daemon to stream
    *  an archive and builds its own in the page. */
   zipZone: (zone: string) => void
-  zipRun: (id: string) => void
+  zipGroup: (id: string) => void
   /** Hold a zone at the top of the wall, or let it back into the order. */
   pinZone: (zone: string, on: boolean) => void
   /** Set one zone's overrides. */
@@ -67,10 +67,10 @@ export type Actions = {
   /** Ask the daemon to play one attention level, for the sidebar's row of
    *  buttons. Resolves to what it decided to do, or null if it refused. */
   fireAlert: (level: Level) => Promise<Plan | null>
-  /** Have the daemon fabricate an artifact to look at: a run of takes, a card
+  /** Have the daemon fabricate an artifact to look at: a group of takes, a card
    *  with a question, or one already answered. A real send, so every gesture on
    *  it is the real gesture. Resolves false if the daemon refused. */
-  synth: (what: 'run' | 'ask' | 'answered', takes?: number) => Promise<boolean>
+  synth: (what: 'group' | 'ask' | 'answered', takes?: number) => Promise<boolean>
 }
 
 /** A write whose only failure mode is that the picture does not change. Every
@@ -130,7 +130,7 @@ const live: Actions = {
   },
   expireZone: (name) => post(`${zone(name)}/expire`),
   zipZone: (name) => download(`${zone(name)}/zip`),
-  zipRun: (id) => download(`/api/items/${id}/zip`),
+  zipGroup: (id) => download(`/api/items/${id}/zip`),
   pinZone: (name, on) => post(`${zone(name)}/pin?on=${on ? '1' : '0'}`),
   setZoneSettings: (name, patch) => post(`${zone(name)}/settings`, patch),
   setTtl: (ms) => post('/api/settings/ttl', { ms }),
@@ -174,7 +174,7 @@ export const actions: Actions = {
   undo: () => current.undo(),
   expireZone: (name) => current.expireZone(name),
   zipZone: (name) => current.zipZone(name),
-  zipRun: (id) => current.zipRun(id),
+  zipGroup: (id) => current.zipGroup(id),
   pinZone: (name, on) => current.pinZone(name, on),
   setZoneSettings: (name, patch) => current.setZoneSettings(name, patch),
   setTtl: (ms) => current.setTtl(ms),

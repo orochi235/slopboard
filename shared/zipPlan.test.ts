@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Take, WallItem } from '@shared/protocol.ts'
-import { zipName, zipPlanForRun, zipPlanForZone } from '@shared/zipPlan.ts'
+import { zipName, zipPlanForGroup, zipPlanForZone } from '@shared/zipPlan.ts'
 
 const item = (over: Partial<WallItem> = {}): WallItem => ({
   id: 'a',
@@ -56,14 +56,14 @@ describe('zipPlanForZone', () => {
     expect(plan.map((e) => e.name)).toEqual(['plot.png', 'plot-2.png'])
   })
 
-  it('gives a run a folder of its takes', () => {
-    const run = item({
+  it('gives a group a folder of its takes', () => {
+    const group = item({
       id: 'r',
       name: 'sweep',
-      kind: 'run',
+      kind: 'group',
       takes: [take({ id: 't1', name: 'one' }), take({ id: 't2', name: 'two' })],
     })
-    expect(zipPlanForZone([run], 'transom')).toEqual([
+    expect(zipPlanForZone([group], 'transom')).toEqual([
       { id: 't1', name: 'sweep/one.png' },
       { id: 't2', name: 'sweep/two.png' },
     ])
@@ -75,22 +75,22 @@ describe('zipPlanForZone', () => {
   })
 })
 
-describe('zipPlanForRun', () => {
-  it('is flat — the archive is already named for the run', () => {
-    const run = item({
+describe('zipPlanForGroup', () => {
+  it('is flat — the archive is already named for the group', () => {
+    const group = item({
       id: 'r',
       name: 'sweep',
-      kind: 'run',
+      kind: 'group',
       takes: [take({ id: 't1', name: 'one' }), take({ id: 't2', name: 'one' })],
     })
-    expect(zipPlanForRun(run)).toEqual([
+    expect(zipPlanForGroup(group)).toEqual([
       { id: 't1', name: 'one.png' },
       { id: 't2', name: 'one-2.png' },
     ])
   })
 
-  it('falls back to the card itself for anything that is not a run', () => {
-    expect(zipPlanForRun(item())).toEqual([{ id: 'a', name: 'plot.png' }])
+  it('falls back to the card itself for anything that is not a group', () => {
+    expect(zipPlanForGroup(item())).toEqual([{ id: 'a', name: 'plot.png' }])
   })
 })
 

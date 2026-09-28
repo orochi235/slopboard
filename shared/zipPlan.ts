@@ -45,11 +45,11 @@ function unique(entries: ZipEntry[]): ZipEntry[] {
   })
 }
 
-/** A run contributes a folder of its takes, since the card stands for many
+/** A group contributes a folder of its takes, since the card stands for many
  *  pictures and only one of them is the one on the wall. */
 const forItem = (item: WallItem, under = ''): ZipEntry[] => {
   const stem = under + safe(item.name)
-  if (item.kind !== 'run' || !item.takes?.length) {
+  if (item.kind !== 'group' || !item.takes?.length) {
     return [{ id: item.id, name: stem + extOf(item.path) }]
   }
   return unique(
@@ -64,9 +64,9 @@ export function zipPlanForZone(items: readonly WallItem[], zone: string): ZipEnt
   return unique(held.flatMap((item) => forItem(item)))
 }
 
-/** One run's takes, flat: the archive is already named for the run. */
-export function zipPlanForRun(item: WallItem): ZipEntry[] {
-  if (item.kind !== 'run' || !item.takes?.length) return forItem(item)
+/** One group's takes, flat: the archive is already named for the group. */
+export function zipPlanForGroup(item: WallItem): ZipEntry[] {
+  if (item.kind !== 'group' || !item.takes?.length) return forItem(item)
   return unique(item.takes.map((take) => ({ id: take.id, name: safe(take.name) + extOf(take.path) })))
 }
 

@@ -25,8 +25,8 @@ export type TakeApp = { name: string; path: string }
 export type TakeLink = { label: string; url: string }
 
 /**
- * One member of a run: a picture with its own question, reviewed in the
- * carousel the run's card opens into.
+ * One member of a group: a picture with its own question, reviewed in the
+ * carousel the group's card opens into.
  *
  * Not `frames` — `WallItem.frames` already means how many an animated picture
  * plays, and one word for two quantities would make the badge a guess.
@@ -77,7 +77,7 @@ export type Markup = {
   live: boolean
 }
 
-/** What a run's card draws, derived from its takes: the first unanswered, else
+/** What a group's card draws, derived from its takes: the first unanswered, else
  *  the last. The store recomputes it, so no renderer holds the rule. */
 export type Poster = { url: string; origUrl: string; w: number; h: number }
 
@@ -108,7 +108,7 @@ export type WallItem = {
   question?: string
   choices?: string[]
   reply?: Reply
-  /** A drawing sent back from the lightbox. A run carries these per take. */
+  /** A drawing sent back from the lightbox. A group carries these per take. */
   markup?: Markup
   /** What `bin/transom` saw when it ran: the repository and the short commit.
    *  Absent for anything dropped in by hand. */
@@ -117,15 +117,15 @@ export type WallItem = {
   /** Absent for a picture, which is the ordinary case. `page` means `/orig`
    *  serves an HTML file the lightbox runs; `video` means it serves a video
    *  the lightbox plays; `mesh` means it serves a model the lightbox orbits;
-   *  `run` means the card stands for many pictures and the lightbox pages
+   *  `group` means the card stands for many pictures and the lightbox pages
    *  them. Any of the four leaves `url` a poster of it. */
-  kind?: 'page' | 'video' | 'mesh' | 'run'
-  /** A run's members, in arrival order. Only ever set with `kind: 'run'`, and
-   *  never empty — a run's card is opened by its first take. */
+  kind?: 'page' | 'video' | 'mesh' | 'group'
+  /** A group's members, in arrival order. Only ever set with `kind: 'group'`, and
+   *  never empty — a group's card is opened by its first take. */
   takes?: Take[]
-  /** What the run said about itself. `of` is how many takes are coming, where
+  /** What the group said about itself. `of` is how many takes are coming, where
    *  the sender knew; absent means the count so far is all that is known. */
-  run?: { label?: string; of?: number }
+  group?: { label?: string; of?: number }
   /** How many frames an animated picture plays: the wall draws the first and
    *  the lightbox plays all of them. Absent for a still, and for a video,
    *  which reports its runtime instead. */
@@ -139,7 +139,7 @@ export type WallItem = {
   /** What the pusher said the page may do, verbatim into the iframe's
    *  `sandbox` attribute. Absent means the wall's own default applies. */
   sandbox?: string
-  /** Apps the sender offered and pages it points at. A run carries these per
+  /** Apps the sender offered and pages it points at. A group carries these per
    *  take, since each one is about a different render. */
   apps?: TakeApp[]
   links?: TakeLink[]
@@ -224,15 +224,15 @@ export type ServerMessage =
   | { type: 'expire'; id: string }
   /** The item is still on the wall; it has just stopped asking to be looked at. */
   | { type: 'dismiss'; id: string }
-  /** A take appended to a run already on the wall — the one thing that changes
+  /** A take appended to a group already on the wall — the one thing that changes
    *  an item's pixels after it lands, so the recomputed poster rides with it. */
   | { type: 'take'; id: string; take: Take; poster: Poster }
   /** A question closed. Its flag goes with it; the question stays. `take` names
-   *  which member of a run answered, and the poster moves on to the next
+   *  which member of a group answered, and the poster moves on to the next
    *  unanswered one. */
   | { type: 'reply'; id: string; reply: Reply; take?: string; poster?: Poster }
   /** A drawing sent back, delivered, discarded, or its sender found gone.
-   *  `take` names which member of a run it is on. */
+   *  `take` names which member of a group it is on. */
   | { type: 'markup'; id: string; markup: Markup; take?: string }
   /** Rescued, or let go again. `keptAt` is null for the second. */
   | { type: 'keep'; id: string; keptAt: number | null }

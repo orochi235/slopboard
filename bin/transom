@@ -24,9 +24,9 @@
 #                              what an HTML page may do in the lightbox. `none`
 #                              removes the sandbox entirely. Whoever pushes the
 #                              page decides this; the wall applies what it is told.
-#   --run sweep-3              a take in a run: every send naming the same run
+#   --group sweep-3            a take in a group: every send naming the same group
 #                              joins one card, which the lightbox pages through.
-#                              `--run-label "outline sweep"` names it on the wall
+#                              `--group-label "outline sweep"` names it on the wall
 #                              and `--of 12` says how many are coming.
 #   --app LDView               offers "Open in LDView" in the lightbox, on the
 #                              artifact itself. `--app "LDView=parts/3001.dat"`
@@ -151,8 +151,8 @@ note=""
 sandbox=""
 choices=""
 why=""
-run=""
-run_label=""
+group=""
+group_label=""
 of=""
 apps=""
 links=""
@@ -178,8 +178,8 @@ while :; do
       else
         why="$WHY_DEFAULT"; shift
       fi ;;
-    --run) run="$2"; shift 2 ;;
-    --run-label) run_label="$2"; shift 2 ;;
+    --group|--run) group="$2"; shift 2 ;;
+    --group-label|--run-label) group_label="$2"; shift 2 ;;
     --of) of="$2"; shift 2 ;;
     --app) apps="$apps$2
 "; shift 2 ;;
@@ -257,7 +257,7 @@ ext_of() {
 write_sidecar() {
   dest_image=$1
   dest_caption=$2
-  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$session" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && [ -z "$run" ] && [ -z "$apps" ] && [ -z "$links" ] && [ -z "$quiet" ] && return 0
+  [ -z "$dest_caption" ] && [ -z "$sha" ] && [ -z "$session" ] && [ -z "$attention" ] && [ -z "$note" ] && [ -z "$sandbox" ] && [ -z "$question" ] && [ -z "$group" ] && [ -z "$apps" ] && [ -z "$links" ] && [ -z "$quiet" ] && return 0
   {
     printf '{"repo":"%s"' "$(json_escape "$repo")"
     [ -n "$sha" ] && printf ',"sha":"%s"' "$(json_escape "$sha")"
@@ -270,8 +270,8 @@ write_sidecar() {
     [ -n "$question" ] && printf ',"question":"%s"' "$(json_escape "$question")"
     [ -n "$question" ] && [ -n "$choices" ] && printf ',"choices":[%s]' "$choices"
     [ -n "$question" ] && [ -n "$why" ] && printf ',"why":"%s"' "$(json_escape "$why")"
-    [ -n "$run" ] && printf ',"run":"%s"' "$(json_escape "$run")"
-    [ -n "$run_label" ] && printf ',"runLabel":"%s"' "$(json_escape "$run_label")"
+    [ -n "$group" ] && printf ',"group":"%s"' "$(json_escape "$group")"
+    [ -n "$group_label" ] && printf ',"groupLabel":"%s"' "$(json_escape "$group_label")"
     [ -n "$of" ] && printf ',"of":%s' "$of"
     [ -n "$apps" ] && printf ',"apps":[%s]' "$(apps_json "$dest_image")"
     [ -n "$links" ] && printf ',"links":[%s]' "$links"
@@ -340,13 +340,13 @@ if [ "$verb" = wait ]; then
   [ $# -eq 1 ] || fail "takes the path \`transom ask --no-wait\` printed"
   await_answer "$1"
 fi
-# A run answers per take, so several files are several answers and the caller
+# A group answers per take, so several files are several answers and the caller
 # waits on the paths this printed. Without one, one send is one answer.
-if [ -n "$question" ] && [ -z "$run" ] && [ $# -gt 1 ]; then
+if [ -n "$question" ] && [ -z "$group" ] && [ $# -gt 1 ]; then
   fail "takes one file, since one answer comes back"
 fi
-if [ -n "$run_label" ] && [ -z "$run" ]; then fail "--run-label needs --run"; fi
-if [ -n "$of" ] && [ -z "$run" ]; then fail "--of needs --run"; fi
+if [ -n "$group_label" ] && [ -z "$group" ]; then fail "--group-label needs --group"; fi
+if [ -n "$of" ] && [ -z "$group" ]; then fail "--of needs --group"; fi
 if [ -n "$of" ]; then
   case "$of" in *[!0-9]*|0) fail "--of takes a count of takes ($of)" ;; esac
 fi

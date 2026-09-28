@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { config } from './config.ts'
 
 /**
- * Artifacts the wall makes for itself, so a question, a run or an answered card
+ * Artifacts the wall makes for itself, so a question, a group or an answered card
  * can be looked at without an agent to produce one.
  *
  * These are **real sends**: a file and a sidecar in the inbox, ingested by the
@@ -89,17 +89,17 @@ const asked = (dest: string): Sidecar => ({
   links: [{ label: 'transom on github', url: 'https://github.com/orochi235/transom' }],
 })
 
-/** A run: one card, `takes` pictures, a question on each. */
-export async function synthRun(takes: number, label = 'synthetic run'): Promise<string[]> {
-  const run = `debug-${randomUUID().slice(0, 8)}`
+/** A group: one card, `takes` pictures, a question on each. */
+export async function synthGroup(takes: number, label = 'synthetic group'): Promise<string[]> {
+  const group = `debug-${randomUUID().slice(0, 8)}`
   const hue = Math.floor(Math.random() * 360)
   const out: string[] = []
   for (let n = 1; n <= takes; n++) {
     const blob = await card(`take ${n}/${takes}`, (hue + n * 37) % 360, 720, 480)
     out.push(
       await land(`take ${n}`, blob, (dest) => ({
-        run,
-        runLabel: label,
+        group,
+        groupLabel: label,
         of: takes,
         ...asked(dest),
       })),
@@ -108,7 +108,7 @@ export async function synthRun(takes: number, label = 'synthetic run'): Promise<
   return out
 }
 
-/** One card with a question on it: the shape a run is not. */
+/** One card with a question on it: the shape a group is not. */
 export async function synthAsk(): Promise<string> {
   const blob = await card('asking', Math.floor(Math.random() * 360), 720, 480)
   return land('synthetic question', blob, asked)

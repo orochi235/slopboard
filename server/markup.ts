@@ -33,7 +33,7 @@ export type MarkRecord = {
   /** labkit's serialized marks, kept so a drawing is data and not only pixels. */
   marks: unknown
   sender?: Sender
-  /** The card it is on, and the take when that card is a run. */
+  /** The card it is on, and the take when that card is a group. */
   card: string
   take?: string
   caption: string

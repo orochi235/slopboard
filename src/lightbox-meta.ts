@@ -42,8 +42,8 @@ export function formatBytes(bytes: number): string {
 export function metaOf(item: WallItem, now: number): string[] {
   const parts = [item.zone, ago(now - item.bornAt)]
   // Which run a take belongs to, since the carousel shows the take's own name
-  // where the card showed the run's.
-  if (item.run?.label) parts.push(item.run.label)
+  // where the card showed the group's.
+  if (item.group?.label) parts.push(item.group.label)
   if (item.repo && item.sha && item.repo !== item.zone) parts.push(`${item.repo}@${item.sha}`)
   else if (item.sha) parts.push(item.sha)
   const format = formatOf(item)
