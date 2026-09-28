@@ -99,10 +99,10 @@ section {
   position: relative;
   max-width: none;
   width: min(66ch, calc(100% - 32px));
-  margin: 38vh auto 18vh;
-  padding: 2.5rem clamp(1.1rem, 4vw, 2.5rem);
+  margin: 19vh auto 18vh;
+  padding: 1.25rem 1.5rem;
   border: 1px solid color-mix(in srgb, var(--muted) 25%, transparent);
-  border-radius: 6px;
+  border-radius: 14px;
   background: color-mix(in srgb, var(--bg) 72%, transparent);
 }
 
@@ -187,4 +187,8 @@ ul {
 li {
   margin-bottom: 0.5rem;
   color: var(--ink);
+}
+
+.home main > :last-child > :last-child {
+  margin-bottom: 0;
 }
