@@ -95,13 +95,18 @@ section {
   pointer-events: none;
 }
 
-/* A panel over the hero rather than text straight on the picture. */
+/* The stage for the parallax. The panel is its own plane, so its backdrop
+   moves against the hero and the text moves against it. */
 .home main {
   position: relative;
   max-width: none;
-  width: min(66ch, calc(100% - 32px));
+  width: min(calc(66ch + 100px), calc(100% - 32px));
   margin: 19vh auto 18vh;
-  padding: 1.25rem 1.5rem;
+  padding: 0;
+}
+
+.panel {
+  padding: clamp(20px, 5vw, 50px);
   border: 1px solid color-mix(in srgb, var(--muted) 25%, transparent);
   border-radius: 14px;
   background: color-mix(in srgb, var(--bg) 72%, transparent);
@@ -190,6 +195,6 @@ li {
   color: var(--ink);
 }
 
-.home main > :last-child > :last-child {
+.panel > :last-child > :last-child {
   margin-bottom: 0;
 }

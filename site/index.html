@@ -13,79 +13,88 @@
     <link rel="stylesheet" href="./site.css" />
     <script type="module">
       import { delaminate } from './delamin8r.js'
-      // The panel and its sections, no deeper: below that are paragraphs and
-      // buttons, and a button on a plane of its own is one the pointer chases.
-      delaminate(document.querySelector('main'), { mode: 'window', maxDepth: 2 })
+      // The panel and its sections, no deeper: below them are buttons, and a
+      // button on a plane of its own is one the pointer chases. The prefs
+      // sheet's tuning, since a derived step scales with this tall a container.
+      delaminate(document.querySelector('main'), {
+        mode: 'window',
+        maxDepth: 2,
+        step: 12,
+        perspective: 1400,
+        swing: 300,
+      })
     </script>
   </head>
   <body class="home">
     <div class="hero" aria-hidden="true"></div>
     <main>
-      <header>
-        <h1>transom</h1>
-        <p class="lede">
-          Capture everything your agents render in one place. Use it like an inbox or gallery
-          on a second screen. Supports embedded pages, 3d meshes, and additional formats via
-          plugins. Lets agents flag artifacts for your perusal and even solicit inline feedback.
-        </p>
-        <pre><code>brew install orochi235/tap/transom
+      <div class="panel">
+        <header>
+          <h1>transom</h1>
+          <p class="lede">
+            Capture everything your agents render in one place. Use it like an inbox or gallery
+            on a second screen. Supports embedded pages, 3d meshes, and additional formats via
+            plugins. Lets agents flag artifacts for your perusal and even solicit inline feedback.
+          </p>
+          <pre><code>brew install orochi235/tap/transom
 transom install    # daemon and client, as LaunchAgents
 transom wire       # the skill and hook for Claude Code</code></pre>
-        <p class="actions">
-          <a class="button" href="./wall/">Open the demo wall</a>
-          <a class="button button--quiet" href="./integrate/">Instructions</a>
-          <a class="button button--quiet" href="https://github.com/orochi235/transom"
-            >Source</a
-          >
-        </p>
-        <p class="note">
-          The demo runs on a fixed set of real renders and a fake daemon, so nothing arrives from
-          anywhere. Pictures still age out and the controls still work.
-        </p>
-      </header>
+          <p class="actions">
+            <a class="button" href="./wall/">Open the demo wall</a>
+            <a class="button button--quiet" href="./integrate/">Instructions</a>
+            <a class="button button--quiet" href="https://github.com/orochi235/transom"
+              >Source</a
+            >
+          </p>
+          <p class="note">
+            The demo runs on a fixed set of real renders and a fake daemon, so nothing arrives from
+            anywhere. Pictures still age out and the controls still work.
+          </p>
+        </header>
 
-      <section>
-        <h2>Why</h2>
-        <p>
-          Anyone who's done any amount of agentic coding on something visual (or had to provide tech
-          support for family members over the phone) knows the frustration of having a halfhearted
-          description read to you of something you can't see. After typing "JUST SHOW ME THE FUCKING
-          RENDER" into Claude for the dozenth time while it was reasoning through some geometry
-          decision that was literally incomprehensible without a diagram, it occurred to me that I
-          could just have it open all of its output in Preview. Which is fine as long as you're OK
-          with random windows popping up unannounced over your work and stealing focus all the time.
-        </p>
-        <p>
-          Eventually I got hoarse from yelling and built this. It's been indispensable to me ever since.
-        </p>
-      </section>
+        <section>
+          <h2>Why</h2>
+          <p>
+            Anyone who's done any amount of agentic coding on something visual (or had to provide tech
+            support for family members over the phone) knows the frustration of having a halfhearted
+            description read to you of something you can't see. After typing "JUST SHOW ME THE FUCKING
+            RENDER" into Claude for the dozenth time while it was reasoning through some geometry
+            decision that was literally incomprehensible without a diagram, it occurred to me that I
+            could just have it open all of its output in Preview. Which is fine as long as you're OK
+            with random windows popping up unannounced over your work and stealing focus all the time.
+          </p>
+          <p>
+            Eventually I got hoarse from yelling and built this. It's been indispensable to me ever since.
+          </p>
+        </section>
 
-      <section>
-        <h2>Posting to it</h2>
-        <p>Writing the file is the whole protocol. There is nothing to start or connect to.</p>
-        <pre><code>transom post render.png</code></pre>
-        <p>
-          The zone is the directory name of the repository you ran in, so a project is on the wall
-          the first time it renders and nothing has to be bound.
-          <a href="./integrate/">Wiring it to your own agents</a> is one command. A zone is one pile, which is what
-          makes &ldquo;which projects are producing&rdquo; answerable from across the room. Pipe a
-          generator straight in, or pass <code>--ttl</code>, a caption, or a question the card (and agent)
-          will wait for you to respond to.
-        </p>
-      </section>
+        <section>
+          <h2>Posting to it</h2>
+          <p>Writing the file is the whole protocol. There is nothing to start or connect to.</p>
+          <pre><code>transom post render.png</code></pre>
+          <p>
+            The zone is the directory name of the repository you ran in, so a project is on the wall
+            the first time it renders and nothing has to be bound.
+            <a href="./integrate/">Wiring it to your own agents</a> is one command. A zone is one pile, which is what
+            makes &ldquo;which projects are producing&rdquo; answerable from across the room. Pipe a
+            generator straight in, or pass <code>--ttl</code>, a caption, or a question the card (and agent)
+            will wait for you to respond to.
+          </p>
+        </section>
 
-      <section>
-        <h2>How it is put together</h2>
-        <p>
-          A Node daemon watches <code>~/transom/inbox/</code>, downscales what lands, and pushes it
-          over a WebSocket. The client is React and three.js: one diagonal pile per zone, drawn in
-          WebGL, read head-on at wall distance and zoomed into for the detail.
-        </p>
-        <p>
-          Layout from <a href="https://github.com/orochi235/windease">windease</a>, menu bar widget
-          by <a href="https://github.com/orochi235/perch">perch</a>.
-        </p>
-      </section>
+        <section>
+          <h2>How it is put together</h2>
+          <p>
+            A Node daemon watches <code>~/transom/inbox/</code>, downscales what lands, and pushes it
+            over a WebSocket. The client is React and three.js: one diagonal pile per zone, drawn in
+            WebGL, read head-on at wall distance and zoomed into for the detail.
+          </p>
+          <p>
+            Layout from <a href="https://github.com/orochi235/windease">windease</a>, menu bar widget
+            by <a href="https://github.com/orochi235/perch">perch</a>.
+          </p>
+        </section>
+      </div>
     </main>
   </body>
 </html>
