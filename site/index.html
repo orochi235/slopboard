@@ -13,15 +13,15 @@
     <link rel="stylesheet" href="./site.css" />
     <script type="module">
       import { delaminate } from './delamin8r.js'
-      // The panel, its sections, and the code blocks in them. Everything else
-      // at that depth stays flat: a button on a plane of its own is one the
-      // pointer chases. Set rather than derived, since a derived step scales
-      // with this tall a container.
+      // The panel, its sections, and one shared plane for the code blocks and
+      // the button row. The row moves, not each button: a button on a plane of
+      // its own is one the pointer chases. Set rather than derived, since a
+      // derived step scales with this tall a container.
       delaminate(document.querySelector('main'), {
         mode: 'window',
         maxDepth: 3,
-        skip: '.panel > * > :not(pre)',
-        step: 16,
+        skip: '.panel > * > :not(pre, .actions)',
+        step: 10,
         perspective: 1400,
         swing: 700,
       })
@@ -41,7 +41,7 @@
           <pre data-dl-lift="2"><code>brew install orochi235/tap/transom
 transom install    # daemon and client, as LaunchAgents
 transom wire       # the skill and hook for Claude Code</code></pre>
-          <p class="actions">
+          <p class="actions" data-dl-lift="2">
             <a class="button" href="./wall/">Try a demo</a>
             <a class="button button--quiet" href="./integrate/">Instructions</a>
             <a class="button button--quiet" href="https://github.com/orochi235/transom"
