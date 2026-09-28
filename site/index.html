@@ -13,12 +13,14 @@
     <link rel="stylesheet" href="./site.css" />
     <script type="module">
       import { delaminate } from './delamin8r.js'
-      // The panel and its sections, no deeper: below them are buttons, and a
-      // button on a plane of its own is one the pointer chases. Set rather than
-      // derived, since a derived step scales with this tall a container.
+      // The panel, its sections, and the code blocks in them. Everything else
+      // at that depth stays flat: a button on a plane of its own is one the
+      // pointer chases. Set rather than derived, since a derived step scales
+      // with this tall a container.
       delaminate(document.querySelector('main'), {
         mode: 'window',
-        maxDepth: 2,
+        maxDepth: 3,
+        skip: '.panel > * > :not(pre)',
         step: 16,
         perspective: 1400,
         swing: 700,
@@ -36,7 +38,7 @@
             on a second screen. Supports embedded pages, 3d meshes, and additional formats via
             plugins. Lets agents flag artifacts for your perusal and even solicit inline feedback.
           </p>
-          <pre><code>brew install orochi235/tap/transom
+          <pre data-dl-lift="2"><code>brew install orochi235/tap/transom
 transom install    # daemon and client, as LaunchAgents
 transom wire       # the skill and hook for Claude Code</code></pre>
           <p class="actions">
@@ -71,7 +73,7 @@ transom wire       # the skill and hook for Claude Code</code></pre>
         <section>
           <h2>Posting to it</h2>
           <p>Writing the file is the whole protocol. There is nothing to start or connect to.</p>
-          <pre><code>transom post render.png</code></pre>
+          <pre data-dl-lift="2"><code>transom post render.png</code></pre>
           <p>
             <a href="./integrate/">Wiring it to your own agents</a> is one command. Artifacts go to whichever
             zone you specify, which by default is the name of the repo that published the item.
