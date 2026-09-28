@@ -14,14 +14,14 @@
     <script type="module">
       import { delaminate } from './delamin8r.js'
       // The panel and its sections, no deeper: below them are buttons, and a
-      // button on a plane of its own is one the pointer chases. The prefs
-      // sheet's tuning, since a derived step scales with this tall a container.
+      // button on a plane of its own is one the pointer chases. Set rather than
+      // derived, since a derived step scales with this tall a container.
       delaminate(document.querySelector('main'), {
         mode: 'window',
         maxDepth: 2,
-        step: 12,
+        step: 16,
         perspective: 1400,
-        swing: 300,
+        swing: 700,
       })
     </script>
   </head>
@@ -73,12 +73,8 @@ transom wire       # the skill and hook for Claude Code</code></pre>
           <p>Writing the file is the whole protocol. There is nothing to start or connect to.</p>
           <pre><code>transom post render.png</code></pre>
           <p>
-            The zone is the directory name of the repository you ran in, so a project is on the wall
-            the first time it renders and nothing has to be bound.
-            <a href="./integrate/">Wiring it to your own agents</a> is one command. A zone is one pile, which is what
-            makes &ldquo;which projects are producing&rdquo; answerable from across the room. Pipe a
-            generator straight in, or pass <code>--ttl</code>, a caption, or a question the card (and agent)
-            will wait for you to respond to.
+            <a href="./integrate/">Wiring it to your own agents</a> is one command. Artifacts go to whichever
+            zone you specify, which by default is the name of the repo that published the item.
           </p>
         </section>
 

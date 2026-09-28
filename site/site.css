@@ -100,13 +100,13 @@ section {
 .home main {
   position: relative;
   max-width: none;
-  width: min(calc(66ch + 100px), calc(100% - 32px));
+  width: min(calc(66ch + 180px), calc(100% - 32px));
   margin: 19vh auto 18vh;
   padding: 0;
 }
 
 .panel {
-  padding: clamp(20px, 5vw, 50px);
+  padding: clamp(20px, 8vw, 90px);
   border: 1px solid color-mix(in srgb, var(--muted) 25%, transparent);
   border-radius: 14px;
   background: color-mix(in srgb, var(--bg) 72%, transparent);
