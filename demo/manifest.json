@@ -121,16 +121,6 @@
       "sha": "04b0eb4"
     },
     {
-      "zone": "transom",
-      "file": "img/043.webp",
-      "name": "demo-wide",
-      "w": 2400,
-      "h": 1350,
-      "bornAt": 1790475542793.211,
-      "repo": "transom",
-      "sha": "dacecbf"
-    },
-    {
       "zone": "brick-icons",
       "file": "img/000.webp",
       "name": "sheet",
