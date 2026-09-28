@@ -55,8 +55,11 @@
   display: block;
   width: 100%;
   height: 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-size: 100% 100%;
+  /* Height, not both: grid and hexagons repeat on a non-square tile, which
+     stretching to the face would distort. The tile meets its own edge, so the
+     repeat across is seamless. */
+  mask-size: auto 100%;
+  -webkit-mask-size: auto 100%;
   pointer-events: none;
 }
 

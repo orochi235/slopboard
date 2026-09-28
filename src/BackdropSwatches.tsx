@@ -60,7 +60,7 @@ export function BackdropSwatches({
           className="swatch__face"
           style={
             mask
-              ? { maskImage: `url(${mask})`, WebkitMaskImage: `url(${mask})`, background: tint }
+              ? { maskImage: `url(${mask.url})`, WebkitMaskImage: `url(${mask.url})`, background: tint }
               : undefined
           }
         />
